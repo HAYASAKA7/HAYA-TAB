@@ -885,11 +885,24 @@ function showToast(message, type = "info") {
 async function addTab(isUpload) {
     const paths = await window.go.main.App.SelectFiles();
     if (paths && paths.length > 0) {
+        let added = 0;
+        let skipped = 0;
         for (const path of paths) {
-            const tabData = await window.go.main.App.ProcessFile(path);
-            await window.go.main.App.SaveTab(tabData, isUpload);
+            try {
+                const tabData = await window.go.main.App.ProcessFile(path);
+                await window.go.main.App.SaveTab(tabData, isUpload);
+                added++;
+            } catch (err) {
+                console.warn("Skipped duplicate or error:", err);
+                skipped++;
+            }
         }
-        await refreshTabs();
+        await refreshData();
+        if (skipped > 0) {
+            showToast(`Added ${added} tab(s), ${skipped} skipped (duplicates)`, skipped > 0 ? "warning" : undefined);
+        } else if (added > 0) {
+            showToast(`Added ${added} tab(s)`);
+        }
     }
 }
 function editTab(id) { const t = tabs.find(x => x.id === id); if(t) openModal(t, 'edit'); }

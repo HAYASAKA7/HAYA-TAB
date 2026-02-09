@@ -55,7 +55,7 @@ func ParseFilename(filename string) Metadata {
 
 // DownloadCover searches iTunes and saves the cover to dstPath.
 // Falls back to US/en_us if specific country/lang returns no results.
-func DownloadCover(artist, album, country, lang, dstPath string) error {
+func DownloadCover(artist, album, title, country, lang, dstPath string) error {
 	// 1. Try with user params
 	if country == "" {
 		country = "US"
@@ -64,7 +64,7 @@ func DownloadCover(artist, album, country, lang, dstPath string) error {
 		lang = "en_us"
 	}
 
-	err := attemptDownload(artist, album, country, lang, dstPath)
+	err := attemptDownload(artist, album, title, country, lang, dstPath)
 	if err == nil {
 		return nil
 	}
@@ -72,23 +72,42 @@ func DownloadCover(artist, album, country, lang, dstPath string) error {
 	// 2. Fallback to US if different
 	if country != "US" {
 		fmt.Printf("Search failed for %s/%s, falling back to US...\n", country, lang)
-		return attemptDownload(artist, album, "US", "en_us", dstPath)
+		return attemptDownload(artist, album, title, "US", "en_us", dstPath)
 	}
 
 	return err
 }
 
-func attemptDownload(artist, album, country, lang, dstPath string) error {
-	term := artist + " " + album
-	query := url.QueryEscape(term)
-	// iTunes API: country (ISO 2 letter), lang (e.g., en_us, ja_jp)
-	apiURL := fmt.Sprintf("https://itunes.apple.com/search?term=%s&entity=album&limit=1&country=%s&lang=%s", query, country, lang)
+func attemptDownload(artist, album, title, country, lang, dstPath string) error {
+	var term, entity string
+	if album != "" {
+		term = artist + " " + album
+		entity = "album"
+	} else {
+		term = artist + " " + title
+		entity = "song"
+	}
 
-	resp, err := http.Get(apiURL)
+	query := url.QueryEscape(term)
+	apiURL := fmt.Sprintf("https://itunes.apple.com/search?term=%s&entity=%s&limit=1&country=%s&lang=%s", query, entity, country, lang)
+
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("iTunes API error: status code %d", resp.StatusCode)
+	}
 
 	var result ItunesResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -104,7 +123,13 @@ func attemptDownload(artist, album, country, lang, dstPath string) error {
 	artworkURL = strings.Replace(artworkURL, "100x100bb", "600x600bb", 1)
 
 	// Download
-	imgResp, err := http.Get(artworkURL)
+	imgReq, err := http.NewRequest("GET", artworkURL, nil)
+	if err != nil {
+		return err
+	}
+	imgReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+	imgResp, err := client.Do(imgReq)
 	if err != nil {
 		return err
 	}

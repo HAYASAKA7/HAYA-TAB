@@ -355,6 +355,24 @@ func (a *App) SelectFolder() string {
 // SaveTab saves the tab. copyFile determines if we import it to internal storage.
 // The passed tab should have the user-confirmed Metadata.
 func (a *App) SaveTab(tab store.Tab, shouldCopy bool) error {
+	// Check for duplicate file path before adding (for linked files)
+	existingByPath, err := a.store.GetTabByPath(tab.FilePath)
+	if err != nil {
+		return fmt.Errorf("failed to check for duplicate path: %w", err)
+	}
+	if existingByPath != nil {
+		return fmt.Errorf("a tab with this file already exists: %s", existingByPath.Title)
+	}
+
+	// Check for duplicate title globally (catches uploaded files with same content)
+	existingByTitle, err := a.store.GetTabByTitle(tab.Title)
+	if err != nil {
+		return fmt.Errorf("failed to check for duplicate title: %w", err)
+	}
+	if existingByTitle != nil {
+		return fmt.Errorf("a tab with title '%s' already exists", existingByTitle.Title)
+	}
+
 	cwd, _ := os.Getwd()
 
 	// 1. Handle File Copy
@@ -390,11 +408,11 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) error {
 	coverPath := filepath.Join(cwd, "covers", coverFilename)
 
 	// If artist/album exists
-	if tab.Artist != "" && tab.Album != "" {
+	if tab.Artist != "" && (tab.Album != "" || tab.Title != "") {
 		tabID := tab.ID // Capture ID for goroutine
 		go func() {
-			fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Album)
-			err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Country, tab.Language, coverPath)
+			fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Title)
+			err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Title, tab.Country, tab.Language, coverPath)
 			if err == nil {
 				fmt.Printf("Cover downloaded successfully to: %s\n", coverPath)
 				// Fetch current tab state from DB and update cover path
@@ -428,11 +446,11 @@ func (a *App) UpdateTab(tab store.Tab) error {
 	coverFilename := tab.ID + ".jpg"
 	coverPath := filepath.Join(cwd, "covers", coverFilename)
 
-	if tab.Artist != "" && tab.Album != "" {
+	if tab.Artist != "" && (tab.Album != "" || tab.Title != "") {
 		tabID := tab.ID // Capture ID for goroutine
 		go func() {
-			fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Album)
-			err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Country, tab.Language, coverPath)
+			fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Title)
+			err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Title, tab.Country, tab.Language, coverPath)
 			if err == nil {
 				fmt.Printf("Cover downloaded successfully to: %s\n", coverPath)
 				// Fetch current tab state from DB and update cover path
