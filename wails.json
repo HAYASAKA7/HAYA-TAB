@@ -8,6 +8,6 @@
   "debounceMS": 100,
   "appargs": "",
   "outputfilename": "haya-tab",
-  "wailsjsdir": "./frontend/wailsjs",
+  "wailsjsdir": "./frontend",
   "assetdir": "./frontend"
 }
