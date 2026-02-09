@@ -29,12 +29,31 @@
                 <header>
                     <h1 onclick="goHome()">Library</h1>
                     <div class="actions">
+                        <button class="btn" id="btn-select-mode" onclick="toggleBatchSelectMode()">
+                            <span class="icon-checkbox"></span> Select
+                        </button>
                         <button class="btn" onclick="addTab(false)">Link Local Tab</button>
                         <button class="btn primary" onclick="addTab(true)">Upload Tab</button>
                     </div>
                 </header>
                 <div id="tab-grid">
                     <!-- Tabs injected here -->
+                </div>
+            </div>
+
+            <!-- Batch Action Bar (floating at bottom) -->
+            <div id="batch-action-bar" class="hidden">
+                <div class="batch-info">
+                    <span id="batch-selected-count">0</span> selected
+                    <button class="btn small" onclick="selectAllTabs()">Select All</button>
+                </div>
+                <div class="batch-actions">
+                    <button class="btn" onclick="openBatchMoveModal()">
+                        <span class="icon-folder"></span> Move to...
+                    </button>
+                    <button class="btn danger" onclick="batchDeleteSelected()">
+                        <span class="icon-trash"></span> Remove
+                    </button>
                 </div>
             </div>
 
@@ -196,6 +215,37 @@
                     <button type="submit" class="btn primary">Move</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Batch Move Modal -->
+    <div id="batch-move-modal" class="hidden">
+        <div class="modal">
+            <h2>Move Selected to Category</h2>
+            <form onsubmit="event.preventDefault(); saveBatchMove();">
+                <div class="form-group">
+                    <label>Select Destination Category</label>
+                    <select id="batch-move-select">
+                        <option value="">(Root)</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeBatchMoveModal()">Cancel</button>
+                    <button type="submit" class="btn primary">Move Selected</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="hidden">
+        <div class="modal confirm-modal">
+            <h2 id="confirm-title">Confirm</h2>
+            <div id="confirm-message" class="confirm-message"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn" id="confirm-cancel-btn">Cancel</button>
+                <button type="button" class="btn danger" id="confirm-ok-btn">Confirm</button>
+            </div>
         </div>
     </div>
 

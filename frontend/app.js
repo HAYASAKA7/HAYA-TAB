@@ -7,6 +7,10 @@ let openedTabs = []; // Track opened PDF tabs in order
 let pinnedTabs = new Set(); // Track pinned tab IDs
 let draggedSidebarItem = null; // For sidebar drag
 
+// Batch Selection State
+let isBatchSelectMode = false;
+let selectedTabIds = new Set();
+
 function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('collapsed');
 }
@@ -51,15 +55,203 @@ window.onload = async () => {
     }
 };
 
+// --- Custom Confirm Modal ---
+
+function showConfirmModal(title, message, okText = "Confirm", isDanger = true) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-title');
+        const messageEl = document.getElementById('confirm-message');
+        const okBtn = document.getElementById('confirm-ok-btn');
+        const cancelBtn = document.getElementById('confirm-cancel-btn');
+        
+        titleEl.textContent = title;
+        messageEl.innerHTML = message;
+        okBtn.textContent = okText;
+        okBtn.className = isDanger ? 'btn danger' : 'btn primary';
+        
+        const cleanup = () => {
+            modal.classList.add('hidden');
+            okBtn.onclick = null;
+            cancelBtn.onclick = null;
+        };
+        
+        okBtn.onclick = () => {
+            cleanup();
+            resolve(true);
+        };
+        
+        cancelBtn.onclick = () => {
+            cleanup();
+            resolve(false);
+        };
+        
+        modal.classList.remove('hidden');
+    });
+}
+
 async function refreshData() {
     tabs = await window.go.main.App.GetTabs();
     categories = await window.go.main.App.GetCategories();
     renderGrid();
+    updateBatchActionBar();
 }
 
 function goHome() {
     currentCategoryId = "";
     renderGrid();
+}
+
+// --- Batch Selection Functions ---
+
+function toggleBatchSelectMode() {
+    isBatchSelectMode = !isBatchSelectMode;
+    selectedTabIds.clear();
+    renderGrid();
+    updateBatchActionBar();
+}
+
+function exitBatchSelectMode() {
+    isBatchSelectMode = false;
+    selectedTabIds.clear();
+    renderGrid();
+    updateBatchActionBar();
+}
+
+function toggleTabSelection(tabId, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    if (selectedTabIds.has(tabId)) {
+        selectedTabIds.delete(tabId);
+    } else {
+        selectedTabIds.add(tabId);
+    }
+    renderGrid();
+    updateBatchActionBar();
+}
+
+function selectAllTabs() {
+    const currentTabs = tabs.filter(t => (t.categoryId || "") === currentCategoryId);
+    if (selectedTabIds.size === currentTabs.length) {
+        // Deselect all
+        selectedTabIds.clear();
+    } else {
+        // Select all
+        currentTabs.forEach(t => selectedTabIds.add(t.id));
+    }
+    renderGrid();
+    updateBatchActionBar();
+}
+
+function updateBatchActionBar() {
+    const actionBar = document.getElementById('batch-action-bar');
+    const countSpan = document.getElementById('batch-selected-count');
+    
+    if (isBatchSelectMode && selectedTabIds.size > 0) {
+        actionBar.classList.remove('hidden');
+        countSpan.textContent = selectedTabIds.size;
+    } else {
+        actionBar.classList.add('hidden');
+    }
+    
+    // Update select mode button
+    const selectBtn = document.getElementById('btn-select-mode');
+    if (selectBtn) {
+        selectBtn.classList.toggle('active', isBatchSelectMode);
+        selectBtn.innerHTML = isBatchSelectMode 
+            ? '<span class="icon-close"></span> Cancel'
+            : '<span class="icon-checkbox"></span> Select';
+    }
+}
+
+async function batchDeleteSelected() {
+    if (selectedTabIds.size === 0) return;
+    
+    const selectedTabs = tabs.filter(t => selectedTabIds.has(t.id));
+    const managedCount = selectedTabs.filter(t => t.isManaged).length;
+    const linkedCount = selectedTabs.length - managedCount;
+    
+    let message = `You are about to remove <strong>${selectedTabIds.size}</strong> tab(s).`;
+    if (managedCount > 0 && linkedCount > 0) {
+        message += `<ul>
+            <li><strong>${managedCount}</strong> uploaded tab(s) will be <span class="warning-text">deleted permanently</span></li>
+            <li><strong>${linkedCount}</strong> linked tab(s) will be unlinked (files remain on disk)</li>
+        </ul>`;
+    } else if (managedCount > 0) {
+        message += `<br><br>These <strong>${managedCount}</strong> uploaded tab(s) will be <span class="warning-text">deleted permanently</span>.`;
+    } else {
+        message += `<br><br>These <strong>${linkedCount}</strong> linked tab(s) will be unlinked (files remain on disk).`;
+    }
+    
+    const confirmed = await showConfirmModal("Remove Tabs", message, "Remove", true);
+    if (!confirmed) return;
+    
+    try {
+        const ids = Array.from(selectedTabIds);
+        const deleted = await window.go.main.App.BatchDeleteTabs(ids);
+        showToast(`Removed ${deleted} tab(s)`);
+        exitBatchSelectMode();
+        refreshData();
+    } catch (err) {
+        showToast("Failed to delete tabs: " + err, "error");
+    }
+}
+
+function openBatchMoveModal() {
+    if (selectedTabIds.size === 0) return;
+    
+    const modal = document.getElementById('batch-move-modal');
+    const select = document.getElementById('batch-move-select');
+    
+    // Build category tree options
+    select.innerHTML = '<option value="">(Root)</option>';
+    
+    function buildCategoryPath(catId, path = []) {
+        const cat = categories.find(c => c.id === catId);
+        if (!cat) return path;
+        path.unshift(cat.name);
+        if (cat.parentId) {
+            return buildCategoryPath(cat.parentId, path);
+        }
+        return path;
+    }
+    
+    // Sort categories by their path
+    const sortedCats = [...categories].sort((a, b) => {
+        const pathA = buildCategoryPath(a.id).join('/');
+        const pathB = buildCategoryPath(b.id).join('/');
+        return pathA.localeCompare(pathB);
+    });
+    
+    sortedCats.forEach(cat => {
+        const path = buildCategoryPath(cat.id).join(' / ');
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = path;
+        select.appendChild(option);
+    });
+    
+    modal.classList.remove('hidden');
+}
+
+function closeBatchMoveModal() {
+    document.getElementById('batch-move-modal').classList.add('hidden');
+}
+
+async function saveBatchMove() {
+    const categoryId = document.getElementById('batch-move-select').value;
+    
+    try {
+        const ids = Array.from(selectedTabIds);
+        const moved = await window.go.main.App.BatchMoveTabs(ids, categoryId);
+        showToast(`Moved ${moved} tab(s)`);
+        closeBatchMoveModal();
+        exitBatchSelectMode();
+        refreshData();
+    } catch (err) {
+        showToast("Failed to move tabs: " + err, "error");
+    }
 }
 
 // --- Navigation & Views ---
@@ -163,15 +355,30 @@ function renderGrid() {
     const currentTabs = tabs.filter(t => (t.categoryId || "") === currentCategoryId);
     for (const tab of currentTabs) {
         const card = document.createElement('div');
-        card.className = 'tab-card';
-        card.draggable = true;
+        const isSelected = selectedTabIds.has(tab.id);
+        card.className = 'tab-card' + (isBatchSelectMode && isSelected ? ' selected' : '');
         
-        card.ondragstart = (e) => handleDragStart(e, { type: 'tab', id: tab.id });
-        card.onclick = () => openTab(tab.id);
+        // In batch mode, allow dragging selected items to folders
+        card.draggable = !isBatchSelectMode || (isBatchSelectMode && isSelected);
+        
+        if (isBatchSelectMode) {
+            card.onclick = (e) => toggleTabSelection(tab.id, e);
+            // Allow dragging selected items in batch mode
+            if (isSelected) {
+                card.ondragstart = (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', 'batch');
+                };
+            }
+        } else {
+            card.ondragstart = (e) => handleDragStart(e, { type: 'tab', id: tab.id });
+            card.onclick = () => openTab(tab.id);
+        }
         
         card.oncontextmenu = (e) => {
             e.preventDefault();
             e.stopPropagation();
+            if (isBatchSelectMode) return;
             const items = [
                 { label: "Open with System", action: () => window.go.main.App.OpenTab(tab.id) },
                 { label: "Open with Inner Viewer", action: () => openInternalTab(tab) },
@@ -189,8 +396,19 @@ function renderGrid() {
             coverHtml = `<div class="placeholder-cover" data-cover="${tab.coverPath}"><span class="icon-music icon-xl"></span></div>`;
         }
 
+        const checkboxHtml = isBatchSelectMode 
+            ? `<div class="select-checkbox ${isSelected ? 'checked' : ''}" onclick="toggleTabSelection('${tab.id}', event)">
+                <span class="icon-checkbox"></span>
+               </div>`
+            : '';
+
+        const editBtnHtml = !isBatchSelectMode 
+            ? `<div class="edit-btn" onclick="event.stopPropagation(); editTab('${tab.id}')"><span class="icon-edit"></span></div>`
+            : '';
+
         card.innerHTML = `
-            <div class="edit-btn" onclick="event.stopPropagation(); editTab('${tab.id}')"><span class="icon-edit"></span></div>
+            ${checkboxHtml}
+            ${editBtnHtml}
             <div class="cover-wrapper">
                 ${coverHtml}
             </div>
@@ -207,11 +425,37 @@ function renderGrid() {
 }
 
 // --- Drag & Drop (Unchanged logic) ---
-function handleDragStart(e, item) { draggedItem = item; e.dataTransfer.effectAllowed = 'move'; e.stopPropagation(); }
-function handleDragOver(e, element) { e.preventDefault(); if (!draggedItem) return; if (draggedItem.type === 'cat' && draggedItem.id === element.dataset.id) return; element.classList.add('drag-over'); e.dataTransfer.dropEffect = 'move'; }
+function handleDragStart(e, item) { 
+    draggedItem = item; 
+    e.dataTransfer.effectAllowed = 'move'; 
+    e.stopPropagation(); 
+}
+function handleDragOver(e, element) { 
+    e.preventDefault(); 
+    if (!draggedItem && selectedTabIds.size === 0) return; 
+    if (draggedItem && draggedItem.type === 'cat' && draggedItem.id === element.dataset.id) return; 
+    element.classList.add('drag-over'); 
+    e.dataTransfer.dropEffect = 'move'; 
+}
 function handleDragLeave(e, element) { element.classList.remove('drag-over'); }
 async function handleDrop(e, targetCategoryId, element) {
-    e.preventDefault(); element.classList.remove('drag-over');
+    e.preventDefault(); 
+    element.classList.remove('drag-over');
+    
+    // Handle batch drag (if items are selected in batch mode and we're dragging to a category)
+    if (isBatchSelectMode && selectedTabIds.size > 0) {
+        try {
+            const ids = Array.from(selectedTabIds);
+            const moved = await window.go.main.App.BatchMoveTabs(ids, targetCategoryId);
+            showToast(`Moved ${moved} tab(s)`);
+            exitBatchSelectMode();
+            refreshData();
+        } catch (err) {
+            showToast("Move failed: " + err, "error");
+        }
+        return;
+    }
+    
     if (!draggedItem) return;
     if (draggedItem.type === 'cat' && draggedItem.id === targetCategoryId) return;
     try {
@@ -684,9 +928,24 @@ async function saveTab() {
         if (isEditMode) await window.go.main.App.UpdateTab(t);
         else await window.go.main.App.SaveTab(t, document.getElementById('edit-copy').value === "true");
         showToast("Saved."); closeModal(); refreshData();
-    } catch (err) { alert(err); }
+    } catch (err) { showToast(err, "error"); }
 }
-async function deleteTab(id) { if(confirm("Delete?")) { await window.go.main.App.DeleteTab(id); refreshData(); } }
+async function deleteTab(id) {
+    const tab = tabs.find(t => t.id === id);
+    if (!tab) return;
+    
+    const title = tab.isManaged ? "Delete Tab" : "Unlink Tab";
+    const message = tab.isManaged 
+        ? `Are you sure you want to delete "<strong>${tab.title}</strong>"?<br><br><span class="warning-text">This will permanently delete the file.</span>`
+        : `Are you sure you want to unlink "<strong>${tab.title}</strong>"?<br><br>The file will remain on disk.`;
+    const btnText = tab.isManaged ? "Delete" : "Unlink";
+    
+    const confirmed = await showConfirmModal(title, message, btnText, true);
+    if (confirmed) {
+        await window.go.main.App.DeleteTab(id);
+        refreshData();
+    }
+}
 async function exportTab(id) { const d = await window.go.main.App.SelectFolder(); if(d) { await window.go.main.App.ExportTab(id, d); showToast("Exported"); } }
 function openCategoryModal(cat=null) {
     const m = document.getElementById('category-modal');
@@ -703,9 +962,20 @@ async function saveCategory() {
     try {
         await window.go.main.App.AddCategory({ id: id, name: name, parentId: id ? categories.find(c=>c.id===id).parentId : currentCategoryId });
         closeCategoryModal(); refreshData();
-    } catch(e) { alert(e); }
+    } catch(e) { showToast(e, "error"); }
 }
-async function deleteCategory(id) { if(confirm("Delete?")) { await window.go.main.App.DeleteCategory(id); refreshData(); } }
+async function deleteCategory(id) {
+    const cat = categories.find(c => c.id === id);
+    if (!cat) return;
+    
+    const message = `Are you sure you want to delete the category "<strong>${cat.name}</strong>"?<br><br>Tabs in this category will be moved to root.`;
+    
+    const confirmed = await showConfirmModal("Delete Category", message, "Delete", true);
+    if (confirmed) {
+        await window.go.main.App.DeleteCategory(id);
+        refreshData();
+    }
+}
 function promptMoveTab(id) {
     document.getElementById('move-tab-id').value = id;
     const s = document.getElementById('move-select'); s.innerHTML='<option value="">(Root)</option>';
@@ -713,5 +983,5 @@ function promptMoveTab(id) {
     document.getElementById('move-modal').classList.remove('hidden');
 }
 async function saveMove() {
-    try { await window.go.main.App.MoveTab(document.getElementById('move-tab-id').value, document.getElementById('move-select').value); document.getElementById('move-modal').classList.add('hidden'); refreshData(); } catch(e) { alert(e); }
+    try { await window.go.main.App.MoveTab(document.getElementById('move-tab-id').value, document.getElementById('move-select').value); document.getElementById('move-modal').classList.add('hidden'); refreshData(); } catch(e) { showToast(e, "error"); }
 }

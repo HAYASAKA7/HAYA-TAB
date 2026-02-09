@@ -6,6 +6,14 @@ export function AddCategory(arg1) {
   return window['go']['main']['App']['AddCategory'](arg1);
 }
 
+export function BatchDeleteTabs(arg1) {
+  return window['go']['main']['App']['BatchDeleteTabs'](arg1);
+}
+
+export function BatchMoveTabs(arg1, arg2) {
+  return window['go']['main']['App']['BatchMoveTabs'](arg1, arg2);
+}
+
 export function DeleteCategory(arg1) {
   return window['go']['main']['App']['DeleteCategory'](arg1);
 }

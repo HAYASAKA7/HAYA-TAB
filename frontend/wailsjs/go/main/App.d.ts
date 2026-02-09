@@ -4,6 +4,10 @@ import {store} from '../models';
 
 export function AddCategory(arg1:store.Category):Promise<void>;
 
+export function BatchDeleteTabs(arg1:Array<string>):Promise<number>;
+
+export function BatchMoveTabs(arg1:Array<string>,arg2:string):Promise<number>;
+
 export function DeleteCategory(arg1:string):Promise<void>;
 
 export function DeleteTab(arg1:string):Promise<void>;

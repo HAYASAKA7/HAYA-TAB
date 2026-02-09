@@ -81,6 +81,11 @@
     --icon-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z'/%3E%3C/svg%3E");
 }
 
+/* Icon: Checkbox (Check mark) */
+.icon-checkbox {
+    --icon-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z'/%3E%3C/svg%3E");
+}
+
 /* Apply icon as mask-image for color inheritance */
 .icon-menu,
 .icon-home,
@@ -94,7 +99,8 @@
 .icon-edit,
 .icon-close,
 .icon-trash,
-.icon-pin {
+.icon-pin,
+.icon-checkbox {
     display: inline-block;
     width: 1.2em;
     height: 1.2em;

@@ -260,6 +260,44 @@ func (a *App) DeleteTab(id string) error {
 	return a.store.DeleteTab(id)
 }
 
+// BatchDeleteTabs deletes multiple tabs at once
+func (a *App) BatchDeleteTabs(ids []string) (int, error) {
+	deleted := 0
+	for _, id := range ids {
+		targetTab, err := a.store.GetTab(id)
+		if err != nil || targetTab == nil {
+			continue
+		}
+
+		if targetTab.IsManaged {
+			// Try to delete the file
+			if err := os.Remove(targetTab.FilePath); err != nil {
+				fmt.Printf("Warning: Failed to delete managed file %s: %v\n", targetTab.FilePath, err)
+			}
+			// Also delete cover
+			if targetTab.CoverPath != "" {
+				os.Remove(targetTab.CoverPath)
+			}
+		}
+
+		if err := a.store.DeleteTab(id); err == nil {
+			deleted++
+		}
+	}
+	return deleted, nil
+}
+
+// BatchMoveTabs moves multiple tabs to a category at once
+func (a *App) BatchMoveTabs(ids []string, categoryID string) (int, error) {
+	moved := 0
+	for _, id := range ids {
+		if err := a.store.MoveTab(id, categoryID); err == nil {
+			moved++
+		}
+	}
+	return moved, nil
+}
+
 // MoveTab updates the category of a tab
 func (a *App) MoveTab(tabID, categoryID string) error {
 	return a.store.MoveTab(tabID, categoryID)
