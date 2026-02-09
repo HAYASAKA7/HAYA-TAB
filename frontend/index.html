@@ -9,7 +9,7 @@
 <body>
     <div id="app">
         <header>
-            <h1>HAYA-TAB</h1>
+            <h1 onclick="goHome()">HAYA-TAB</h1>
             <div class="actions">
                 <button class="btn" onclick="addTab(false)">Link Local Tab</button>
                 <button class="btn primary" onclick="addTab(true)">Upload Tab</button>
@@ -44,6 +44,26 @@
                     <label>File Type</label>
                     <input type="text" id="edit-type" disabled>
                 </div>
+                
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label>Country (ISO)</label>
+                        <select id="edit-country">
+                            <option value="US">US</option>
+                            <option value="JP">Japan</option>
+                            <option value="CN">China</option>
+                            <option value="GB">UK</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Language</label>
+                        <select id="edit-lang">
+                            <option value="en_us">English</option>
+                            <option value="ja_jp">Japanese</option>
+                            <option value="zh_cn">Chinese</option>
+                        </select>
+                    </div>
+                </div>
 
                 <div class="modal-actions">
                     <button type="button" class="btn" onclick="closeModal()">Cancel</button>
@@ -52,6 +72,51 @@
             </form>
         </div>
     </div>
+
+    <!-- Category Modal -->
+    <div id="category-modal" class="hidden">
+        <div class="modal">
+            <h2>New Category</h2>
+            <form onsubmit="event.preventDefault(); saveCategory();">
+                <input type="hidden" id="cat-id">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="cat-name" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeCategoryModal()">Cancel</button>
+                    <button type="submit" class="btn primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Move Tab Modal -->
+    <div id="move-modal" class="hidden">
+        <div class="modal">
+            <h2>Move to Category</h2>
+            <form onsubmit="event.preventDefault(); saveMove();">
+                <input type="hidden" id="move-tab-id">
+                <div class="form-group">
+                    <label>Select Category</label>
+                    <select id="move-select">
+                        <option value="">(Root)</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="document.getElementById('move-modal').classList.add('hidden')">Cancel</button>
+                    <button type="submit" class="btn primary">Move</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <ul id="context-menu-items"></ul>
+    </div>
+
+    <div id="toast-container"></div>
 
     <!-- Wails Auto-Injected Scripts (Simulated here for structure) -->
     <script src="/wailsjs/go/main/App.js"></script>

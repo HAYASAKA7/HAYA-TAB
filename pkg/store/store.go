@@ -8,26 +8,42 @@ import (
 )
 
 type Tab struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	Artist    string `json:"artist"`
-	Album     string `json:"album"`
-	FilePath  string `json:"filePath"` // Absolute path or relative to app
-	Type      string `json:"type"`     // "pdf" or "gp"
-	IsManaged bool   `json:"isManaged"`
-	CoverPath string `json:"coverPath"`
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	Artist     string `json:"artist"`
+	Album      string `json:"album"`
+	FilePath   string `json:"filePath"` // Absolute path or relative to app
+	Type       string `json:"type"`     // "pdf" or "gp"
+	IsManaged  bool   `json:"isManaged"`
+	CoverPath  string `json:"coverPath"`
+	CategoryID string `json:"categoryId"` // Virtual folder ID
+	Country    string `json:"country"`    // e.g. "US", "JP"
+	Language   string `json:"language"`   // e.g. "ja_jp"
+}
+
+type Category struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	ParentID string `json:"parentId"` // Empty if root
 }
 
 type Store struct {
-	mu       sync.Mutex
-	Tabs     []Tab
-	DataPath string
+	mu         sync.Mutex
+	Tabs       []Tab
+	Categories []Category
+	DataPath   string
+}
+
+type PersistenceData struct {
+	Tabs       []Tab      `json:"tabs"`
+	Categories []Category `json:"categories"`
 }
 
 func NewStore(dataPath string) *Store {
 	return &Store{
-		DataPath: dataPath,
-		Tabs:     []Tab{},
+		DataPath:   dataPath,
+		Tabs:       []Tab{},
+		Categories: []Category{},
 	}
 }
 
@@ -43,14 +59,32 @@ func (s *Store) Load() error {
 		return err
 	}
 
-	return json.Unmarshal(data, &s.Tabs)
+	var pData PersistenceData
+	if err := json.Unmarshal(data, &pData); err != nil {
+		// Fallback for old data format (array of tabs)
+		// Try unmarshalling as []Tab just in case
+		var tabs []Tab
+		if err2 := json.Unmarshal(data, &tabs); err2 == nil {
+			s.Tabs = tabs
+			return nil
+		}
+		return err
+	}
+	s.Tabs = pData.Tabs
+	s.Categories = pData.Categories
+	return nil
 }
 
 func (s *Store) Save() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	data, err := json.MarshalIndent(s.Tabs, "", "  ")
+	pData := PersistenceData{
+		Tabs:       s.Tabs,
+		Categories: s.Categories,
+	}
+
+	data, err := json.MarshalIndent(pData, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -78,5 +112,83 @@ func (s *Store) AddTab(tab Tab) error {
 		s.Tabs = append(s.Tabs, tab)
 	}
 	s.mu.Unlock() // Save acquires lock, so unlock first
+	return s.Save()
+}
+
+func (s *Store) AddCategory(cat Category) error {
+	s.mu.Lock()
+	found := false
+	for i, c := range s.Categories {
+		if c.ID == cat.ID {
+			s.Categories[i] = cat
+			found = true
+			break
+		}
+	}
+	if !found {
+		s.Categories = append(s.Categories, cat)
+	}
+	s.mu.Unlock()
+	return s.Save()
+}
+
+func (s *Store) DeleteCategory(id string) error {
+	s.mu.Lock()
+	// Filter out the category
+	newCats := []Category{}
+	for _, c := range s.Categories {
+		if c.ID != id {
+			newCats = append(newCats, c)
+		}
+	}
+	s.Categories = newCats
+	
+	// Optional: Move children tabs to root or parent? 
+	// For simplicity, let's move tabs in this category to root ("")
+	for i := range s.Tabs {
+		if s.Tabs[i].CategoryID == id {
+			s.Tabs[i].CategoryID = ""
+		}
+	}
+	// Note: We are not recursively deleting sub-categories here for simplicity, 
+	// but strictly speaking we should. 
+	// Let's also move sub-categories to root.
+	for i := range s.Categories {
+		if s.Categories[i].ParentID == id {
+			s.Categories[i].ParentID = ""
+		}
+	}
+
+	s.mu.Unlock()
+	return s.Save()
+}
+
+func (s *Store) MoveCategory(id, newParentID string) error {
+	s.mu.Lock()
+	found := false
+	for i, c := range s.Categories {
+		if c.ID == id {
+			s.Categories[i].ParentID = newParentID
+			found = true
+			break
+		}
+	}
+	s.mu.Unlock()
+	if !found {
+		return os.ErrNotExist // Or custom error
+	}
+	return s.Save()
+}
+
+func (s *Store) DeleteTab(id string) error {
+	s.mu.Lock()
+	newTabs := []Tab{}
+	for _, t := range s.Tabs {
+		if t.ID != id {
+			newTabs = append(newTabs, t)
+		}
+	}
+	s.Tabs = newTabs
+	s.mu.Unlock()
 	return s.Save()
 }

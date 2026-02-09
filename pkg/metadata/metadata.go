@@ -53,11 +53,36 @@ func ParseFilename(filename string) Metadata {
 	return m
 }
 
-// DownloadCover searches iTunes and saves the cover to dstPath
-func DownloadCover(artist, album string, dstPath string) error {
+// DownloadCover searches iTunes and saves the cover to dstPath.
+// Falls back to US/en_us if specific country/lang returns no results.
+func DownloadCover(artist, album, country, lang, dstPath string) error {
+	// 1. Try with user params
+	if country == "" {
+		country = "US"
+	}
+	if lang == "" {
+		lang = "en_us"
+	}
+
+	err := attemptDownload(artist, album, country, lang, dstPath)
+	if err == nil {
+		return nil
+	}
+
+	// 2. Fallback to US if different
+	if country != "US" {
+		fmt.Printf("Search failed for %s/%s, falling back to US...\n", country, lang)
+		return attemptDownload(artist, album, "US", "en_us", dstPath)
+	}
+
+	return err
+}
+
+func attemptDownload(artist, album, country, lang, dstPath string) error {
 	term := artist + " " + album
 	query := url.QueryEscape(term)
-	apiURL := fmt.Sprintf("https://itunes.apple.com/search?term=%s&entity=album&limit=1", query)
+	// iTunes API: country (ISO 2 letter), lang (e.g., en_us, ja_jp)
+	apiURL := fmt.Sprintf("https://itunes.apple.com/search?term=%s&entity=album&limit=1&country=%s&lang=%s", query, country, lang)
 
 	resp, err := http.Get(apiURL)
 	if err != nil {

@@ -1,5 +1,21 @@
 export namespace store {
 	
+	export class Category {
+	    id: string;
+	    name: string;
+	    parentId: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Category(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.parentId = source["parentId"];
+	    }
+	}
 	export class Tab {
 	    id: string;
 	    title: string;
@@ -9,6 +25,9 @@ export namespace store {
 	    type: string;
 	    isManaged: boolean;
 	    coverPath: string;
+	    categoryId: string;
+	    country: string;
+	    language: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Tab(source);
@@ -24,6 +43,9 @@ export namespace store {
 	        this.type = source["type"];
 	        this.isManaged = source["isManaged"];
 	        this.coverPath = source["coverPath"];
+	        this.categoryId = source["categoryId"];
+	        this.country = source["country"];
+	        this.language = source["language"];
 	    }
 	}
 
