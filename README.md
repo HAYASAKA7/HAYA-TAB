@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-1.1.0-green)
+![Version](https://img.shields.io/badge/version-1.2.0-green)
 ![License](https://img.shields.io/badge/license-MIT-yellow)
 
 ## ✨ Features
@@ -12,10 +12,11 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 - **Upload or Link** - Upload tabs to internal storage or link existing files from your filesystem
 - **Folder Sync** - Automatically sync tabs from specified folders on startup
 - **Smart Metadata** - Auto-parse artist, album, and song info from filenames
-- **Album Artwork** - Automatic cover art fetching from iTunes
+- **Tag Support** - Add version/part tags to tabs (e.g., "Lead Guitar", "Bass", "First Version")
+- **Album Artwork** - Automatic cover art fetching from iTunes (now also for synced tabs)
 - **Categories** - Organize tabs into virtual folders with drag-and-drop support
 - **Batch Operations** - Select and move/delete multiple tabs at once
-- **Built-in PDF Viewer** - View PDF tabs without leaving the app
+- **Built-in PDF Viewer** - View PDF tabs without leaving the app (now default)
 - **Dark/Light Theme** - System-aware theme with manual override
 - **Duplicate Detection** - Prevents adding the same tab twice
 
