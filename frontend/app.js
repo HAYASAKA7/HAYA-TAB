@@ -60,10 +60,6 @@ function goHome() {
 function switchView(viewName) {
     // Hide all views
     document.querySelectorAll('.view').forEach(el => el.classList.add('hidden'));
-    document.getElementById('pdf-views-container').innerHTML = ''; // Clear pdfs if navigating away (or keep them hidden? For now clear to save memory/simple logic)
-    // Actually, if we switch between Home and Settings, we might want to keep PDF tabs alive.
-    // Let's refine: "view-home" and "view-settings" are static. PDF views are dynamic.
-    // We will hide all children of main-content that are .view
     
     // Toggle Sidebar active state
     document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
