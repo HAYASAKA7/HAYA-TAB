@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -38,6 +39,118 @@ func (a *App) startup(ctx context.Context) {
 	if err := a.store.Load(); err != nil {
 		fmt.Printf("Error loading store: %v", err)
 	}
+
+	// Auto Sync on Startup
+	go func() {
+		// Small delay to ensure UI is ready if we want to emit events (optional)
+		time.Sleep(1 * time.Second)
+		a.TriggerSync()
+	}()
+}
+
+// GetSettings returns the current settings
+func (a *App) GetSettings() store.Settings {
+	return a.store.Settings
+}
+
+// SaveSettings updates the settings
+func (a *App) SaveSettings(s store.Settings) error {
+	return a.store.UpdateSettings(s)
+}
+
+// TriggerSync scans the sync paths and adds/updates tabs based on strategy
+func (a *App) TriggerSync() (string, error) {
+	if len(a.store.Settings.SyncPaths) == 0 {
+		return "No sync paths configured", nil
+	}
+
+	added := 0
+	updated := 0
+	skipped := 0
+	errors := 0
+
+	strategy := a.store.Settings.SyncStrategy // "skip" or "overwrite"
+
+	for _, root := range a.store.Settings.SyncPaths {
+		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil // Skip unreadable
+			}
+			if info.IsDir() {
+				return nil
+			}
+
+			// check extension
+			ext := strings.ToLower(filepath.Ext(path))
+			if ext != ".pdf" && ext != ".gp" && ext != ".gp5" && ext != ".gpx" {
+				return nil
+			}
+
+			// 1. Check if EXACT path exists
+			for _, t := range a.store.Tabs {
+				if t.FilePath == path {
+					return nil // Already exists
+				}
+			}
+
+			// 2. Parse Metadata to check Title conflict
+			newTab := a.ProcessFile(path) // This creates a Tab struct with parsed info
+
+			var conflictTab *store.Tab
+			for i, t := range a.store.Tabs {
+				// Compare Titles (or maybe normalize them?)
+				// Using Title as "same name" indicator
+				if t.Title == newTab.Title {
+					conflictTab = &a.store.Tabs[i]
+					break
+				}
+			}
+
+			if conflictTab != nil {
+				if strategy == "skip" {
+					skipped++
+					return nil
+				} else if strategy == "overwrite" {
+					// Handle Overwrite
+					
+					// If old one was managed (uploaded), delete the file
+					if conflictTab.IsManaged {
+						os.Remove(conflictTab.FilePath) // Ignore error
+						conflictTab.IsManaged = false
+					}
+					
+					// Update path
+					conflictTab.FilePath = path
+					// Update Metadata? Maybe keep old custom metadata?
+					// Prompt implies replacing, so let's update basic fields but keep ID
+					// Actually, let's keep Category, ID, Cover. Update FilePath and maybe Type.
+					conflictTab.Type = newTab.Type
+					
+					// Save
+					if err := a.store.AddTab(*conflictTab); err == nil {
+						updated++
+					}
+					return nil
+				}
+			}
+
+			// No conflict, add as new
+			if err := a.store.AddTab(newTab); err == nil {
+				added++
+			} else {
+				errors++
+			}
+
+			return nil
+		})
+		if err != nil {
+			fmt.Printf("Error walking %s: %v\n", root, err)
+		}
+	}
+	
+	resultMsg := fmt.Sprintf("Sync complete: %d added, %d updated, %d skipped.", added, updated, skipped)
+	wailsRuntime.EventsEmit(a.ctx, "sync-complete", resultMsg)
+	return resultMsg, nil
 }
 
 // GetTabs returns the list of tabs
@@ -48,7 +161,7 @@ func (a *App) GetTabs() []store.Tab {
 // ProcessFile takes a file path and returns a pre-filled Tab struct
 func (a *App) ProcessFile(path string) store.Tab {
 	meta := metadata.ParseFilename(path)
-	ext := filepath.Ext(path)
+	ext := strings.ToLower(filepath.Ext(path))
 	typeStr := "unknown"
 	if ext == ".pdf" {
 		typeStr = "pdf"
@@ -314,6 +427,28 @@ func (a *App) GetCover(path string) string {
 	return base64.StdEncoding.EncodeToString(data)
 }
 
+// GetTabContent returns the base64 encoded content of the tab file for the internal viewer
+func (a *App) GetTabContent(id string) (string, error) {
+	var targetTab store.Tab
+	found := false
+	for _, t := range a.store.Tabs {
+		if t.ID == id {
+			targetTab = t
+			found = true
+			break
+		}
+	}
+	if !found {
+		return "", fmt.Errorf("tab not found")
+	}
+
+	data, err := os.ReadFile(targetTab.FilePath)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(data), nil
+}
+
 // SelectFile opens a file dialog and returns the selected file path
 func (a *App) SelectFile() string {
 	selection, err := wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
@@ -328,3 +463,19 @@ func (a *App) SelectFile() string {
 	}
 	return selection
 }
+
+// SelectImage opens a file dialog for selecting images
+func (a *App) SelectImage() string {
+	selection, err := wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "Select Image",
+		Filters: []wailsRuntime.FileFilter{
+			{DisplayName: "Images (*.jpg;*.png;*.jpeg;*.webp)", Pattern: "*.jpg;*.png;*.jpeg;*.webp"},
+		},
+	})
+
+	if err != nil {
+		return ""
+	}
+	return selection
+}
+

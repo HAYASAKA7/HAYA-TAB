@@ -26,6 +26,14 @@ export function GetCover(arg1) {
   return window['go']['main']['App']['GetCover'](arg1);
 }
 
+export function GetSettings() {
+  return window['go']['main']['App']['GetSettings']();
+}
+
+export function GetTabContent(arg1) {
+  return window['go']['main']['App']['GetTabContent'](arg1);
+}
+
 export function GetTabs() {
   return window['go']['main']['App']['GetTabs']();
 }
@@ -46,6 +54,10 @@ export function ProcessFile(arg1) {
   return window['go']['main']['App']['ProcessFile'](arg1);
 }
 
+export function SaveSettings(arg1) {
+  return window['go']['main']['App']['SaveSettings'](arg1);
+}
+
 export function SaveTab(arg1, arg2) {
   return window['go']['main']['App']['SaveTab'](arg1, arg2);
 }
@@ -56,6 +68,14 @@ export function SelectFile() {
 
 export function SelectFolder() {
   return window['go']['main']['App']['SelectFolder']();
+}
+
+export function SelectImage() {
+  return window['go']['main']['App']['SelectImage']();
+}
+
+export function TriggerSync() {
+  return window['go']['main']['App']['TriggerSync']();
 }
 
 export function UpdateTab(arg1) {

@@ -27,16 +27,27 @@ type Category struct {
 	ParentID string `json:"parentId"` // Empty if root
 }
 
+type Settings struct {
+	Theme        string   `json:"theme"`        // "dark", "light", "system"
+	Background   string   `json:"background"`   // URL or path
+	BgType       string   `json:"bgType"`       // "url", "local"
+	OpenMethod   string   `json:"openMethod"`   // "system", "inner"
+	SyncPaths    []string `json:"syncPaths"`
+	SyncStrategy string   `json:"syncStrategy"` // "skip", "overwrite"
+}
+
 type Store struct {
 	mu         sync.Mutex
 	Tabs       []Tab
 	Categories []Category
+	Settings   Settings
 	DataPath   string
 }
 
 type PersistenceData struct {
 	Tabs       []Tab      `json:"tabs"`
 	Categories []Category `json:"categories"`
+	Settings   Settings   `json:"settings"`
 }
 
 func NewStore(dataPath string) *Store {
@@ -44,6 +55,11 @@ func NewStore(dataPath string) *Store {
 		DataPath:   dataPath,
 		Tabs:       []Tab{},
 		Categories: []Category{},
+		Settings: Settings{
+			Theme:        "system",
+			OpenMethod:   "system",
+			SyncStrategy: "skip",
+		},
 	}
 }
 
@@ -72,6 +88,7 @@ func (s *Store) Load() error {
 	}
 	s.Tabs = pData.Tabs
 	s.Categories = pData.Categories
+	s.Settings = pData.Settings
 	return nil
 }
 
@@ -82,6 +99,7 @@ func (s *Store) Save() error {
 	pData := PersistenceData{
 		Tabs:       s.Tabs,
 		Categories: s.Categories,
+		Settings:   s.Settings,
 	}
 
 	data, err := json.MarshalIndent(pData, "", "  ")
@@ -96,6 +114,14 @@ func (s *Store) Save() error {
 
 	return os.WriteFile(s.DataPath, data, 0644)
 }
+
+func (s *Store) UpdateSettings(settings Settings) error {
+	s.mu.Lock()
+	s.Settings = settings
+	s.mu.Unlock()
+	return s.Save()
+}
+
 
 func (s *Store) AddTab(tab Tab) error {
 	s.mu.Lock()

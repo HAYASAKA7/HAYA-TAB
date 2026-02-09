@@ -16,6 +16,28 @@ export namespace store {
 	        this.parentId = source["parentId"];
 	    }
 	}
+	export class Settings {
+	    theme: string;
+	    background: string;
+	    bgType: string;
+	    openMethod: string;
+	    syncPaths: string[];
+	    syncStrategy: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Settings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.theme = source["theme"];
+	        this.background = source["background"];
+	        this.bgType = source["bgType"];
+	        this.openMethod = source["openMethod"];
+	        this.syncPaths = source["syncPaths"];
+	        this.syncStrategy = source["syncStrategy"];
+	    }
+	}
 	export class Tab {
 	    id: string;
 	    title: string;

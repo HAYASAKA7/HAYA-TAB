@@ -7,20 +7,106 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="app">
-        <header>
-            <h1 onclick="goHome()">HAYA-TAB</h1>
-            <div class="actions">
-                <button class="btn" onclick="addTab(false)">Link Local Tab</button>
-                <button class="btn primary" onclick="addTab(true)">Upload Tab</button>
+    <div id="app-layout">
+        <aside id="sidebar">
+            <div class="sidebar-item active" id="nav-home" onclick="switchView('home')">
+                <span class="icon">🏠</span> Home
             </div>
-        </header>
-        
-        <main id="tab-grid">
-            <!-- Tabs will be injected here -->
+            <div class="sidebar-item" id="nav-settings" onclick="switchView('settings')">
+                <span class="icon">⚙️</span> Settings
+            </div>
+            <div class="sidebar-divider"></div>
+            <div id="opened-tabs-list">
+                <!-- Opened PDF tabs will go here -->
+            </div>
+        </aside>
+
+        <main id="main-content">
+            <!-- Home View -->
+            <div id="view-home" class="view">
+                <header>
+                    <h1 onclick="goHome()">Library</h1>
+                    <div class="actions">
+                        <button class="btn" onclick="addTab(false)">Link Local Tab</button>
+                        <button class="btn primary" onclick="addTab(true)">Upload Tab</button>
+                    </div>
+                </header>
+                <div id="tab-grid">
+                    <!-- Tabs injected here -->
+                </div>
+            </div>
+
+            <!-- Settings View -->
+            <div id="view-settings" class="view hidden">
+                <header><h1>Settings</h1></header>
+                <div class="settings-container">
+                    
+                    <section class="settings-section">
+                        <h3>🎨 Appearance</h3>
+                        <div class="form-group">
+                            <label>Theme</label>
+                            <select id="set-theme">
+                                <option value="system">System Default</option>
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Background Image</label>
+                            <select id="set-bg-type" onchange="uiToggleBgInput()">
+                                <option value="">None</option>
+                                <option value="url">Online URL</option>
+                                <option value="local">Local File</option>
+                            </select>
+                        </div>
+                        <div id="bg-input-wrapper" class="form-group hidden">
+                            <input type="text" id="set-bg-val" placeholder="Enter URL or Path">
+                            <button class="btn" id="btn-browse-bg" onclick="browseBg()" style="display:none;">Browse...</button>
+                        </div>
+                    </section>
+
+                    <section class="settings-section">
+                        <h3>📄 PDF Viewer</h3>
+                        <div class="form-group">
+                            <label>Open PDF Method</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="openMethod" value="system"> System Default App</label>
+                                <label><input type="radio" name="openMethod" value="inner"> Built-in Viewer (Tabs)</label>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="settings-section">
+                        <h3>🔄 Auto Sync</h3>
+                        <div class="form-group">
+                            <label>Sync Strategy (for duplicates)</label>
+                            <select id="set-sync-strategy">
+                                <option value="skip">Skip (Keep existing)</option>
+                                <option value="overwrite">Overwrite (Prefer found files)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Monitored Folders</label>
+                            <ul id="sync-path-list"></ul>
+                            <button class="btn small" onclick="addSyncPath()">+ Add Folder</button>
+                        </div>
+                        <div class="sync-actions">
+                            <button class="btn primary" onclick="triggerSync()">Sync Now</button>
+                        </div>
+                    </section>
+
+                    <div class="settings-footer">
+                        <button class="btn primary" onclick="saveSettings()">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dynamic PDF Views container -->
+            <div id="pdf-views-container"></div>
         </main>
     </div>
 
+    <!-- Modals (unchanged) -->
     <div id="modal-overlay" class="hidden">
         <div class="modal">
             <h2>Edit Tab Info</h2>

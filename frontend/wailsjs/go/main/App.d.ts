@@ -14,6 +14,10 @@ export function GetCategories():Promise<Array<store.Category>>;
 
 export function GetCover(arg1:string):Promise<string>;
 
+export function GetSettings():Promise<store.Settings>;
+
+export function GetTabContent(arg1:string):Promise<string>;
+
 export function GetTabs():Promise<Array<store.Tab>>;
 
 export function MoveCategory(arg1:string,arg2:string):Promise<void>;
@@ -24,10 +28,16 @@ export function OpenTab(arg1:string):Promise<void>;
 
 export function ProcessFile(arg1:string):Promise<store.Tab>;
 
+export function SaveSettings(arg1:store.Settings):Promise<void>;
+
 export function SaveTab(arg1:store.Tab,arg2:boolean):Promise<void>;
 
 export function SelectFile():Promise<string>;
 
 export function SelectFolder():Promise<string>;
+
+export function SelectImage():Promise<string>;
+
+export function TriggerSync():Promise<string>;
 
 export function UpdateTab(arg1:store.Tab):Promise<void>;
