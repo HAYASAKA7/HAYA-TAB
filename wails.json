@@ -1,13 +1,13 @@
 {
-  "name": "haya-tab",
+  "name": "HAYA-TAB",
   "version": "1.0.0",
   "author": {
-    "name": "Gemini",
-    "email": ""
+    "name": "HAYASAKA7",
+    "email": "cyanluxury267@gmail.com"
   },
   "debounceMS": 100,
   "appargs": "",
-  "outputfilename": "haya-tab",
+  "outputfilename": "HAYA-TAB",
   "wailsjsdir": "./frontend",
   "assetdir": "./frontend"
 }

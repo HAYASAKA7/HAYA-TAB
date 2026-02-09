@@ -269,6 +269,10 @@ async function openInternalTab(tab) {
     try {
         const contentBase64 = await window.go.main.App.GetTabContent(tab.id);
         
+        // Convert to Blob URL for PDF.js
+        const blob = base64ToBlob(contentBase64, "application/pdf");
+        const blobUrl = URL.createObjectURL(blob);
+
         // 1. Create Sidebar Item
         const sidebarList = document.getElementById('opened-tabs-list');
         const item = document.createElement('div');
@@ -289,7 +293,7 @@ async function openInternalTab(tab) {
         
         view.innerHTML = `
             <div class="pdf-container">
-                <iframe src="data:application/pdf;base64,${contentBase64}" class="pdf-frame"></iframe>
+                <iframe src="pdfjs/web/viewer.html?file=${encodeURIComponent(blobUrl)}" class="pdf-frame"></iframe>
             </div>
         `;
         container.appendChild(view);
@@ -309,7 +313,13 @@ function closeInternalTab(id) {
 
     // Remove View
     const view = document.getElementById(`pdf-view-${id}`);
-    if(view) view.remove();
+    if(view) {
+        const iframe = view.querySelector('iframe');
+        if (iframe && iframe.src.startsWith('blob:')) {
+            URL.revokeObjectURL(iframe.src);
+        }
+        view.remove();
+    }
 
     // Switch back to home
     switchView('home');
