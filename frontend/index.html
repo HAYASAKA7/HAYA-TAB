@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAYA-TAB</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>HAYA-TAB</h1>
+            <div class="actions">
+                <button class="btn" onclick="addTab(false)">Link Local Tab</button>
+                <button class="btn primary" onclick="addTab(true)">Upload Tab</button>
+            </div>
+        </header>
+        
+        <main id="tab-grid">
+            <!-- Tabs will be injected here -->
+        </main>
+    </div>
+
+    <div id="modal-overlay" class="hidden">
+        <div class="modal">
+            <h2>Edit Tab Info</h2>
+            <form id="edit-form" onsubmit="event.preventDefault(); saveTab();">
+                <input type="hidden" id="edit-path">
+                <input type="hidden" id="edit-copy">
+                
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="edit-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Artist</label>
+                    <input type="text" id="edit-artist">
+                </div>
+                <div class="form-group">
+                    <label>Album</label>
+                    <input type="text" id="edit-album">
+                </div>
+                <div class="form-group">
+                    <label>File Type</label>
+                    <input type="text" id="edit-type" disabled>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn primary">Save & Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Wails Auto-Injected Scripts (Simulated here for structure) -->
+    <script src="/wailsjs/go/main/App.js"></script>
+    <script src="/wailsjs/runtime/runtime.js"></script>
+    <script src="/app.js"></script>
+</body>
+</html>

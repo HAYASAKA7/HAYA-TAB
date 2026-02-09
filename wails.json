@@ -1,0 +1,13 @@
+{
+  "name": "haya-tab",
+  "version": "1.0.0",
+  "author": {
+    "name": "Gemini",
+    "email": ""
+  },
+  "debounceMS": 100,
+  "appargs": "",
+  "outputfilename": "haya-tab",
+  "wailsjsdir": "./frontend/wailsjs",
+  "assetdir": "./frontend"
+}
