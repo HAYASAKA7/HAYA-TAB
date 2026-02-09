@@ -11,3 +11,5 @@ export function OpenTab(arg1:string):Promise<void>;
 export function ProcessFile(arg1:string):Promise<store.Tab>;
 
 export function SaveTab(arg1:store.Tab,arg2:boolean):Promise<void>;
+
+export function SelectFile():Promise<string>;

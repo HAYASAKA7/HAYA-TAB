@@ -21,3 +21,7 @@ export function ProcessFile(arg1) {
 export function SaveTab(arg1, arg2) {
   return window['go']['main']['App']['SaveTab'](arg1, arg2);
 }
+
+export function SelectFile() {
+  return window['go']['main']['App']['SelectFile']();
+}

@@ -170,3 +170,18 @@ func (a *App) GetCover(path string) string {
 	}
 	return base64.StdEncoding.EncodeToString(data)
 }
+
+// SelectFile opens a file dialog and returns the selected file path
+func (a *App) SelectFile() string {
+	selection, err := wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "Select Tab File",
+		Filters: []wailsRuntime.FileFilter{
+			{DisplayName: "Tabs (*.pdf;*.gp;*.gp5;*.gpx)", Pattern: "*.pdf;*.gp;*.gp5;*.gpx"},
+		},
+	})
+
+	if err != nil {
+		return ""
+	}
+	return selection
+}

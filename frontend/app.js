@@ -53,12 +53,7 @@ async function renderTabs() {
 
 async function addTab(isUpload) {
     try {
-        const path = await window.runtime.WindowOpenFileDialog({
-            Title: "Select Tab File",
-            Filters: [
-                { DisplayName: "Tabs (*.pdf;*.gp;*.gp5;*.gpx)", Pattern: "*.pdf;*.gp;*.gp5;*.gpx" }
-            ]
-        });
+        const path = await window.go.main.App.SelectFile();
 
         if (path) {
             const tabData = await window.go.main.App.ProcessFile(path);
