@@ -148,6 +148,23 @@ button, input, select, textarea {
 .sidebar-item:hover .close-tab { opacity: 1; }
 .sidebar-item .close-tab:hover { background: rgba(255,0,0,0.3); color: white; }
 
+/* Sidebar Tab Drag & Drop */
+.sidebar-item.dragging {
+    opacity: 0.5;
+    background: var(--primary);
+}
+.sidebar-item.drag-over {
+    border-top: 2px solid var(--primary);
+}
+
+/* Pinned Sidebar Tabs */
+.sidebar-item.pinned {
+    background: color-mix(in srgb, var(--primary), transparent 80%);
+}
+.sidebar-item.pinned .icon {
+    color: var(--primary);
+}
+
 /* Main Content */
 #main-content {
     flex: 1;

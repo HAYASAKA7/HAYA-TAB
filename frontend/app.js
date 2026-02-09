@@ -3,6 +3,9 @@ let categories = [];
 let currentCategoryId = "";
 let isEditMode = false;
 let currentSettings = {};
+let openedTabs = []; // Track opened PDF tabs in order
+let pinnedTabs = new Set(); // Track pinned tab IDs
+let draggedSidebarItem = null; // For sidebar drag
 
 function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('collapsed');
@@ -218,6 +221,130 @@ async function handleDrop(e, targetCategoryId, element) {
     } catch (err) { showToast("Move failed: " + err, "error"); }
     draggedItem = null;
 }
+
+// --- Sidebar Tab Drag & Drop ---
+function handleSidebarDragStart(e, tabId) {
+    draggedSidebarItem = tabId;
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.classList.add('dragging');
+}
+
+function handleSidebarDragEnd(e) {
+    e.target.classList.remove('dragging');
+    draggedSidebarItem = null;
+    document.querySelectorAll('.sidebar-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+function handleSidebarDragOver(e, targetTabId) {
+    e.preventDefault();
+    if (!draggedSidebarItem || draggedSidebarItem === targetTabId) return;
+    e.target.closest('.sidebar-item')?.classList.add('drag-over');
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function handleSidebarDragLeave(e) {
+    e.target.closest('.sidebar-item')?.classList.remove('drag-over');
+}
+
+function handleSidebarDrop(e, targetTabId) {
+    e.preventDefault();
+    const dropTarget = e.target.closest('.sidebar-item');
+    if (dropTarget) dropTarget.classList.remove('drag-over');
+    
+    if (!draggedSidebarItem || draggedSidebarItem === targetTabId) return;
+    
+    // Reorder openedTabs array
+    const fromIndex = openedTabs.indexOf(draggedSidebarItem);
+    const toIndex = openedTabs.indexOf(targetTabId);
+    
+    if (fromIndex !== -1 && toIndex !== -1) {
+        openedTabs.splice(fromIndex, 1);
+        openedTabs.splice(toIndex, 0, draggedSidebarItem);
+        renderSidebarTabs();
+    }
+    
+    draggedSidebarItem = null;
+}
+
+function showSidebarTabContextMenu(e, tabId) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const isPinned = pinnedTabs.has(tabId);
+    const items = [
+        { label: isPinned ? "Unpin" : "Pin", action: () => togglePinTab(tabId) },
+        { label: "Close", action: () => closeInternalTab(tabId) }
+    ];
+    
+    showContextMenu(e.pageX, e.pageY, items);
+}
+
+function togglePinTab(tabId) {
+    if (pinnedTabs.has(tabId)) {
+        pinnedTabs.delete(tabId);
+        showToast("Tab unpinned");
+    } else {
+        pinnedTabs.add(tabId);
+        showToast("Tab pinned");
+    }
+    renderSidebarTabs();
+}
+
+function renderSidebarTabs() {
+    const sidebarList = document.getElementById('opened-tabs-list');
+    sidebarList.innerHTML = '';
+    
+    // Sort: pinned tabs first, then maintain order
+    const sortedTabs = [...openedTabs].sort((a, b) => {
+        const aPinned = pinnedTabs.has(a);
+        const bPinned = pinnedTabs.has(b);
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        return 0;
+    });
+    
+    for (const tabId of sortedTabs) {
+        const tab = tabs.find(t => t.id === tabId);
+        if (!tab) continue;
+        
+        const isPinned = pinnedTabs.has(tabId);
+        const item = document.createElement('div');
+        item.className = 'sidebar-item' + (isPinned ? ' pinned' : '');
+        item.id = `nav-pdf-${tabId}`;
+        item.draggable = true;
+        item.dataset.tabId = tabId;
+        
+        // Click to switch view
+        item.onclick = () => switchView(`pdf-${tabId}`);
+        
+        // Context menu (right-click)
+        item.oncontextmenu = (e) => showSidebarTabContextMenu(e, tabId);
+        
+        // Drag events
+        item.ondragstart = (e) => handleSidebarDragStart(e, tabId);
+        item.ondragend = handleSidebarDragEnd;
+        item.ondragover = (e) => handleSidebarDragOver(e, tabId);
+        item.ondragleave = handleSidebarDragLeave;
+        item.ondrop = (e) => handleSidebarDrop(e, tabId);
+        
+        item.innerHTML = `
+            <span class="icon">${isPinned ? '<span class="icon-pin"></span>' : '<span class="icon-document"></span>'}</span>
+            <span class="sidebar-label" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${tab.title}</span>
+            <div class="close-tab" onclick="event.stopPropagation(); closeInternalTab('${tabId}')"><span class="icon-close"></span></div>
+        `;
+        sidebarList.appendChild(item);
+    }
+    
+    // Update active state
+    const activeNav = document.querySelector('.sidebar-item.active[id^="nav-pdf-"]');
+    if (activeNav) {
+        const activeId = activeNav.id.replace('nav-pdf-', '');
+        document.querySelectorAll('.sidebar-item[id^="nav-pdf-"]').forEach(el => el.classList.remove('active'));
+        const newActive = document.getElementById(`nav-pdf-${activeId}`);
+        if (newActive) newActive.classList.add('active');
+    }
+}
+
 async function loadCovers() {
     const placeholders = document.querySelectorAll('.placeholder-cover[data-cover]');
     for (const p of placeholders) {
@@ -273,17 +400,11 @@ async function openInternalTab(tab) {
         const blob = base64ToBlob(contentBase64, "application/pdf");
         const blobUrl = URL.createObjectURL(blob);
 
-        // 1. Create Sidebar Item
-        const sidebarList = document.getElementById('opened-tabs-list');
-        const item = document.createElement('div');
-        item.className = 'sidebar-item';
-        item.id = `nav-pdf-${tab.id}`;
-        item.onclick = () => switchView(`pdf-${tab.id}`);
-        item.innerHTML = `
-            <span class="icon"><span class="icon-document"></span></span><span class="sidebar-label" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${tab.title}</span>
-            <div class="close-tab" onclick="event.stopPropagation(); closeInternalTab('${tab.id}')"><span class="icon-close"></span></div>
-        `;
-        sidebarList.appendChild(item);
+        // 1. Add to openedTabs and render sidebar
+        if (!openedTabs.includes(tab.id)) {
+            openedTabs.push(tab.id);
+        }
+        renderSidebarTabs();
 
         // 2. Create View Container
         const container = document.getElementById('pdf-views-container');
@@ -307,9 +428,14 @@ async function openInternalTab(tab) {
 }
 
 function closeInternalTab(id) {
-    // Remove Sidebar Item
-    const navItem = document.getElementById(`nav-pdf-${id}`);
-    if(navItem) navItem.remove();
+    // Remove from openedTabs array
+    const index = openedTabs.indexOf(id);
+    if (index !== -1) {
+        openedTabs.splice(index, 1);
+    }
+    
+    // Remove from pinned tabs if pinned
+    pinnedTabs.delete(id);
 
     // Remove View
     const view = document.getElementById(`pdf-view-${id}`);
@@ -320,6 +446,9 @@ function closeInternalTab(id) {
         }
         view.remove();
     }
+    
+    // Re-render sidebar tabs
+    renderSidebarTabs();
 
     // Switch back to home
     switchView('home');

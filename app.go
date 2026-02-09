@@ -353,12 +353,21 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) error {
 
 	// If artist/album exists
 	if tab.Artist != "" && tab.Album != "" {
+		tabID := tab.ID // Capture ID for goroutine
 		go func() {
+			fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Album)
 			err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Country, tab.Language, coverPath)
 			if err == nil {
-				tab.CoverPath = coverPath
-				a.store.AddTab(tab)
-				wailsRuntime.EventsEmit(a.ctx, "tab-updated", tab) // Notify frontend
+				fmt.Printf("Cover downloaded successfully to: %s\n", coverPath)
+				// Fetch current tab state from DB and update cover path
+				currentTab, getErr := a.store.GetTab(tabID)
+				if getErr != nil || currentTab == nil {
+					fmt.Printf("Failed to get tab after cover download: %v\n", getErr)
+					return
+				}
+				currentTab.CoverPath = coverPath
+				a.store.AddTab(*currentTab)
+				wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab) // Notify frontend
 			} else {
 				fmt.Printf("Failed to download cover: %v\n", err)
 			}
@@ -382,14 +391,24 @@ func (a *App) UpdateTab(tab store.Tab) error {
 	coverPath := filepath.Join(cwd, "covers", coverFilename)
 
 	if tab.Artist != "" && tab.Album != "" {
+		tabID := tab.ID // Capture ID for goroutine
 		go func() {
+			fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Album)
 			err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Country, tab.Language, coverPath)
 			if err == nil {
-				tab.CoverPath = coverPath
-				a.store.AddTab(tab)
-				wailsRuntime.EventsEmit(a.ctx, "tab-updated", tab)
+				fmt.Printf("Cover downloaded successfully to: %s\n", coverPath)
+				// Fetch current tab state from DB and update cover path
+				currentTab, getErr := a.store.GetTab(tabID)
+				if getErr != nil || currentTab == nil {
+					fmt.Printf("Failed to get tab after cover download: %v\n", getErr)
+					return
+				}
+				currentTab.CoverPath = coverPath
+				a.store.AddTab(*currentTab)
+				wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab)
 			} else {
 				// Failed
+				fmt.Printf("Failed to download cover for '%s': %v\n", tab.Title, err)
 				wailsRuntime.EventsEmit(a.ctx, "cover-error", fmt.Sprintf("Failed to update cover for '%s': %v", tab.Title, err))
 			}
 		}()

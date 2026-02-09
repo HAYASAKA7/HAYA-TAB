@@ -110,6 +110,12 @@ func attemptDownload(artist, album, country, lang, dstPath string) error {
 	}
 	defer imgResp.Body.Close()
 
+	// Ensure directory exists
+	dir := filepath.Dir(dstPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create covers directory: %w", err)
+	}
+
 	out, err := os.Create(dstPath)
 	if err != nil {
 		return err
