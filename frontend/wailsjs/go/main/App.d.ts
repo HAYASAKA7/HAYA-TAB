@@ -28,11 +28,13 @@ export function OpenTab(arg1:string):Promise<void>;
 
 export function ProcessFile(arg1:string):Promise<store.Tab>;
 
+export function ReadPDF(arg1:string):Promise<string>;
+
 export function SaveSettings(arg1:store.Settings):Promise<void>;
 
 export function SaveTab(arg1:store.Tab,arg2:boolean):Promise<void>;
 
-export function SelectFile():Promise<string>;
+export function SelectFiles():Promise<Array<string>>;
 
 export function SelectFolder():Promise<string>;
 

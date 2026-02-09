@@ -170,8 +170,8 @@ function renderGrid() {
             e.preventDefault();
             e.stopPropagation();
             const items = [
-                { label: "Open (System)", action: () => window.go.main.App.OpenTab(tab.id) },
-                { label: "Open (Inner)", action: () => openInternalTab(tab) },
+                { label: "Open with System", action: () => window.go.main.App.OpenTab(tab.id) },
+                { label: "Open with Inner Viewer", action: () => openInternalTab(tab) },
                 { label: "Edit Metadata", action: () => editTab(tab.id) },
                 { label: "Move to Category...", action: () => promptMoveTab(tab.id) },
                 { label: "Export TAB", action: () => exportTab(tab.id) },
@@ -268,8 +268,6 @@ async function openInternalTab(tab) {
 
     try {
         const contentBase64 = await window.go.main.App.GetTabContent(tab.id);
-        const blob = base64ToBlob(contentBase64, "application/pdf");
-        const blobUrl = URL.createObjectURL(blob);
         
         // 1. Create Sidebar Item
         const sidebarList = document.getElementById('opened-tabs-list');
@@ -291,7 +289,7 @@ async function openInternalTab(tab) {
         
         view.innerHTML = `
             <div class="pdf-container">
-                <iframe src="${blobUrl}" class="pdf-frame"></iframe>
+                <iframe src="data:application/pdf;base64,${contentBase64}" class="pdf-frame"></iframe>
             </div>
         `;
         container.appendChild(view);
@@ -456,8 +454,9 @@ function removeSyncPath(index) {
 async function triggerSync() {
     showToast("Sync started...");
     try {
-        await window.go.main.App.TriggerSync();
-        // Result handled by event 'sync-complete'
+        const msg = await window.go.main.App.TriggerSync();
+        showToast(msg);
+        refreshData();
     } catch(e) {
         alert("Sync error: " + e);
     }
@@ -501,10 +500,13 @@ function showToast(message, type = "info") {
 
 // --- Standard Tab Actions (Wrappers) ---
 async function addTab(isUpload) {
-    const path = await window.go.main.App.SelectFile();
-    if (path) {
-        const tabData = await window.go.main.App.ProcessFile(path);
-        openModal(tabData, isUpload ? 'upload' : 'link');
+    const paths = await window.go.main.App.SelectFiles();
+    if (paths && paths.length > 0) {
+        for (const path of paths) {
+            const tabData = await window.go.main.App.ProcessFile(path);
+            await window.go.main.App.SaveTab(tabData, isUpload);
+        }
+        await refreshTabs();
     }
 }
 function editTab(id) { const t = tabs.find(x => x.id === id); if(t) openModal(t, 'edit'); }

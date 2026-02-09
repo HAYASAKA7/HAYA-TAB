@@ -54,6 +54,10 @@ export function ProcessFile(arg1) {
   return window['go']['main']['App']['ProcessFile'](arg1);
 }
 
+export function ReadPDF(arg1) {
+  return window['go']['main']['App']['ReadPDF'](arg1);
+}
+
 export function SaveSettings(arg1) {
   return window['go']['main']['App']['SaveSettings'](arg1);
 }
@@ -62,8 +66,8 @@ export function SaveTab(arg1, arg2) {
   return window['go']['main']['App']['SaveTab'](arg1, arg2);
 }
 
-export function SelectFile() {
-  return window['go']['main']['App']['SelectFile']();
+export function SelectFiles() {
+  return window['go']['main']['App']['SelectFiles']();
 }
 
 export function SelectFolder() {

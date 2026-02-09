@@ -60,6 +60,7 @@ func (a *App) SaveSettings(s store.Settings) error {
 
 // TriggerSync scans the sync paths and adds/updates tabs based on strategy
 func (a *App) TriggerSync() (string, error) {
+	fmt.Println("Starting TriggerSync...")
 	if len(a.store.Settings.SyncPaths) == 0 {
 		return "No sync paths configured", nil
 	}
@@ -72,8 +73,10 @@ func (a *App) TriggerSync() (string, error) {
 	strategy := a.store.Settings.SyncStrategy // "skip" or "overwrite"
 
 	for _, root := range a.store.Settings.SyncPaths {
+		fmt.Printf("Scanning path: %s\n", root)
 		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
+				fmt.Printf("Error accessing path %s: %v\n", path, err)
 				return nil // Skip unreadable
 			}
 			if info.IsDir() {
@@ -112,20 +115,20 @@ func (a *App) TriggerSync() (string, error) {
 					return nil
 				} else if strategy == "overwrite" {
 					// Handle Overwrite
-					
+
 					// If old one was managed (uploaded), delete the file
 					if conflictTab.IsManaged {
 						os.Remove(conflictTab.FilePath) // Ignore error
 						conflictTab.IsManaged = false
 					}
-					
+
 					// Update path
 					conflictTab.FilePath = path
 					// Update Metadata? Maybe keep old custom metadata?
 					// Prompt implies replacing, so let's update basic fields but keep ID
 					// Actually, let's keep Category, ID, Cover. Update FilePath and maybe Type.
 					conflictTab.Type = newTab.Type
-					
+
 					// Save
 					if err := a.store.AddTab(*conflictTab); err == nil {
 						updated++
@@ -147,7 +150,7 @@ func (a *App) TriggerSync() (string, error) {
 			fmt.Printf("Error walking %s: %v\n", root, err)
 		}
 	}
-	
+
 	resultMsg := fmt.Sprintf("Sync complete: %d added, %d updated, %d skipped.", added, updated, skipped)
 	wailsRuntime.EventsEmit(a.ctx, "sync-complete", resultMsg)
 	return resultMsg, nil
@@ -375,7 +378,7 @@ func (a *App) UpdateTab(tab store.Tab) error {
 			if err == nil {
 				tab.CoverPath = coverPath
 				a.store.AddTab(tab)
-				wailsRuntime.EventsEmit(a.ctx, "tab-updated", tab) 
+				wailsRuntime.EventsEmit(a.ctx, "tab-updated", tab)
 			} else {
 				// Failed
 				wailsRuntime.EventsEmit(a.ctx, "cover-error", fmt.Sprintf("Failed to update cover for '%s': %v", tab.Title, err))
@@ -449,17 +452,17 @@ func (a *App) GetTabContent(id string) (string, error) {
 	return base64.StdEncoding.EncodeToString(data), nil
 }
 
-// SelectFile opens a file dialog and returns the selected file path
-func (a *App) SelectFile() string {
-	selection, err := wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
-		Title: "Select Tab File",
+// SelectFiles opens a file dialog and returns the selected file paths
+func (a *App) SelectFiles() []string {
+	selection, err := wailsRuntime.OpenMultipleFilesDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "Select Tab Files",
 		Filters: []wailsRuntime.FileFilter{
 			{DisplayName: "Tabs (*.pdf;*.gp;*.gp5;*.gpx)", Pattern: "*.pdf;*.gp;*.gp5;*.gpx"},
 		},
 	})
 
 	if err != nil {
-		return ""
+		return nil
 	}
 	return selection
 }
@@ -479,3 +482,11 @@ func (a *App) SelectImage() string {
 	return selection
 }
 
+// ReadPDF reads a PDF file and returns its base64 encoded content
+func (a *App) ReadPDF(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(data)
+}
