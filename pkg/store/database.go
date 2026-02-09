@@ -1,0 +1,442 @@
+package store
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+
+	_ "modernc.org/sqlite"
+)
+
+type DBStore struct {
+	mu       sync.Mutex
+	db       *sql.DB
+	dbPath   string
+	Settings Settings
+}
+
+func NewDBStore(dbPath string) *DBStore {
+	return &DBStore{
+		dbPath: dbPath,
+		Settings: Settings{
+			Theme:        "system",
+			OpenMethod:   "system",
+			SyncStrategy: "skip",
+		},
+	}
+}
+
+// Initialize creates the database and tables
+func (s *DBStore) Initialize() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Ensure directory exists
+	dir := filepath.Dir(s.dbPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create data directory: %w", err)
+	}
+
+	db, err := sql.Open("sqlite", s.dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %w", err)
+	}
+	s.db = db
+
+	// Create tables
+	if err := s.createTables(); err != nil {
+		return fmt.Errorf("failed to create tables: %w", err)
+	}
+
+	// Load settings into memory
+	if err := s.loadSettings(); err != nil {
+		return fmt.Errorf("failed to load settings: %w", err)
+	}
+
+	return nil
+}
+
+func (s *DBStore) createTables() error {
+	schema := `
+	CREATE TABLE IF NOT EXISTS tabs (
+		id TEXT PRIMARY KEY,
+		title TEXT NOT NULL,
+		artist TEXT DEFAULT '',
+		album TEXT DEFAULT '',
+		file_path TEXT NOT NULL,
+		type TEXT NOT NULL,
+		is_managed INTEGER DEFAULT 0,
+		cover_path TEXT DEFAULT '',
+		category_id TEXT DEFAULT '',
+		country TEXT DEFAULT '',
+		language TEXT DEFAULT ''
+	);
+
+	CREATE TABLE IF NOT EXISTS categories (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
+		parent_id TEXT DEFAULT ''
+	);
+
+	CREATE TABLE IF NOT EXISTS settings (
+		key TEXT PRIMARY KEY,
+		value TEXT
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_tabs_category ON tabs(category_id);
+	CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
+	`
+
+	_, err := s.db.Exec(schema)
+	return err
+}
+
+func (s *DBStore) loadSettings() error {
+	rows, err := s.db.Query("SELECT key, value FROM settings")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	settings := make(map[string]string)
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return err
+		}
+		settings[key] = value
+	}
+
+	if v, ok := settings["theme"]; ok {
+		s.Settings.Theme = v
+	}
+	if v, ok := settings["background"]; ok {
+		s.Settings.Background = v
+	}
+	if v, ok := settings["bgType"]; ok {
+		s.Settings.BgType = v
+	}
+	if v, ok := settings["openMethod"]; ok {
+		s.Settings.OpenMethod = v
+	}
+	if v, ok := settings["syncStrategy"]; ok {
+		s.Settings.SyncStrategy = v
+	}
+	if v, ok := settings["syncPaths"]; ok && v != "" {
+		s.Settings.SyncPaths = strings.Split(v, "|")
+	}
+
+	return nil
+}
+
+// Close closes the database connection
+func (s *DBStore) Close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
+}
+
+// === Tab Operations ===
+
+func (s *DBStore) GetTabs() ([]Tab, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	rows, err := s.db.Query(`
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language 
+		FROM tabs
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tabs []Tab
+	for rows.Next() {
+		var t Tab
+		var isManaged int
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language); err != nil {
+			return nil, err
+		}
+		t.IsManaged = isManaged == 1
+		tabs = append(tabs, t)
+	}
+	return tabs, nil
+}
+
+func (s *DBStore) GetTab(id string) (*Tab, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var t Tab
+	var isManaged int
+	err := s.db.QueryRow(`
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language 
+		FROM tabs WHERE id = ?
+	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	t.IsManaged = isManaged == 1
+	return &t, nil
+}
+
+func (s *DBStore) AddTab(tab Tab) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	isManaged := 0
+	if tab.IsManaged {
+		isManaged = 1
+	}
+
+	_, err := s.db.Exec(`
+		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.Type, isManaged, tab.CoverPath, tab.CategoryID, tab.Country, tab.Language)
+	return err
+}
+
+func (s *DBStore) UpdateTab(tab Tab) error {
+	return s.AddTab(tab) // INSERT OR REPLACE handles update
+}
+
+func (s *DBStore) DeleteTab(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, err := s.db.Exec("DELETE FROM tabs WHERE id = ?", id)
+	return err
+}
+
+func (s *DBStore) MoveTab(id, categoryID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, err := s.db.Exec("UPDATE tabs SET category_id = ? WHERE id = ?", categoryID, id)
+	return err
+}
+
+func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var t Tab
+	var isManaged int
+	err := s.db.QueryRow(`
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language 
+		FROM tabs WHERE file_path = ?
+	`, filePath).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	t.IsManaged = isManaged == 1
+	return &t, nil
+}
+
+func (s *DBStore) GetTabByTitle(title string) (*Tab, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var t Tab
+	var isManaged int
+	err := s.db.QueryRow(`
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language 
+		FROM tabs WHERE title = ?
+	`, title).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	t.IsManaged = isManaged == 1
+	return &t, nil
+}
+
+// === Category Operations ===
+
+func (s *DBStore) GetCategories() ([]Category, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	rows, err := s.db.Query("SELECT id, name, parent_id FROM categories")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []Category
+	for rows.Next() {
+		var c Category
+		if err := rows.Scan(&c.ID, &c.Name, &c.ParentID); err != nil {
+			return nil, err
+		}
+		categories = append(categories, c)
+	}
+	return categories, nil
+}
+
+func (s *DBStore) AddCategory(cat Category) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, err := s.db.Exec(`
+		INSERT OR REPLACE INTO categories (id, name, parent_id)
+		VALUES (?, ?, ?)
+	`, cat.ID, cat.Name, cat.ParentID)
+	return err
+}
+
+func (s *DBStore) DeleteCategory(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Start a transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Move tabs in this category to root
+	if _, err := tx.Exec("UPDATE tabs SET category_id = '' WHERE category_id = ?", id); err != nil {
+		return err
+	}
+
+	// Move sub-categories to root
+	if _, err := tx.Exec("UPDATE categories SET parent_id = '' WHERE parent_id = ?", id); err != nil {
+		return err
+	}
+
+	// Delete the category
+	if _, err := tx.Exec("DELETE FROM categories WHERE id = ?", id); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *DBStore) MoveCategory(id, newParentID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, err := s.db.Exec("UPDATE categories SET parent_id = ? WHERE id = ?", newParentID, id)
+	return err
+}
+
+// === Settings Operations ===
+
+func (s *DBStore) GetSettings() Settings {
+	return s.Settings
+}
+
+func (s *DBStore) UpdateSettings(settings Settings) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.Settings = settings
+
+	// Save each setting
+	settingsMap := map[string]string{
+		"theme":        settings.Theme,
+		"background":   settings.Background,
+		"bgType":       settings.BgType,
+		"openMethod":   settings.OpenMethod,
+		"syncStrategy": settings.SyncStrategy,
+		"syncPaths":    strings.Join(settings.SyncPaths, "|"),
+	}
+
+	for key, value := range settingsMap {
+		if _, err := s.db.Exec("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", key, value); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// === Migration ===
+
+// MigrateFromJSON migrates data from old JSON file to database
+func (s *DBStore) MigrateFromJSON(jsonPath string) error {
+	// Check if JSON file exists
+	data, err := os.ReadFile(jsonPath)
+	if os.IsNotExist(err) {
+		return nil // No migration needed
+	}
+	if err != nil {
+		return fmt.Errorf("failed to read JSON file: %w", err)
+	}
+
+	// Try to parse as PersistenceData
+	var pData struct {
+		Tabs       []Tab      `json:"tabs"`
+		Categories []Category `json:"categories"`
+		Settings   Settings   `json:"settings"`
+	}
+
+	if err := json.Unmarshal(data, &pData); err != nil {
+		// Fallback for old data format (array of tabs)
+		var tabs []Tab
+		if err2 := json.Unmarshal(data, &tabs); err2 == nil {
+			pData.Tabs = tabs
+		} else {
+			return fmt.Errorf("failed to parse JSON data: %w", err)
+		}
+	}
+
+	// Migrate tabs
+	for _, tab := range pData.Tabs {
+		if err := s.AddTab(tab); err != nil {
+			return fmt.Errorf("failed to migrate tab %s: %w", tab.ID, err)
+		}
+	}
+
+	// Migrate categories
+	for _, cat := range pData.Categories {
+		if err := s.AddCategory(cat); err != nil {
+			return fmt.Errorf("failed to migrate category %s: %w", cat.ID, err)
+		}
+	}
+
+	// Migrate settings
+	if pData.Settings.Theme != "" || pData.Settings.OpenMethod != "" {
+		if err := s.UpdateSettings(pData.Settings); err != nil {
+			return fmt.Errorf("failed to migrate settings: %w", err)
+		}
+	}
+
+	// Rename old JSON file to backup
+	backupPath := jsonPath + ".bak"
+	if err := os.Rename(jsonPath, backupPath); err != nil {
+		return fmt.Errorf("failed to backup JSON file: %w", err)
+	}
+
+	fmt.Printf("Migration complete. Old data backed up to: %s\n", backupPath)
+	return nil
+}
+
+// HasData checks if the database has any data
+func (s *DBStore) HasData() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM tabs").Scan(&count)
+	if err != nil {
+		return false
+	}
+	return count > 0
+}

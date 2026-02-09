@@ -4,6 +4,10 @@ let currentCategoryId = "";
 let isEditMode = false;
 let currentSettings = {};
 
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
 // Initialize
 window.onload = async () => {
     try {
@@ -113,7 +117,7 @@ function renderGrid() {
             renderGrid();
         };
         backCard.innerHTML = `
-            <div class="cover-wrapper" style="font-size: 2rem;">⤴️</div>
+            <div class="cover-wrapper"><span class="icon-back icon-xl"></span></div>
             <div class="info"><div class="title">.. (Back)</div></div>
         `;
         grid.appendChild(backCard);
@@ -146,7 +150,7 @@ function renderGrid() {
         };
 
         card.innerHTML = `
-             <div class="cover-wrapper">📂</div>
+             <div class="cover-wrapper"><span class="icon-folder icon-xl"></span></div>
              <div class="info"><div class="title">${cat.name}</div></div>
         `;
         grid.appendChild(card);
@@ -177,13 +181,13 @@ function renderGrid() {
             showContextMenu(e.pageX, e.pageY, items);
         };
 
-        let coverHtml = `<div class="placeholder-cover">🎵</div>`;
+        let coverHtml = `<div class="placeholder-cover"><span class="icon-music icon-xl"></span></div>`;
         if (tab.coverPath) {
-            coverHtml = `<div class="placeholder-cover" data-cover="${tab.coverPath}">🎵</div>`;
+            coverHtml = `<div class="placeholder-cover" data-cover="${tab.coverPath}"><span class="icon-music icon-xl"></span></div>`;
         }
 
         card.innerHTML = `
-            <div class="edit-btn" onclick="event.stopPropagation(); editTab('${tab.id}')">✎</div>
+            <div class="edit-btn" onclick="event.stopPropagation(); editTab('${tab.id}')"><span class="icon-edit"></span></div>
             <div class="cover-wrapper">
                 ${coverHtml}
             </div>
@@ -276,8 +280,8 @@ async function openInternalTab(tab) {
         item.id = `nav-pdf-${tab.id}`;
         item.onclick = () => switchView(`pdf-${tab.id}`);
         item.innerHTML = `
-            <span class="icon">📄</span> <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${tab.title}</span>
-            <div class="close-tab" onclick="event.stopPropagation(); closeInternalTab('${tab.id}')">✕</div>
+            <span class="icon"><span class="icon-document"></span></span><span class="sidebar-label" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${tab.title}</span>
+            <div class="close-tab" onclick="event.stopPropagation(); closeInternalTab('${tab.id}')"><span class="icon-close"></span></div>
         `;
         sidebarList.appendChild(item);
 
@@ -388,7 +392,7 @@ function renderSyncPaths() {
         const li = document.createElement('li');
         li.innerHTML = `
             <span>${path}</span>
-            <span class="delete-icon" onclick="removeSyncPath(${index})">🗑️</span>
+            <span class="delete-icon" onclick="removeSyncPath(${index})"><span class="icon-trash"></span></span>
         `;
         list.appendChild(li);
     });

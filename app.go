@@ -20,7 +20,7 @@ import (
 // App struct
 type App struct {
 	ctx   context.Context
-	store *store.Store
+	store *store.DBStore
 }
 
 // NewApp creates a new App application struct
@@ -34,10 +34,20 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	// Init store
 	cwd, _ := os.Getwd()
-	dataPath := filepath.Join(cwd, "data", "tabs.json")
-	a.store = store.NewStore(dataPath)
-	if err := a.store.Load(); err != nil {
-		fmt.Printf("Error loading store: %v", err)
+	dbPath := filepath.Join(cwd, "data", "haya-tab.db")
+	jsonPath := filepath.Join(cwd, "data", "tabs.json")
+
+	a.store = store.NewDBStore(dbPath)
+	if err := a.store.Initialize(); err != nil {
+		fmt.Printf("Error initializing database: %v\n", err)
+		return
+	}
+
+	// Migrate from JSON if database is empty and JSON exists
+	if !a.store.HasData() {
+		if err := a.store.MigrateFromJSON(jsonPath); err != nil {
+			fmt.Printf("Error migrating from JSON: %v\n", err)
+		}
 	}
 
 	// Auto Sync on Startup
@@ -48,9 +58,16 @@ func (a *App) startup(ctx context.Context) {
 	}()
 }
 
+// shutdown is called when the app is closing
+func (a *App) shutdown(ctx context.Context) {
+	if a.store != nil {
+		a.store.Close()
+	}
+}
+
 // GetSettings returns the current settings
 func (a *App) GetSettings() store.Settings {
-	return a.store.Settings
+	return a.store.GetSettings()
 }
 
 // SaveSettings updates the settings
@@ -61,7 +78,8 @@ func (a *App) SaveSettings(s store.Settings) error {
 // TriggerSync scans the sync paths and adds/updates tabs based on strategy
 func (a *App) TriggerSync() (string, error) {
 	fmt.Println("Starting TriggerSync...")
-	if len(a.store.Settings.SyncPaths) == 0 {
+	settings := a.store.GetSettings()
+	if len(settings.SyncPaths) == 0 {
 		return "No sync paths configured", nil
 	}
 
@@ -70,9 +88,15 @@ func (a *App) TriggerSync() (string, error) {
 	skipped := 0
 	errors := 0
 
-	strategy := a.store.Settings.SyncStrategy // "skip" or "overwrite"
+	strategy := settings.SyncStrategy // "skip" or "overwrite"
 
-	for _, root := range a.store.Settings.SyncPaths {
+	// Get all tabs once for comparison
+	allTabs, err := a.store.GetTabs()
+	if err != nil {
+		return "", fmt.Errorf("failed to get tabs: %w", err)
+	}
+
+	for _, root := range settings.SyncPaths {
 		fmt.Printf("Scanning path: %s\n", root)
 		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -90,7 +114,7 @@ func (a *App) TriggerSync() (string, error) {
 			}
 
 			// 1. Check if EXACT path exists
-			for _, t := range a.store.Tabs {
+			for _, t := range allTabs {
 				if t.FilePath == path {
 					return nil // Already exists
 				}
@@ -100,11 +124,11 @@ func (a *App) TriggerSync() (string, error) {
 			newTab := a.ProcessFile(path) // This creates a Tab struct with parsed info
 
 			var conflictTab *store.Tab
-			for i, t := range a.store.Tabs {
+			for i, t := range allTabs {
 				// Compare Titles (or maybe normalize them?)
 				// Using Title as "same name" indicator
 				if t.Title == newTab.Title {
-					conflictTab = &a.store.Tabs[i]
+					conflictTab = &allTabs[i]
 					break
 				}
 			}
@@ -158,7 +182,12 @@ func (a *App) TriggerSync() (string, error) {
 
 // GetTabs returns the list of tabs
 func (a *App) GetTabs() []store.Tab {
-	return a.store.Tabs
+	tabs, err := a.store.GetTabs()
+	if err != nil {
+		fmt.Printf("Error getting tabs: %v\n", err)
+		return []store.Tab{}
+	}
+	return tabs
 }
 
 // ProcessFile takes a file path and returns a pre-filled Tab struct
@@ -184,7 +213,12 @@ func (a *App) ProcessFile(path string) store.Tab {
 
 // GetCategories returns the list of categories
 func (a *App) GetCategories() []store.Category {
-	return a.store.Categories
+	categories, err := a.store.GetCategories()
+	if err != nil {
+		fmt.Printf("Error getting categories: %v\n", err)
+		return []store.Category{}
+	}
+	return categories
 }
 
 // AddCategory adds a new category
@@ -204,17 +238,11 @@ func (a *App) DeleteCategory(id string) error {
 // DeleteTab deletes a tab and its managed file if applicable
 func (a *App) DeleteTab(id string) error {
 	// Find tab first to check for managed file
-	var targetTab store.Tab
-	found := false
-	for _, t := range a.store.Tabs {
-		if t.ID == id {
-			targetTab = t
-			found = true
-			break
-		}
+	targetTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
 	}
-
-	if !found {
+	if targetTab == nil {
 		return fmt.Errorf("tab not found")
 	}
 
@@ -234,21 +262,7 @@ func (a *App) DeleteTab(id string) error {
 
 // MoveTab updates the category of a tab
 func (a *App) MoveTab(tabID, categoryID string) error {
-	var targetTab store.Tab
-	found := false
-	for _, t := range a.store.Tabs {
-		if t.ID == tabID {
-			targetTab = t
-			found = true
-			break
-		}
-	}
-	if !found {
-		return fmt.Errorf("tab not found")
-	}
-
-	targetTab.CategoryID = categoryID
-	return a.store.AddTab(targetTab)
+	return a.store.MoveTab(tabID, categoryID)
 }
 
 // MoveCategory moves a category into another category
@@ -262,16 +276,11 @@ func (a *App) MoveCategory(id, newParentID string) error {
 
 // ExportTab copies the tab file to a destination folder
 func (a *App) ExportTab(id string, destFolder string) error {
-	var targetTab store.Tab
-	found := false
-	for _, t := range a.store.Tabs {
-		if t.ID == id {
-			targetTab = t
-			found = true
-			break
-		}
+	targetTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
 	}
-	if !found {
+	if targetTab == nil {
 		return fmt.Errorf("tab not found")
 	}
 
@@ -391,16 +400,11 @@ func (a *App) UpdateTab(tab store.Tab) error {
 
 // OpenTab opens the file using system default
 func (a *App) OpenTab(id string) error {
-	var targetTab store.Tab
-	found := false
-	for _, t := range a.store.Tabs {
-		if t.ID == id {
-			targetTab = t
-			found = true
-			break
-		}
+	targetTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
 	}
-	if !found {
+	if targetTab == nil {
 		return fmt.Errorf("tab not found")
 	}
 
@@ -432,16 +436,11 @@ func (a *App) GetCover(path string) string {
 
 // GetTabContent returns the base64 encoded content of the tab file for the internal viewer
 func (a *App) GetTabContent(id string) (string, error) {
-	var targetTab store.Tab
-	found := false
-	for _, t := range a.store.Tabs {
-		if t.ID == id {
-			targetTab = t
-			found = true
-			break
-		}
+	targetTab, err := a.store.GetTab(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to get tab: %w", err)
 	}
-	if !found {
+	if targetTab == nil {
 		return "", fmt.Errorf("tab not found")
 	}
 

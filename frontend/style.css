@@ -22,11 +22,15 @@
 
 body {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: Consolas, 'Courier New', monospace;
     background: var(--bg);
     color: var(--text);
     overflow: hidden;
     transition: background 0.2s, color 0.2s;
+}
+
+button, input, select, textarea {
+    font-family: inherit;
 }
 
 /* Layout */
@@ -49,6 +53,56 @@ body {
     padding-top: 10px;
     backdrop-filter: blur(10px); /* For glass effect if bg set */
     background: color-mix(in srgb, var(--sidebar-bg), transparent 10%);
+    transition: width 0.25s ease;
+    overflow: hidden;
+}
+
+#sidebar-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    padding: 8px 20px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+}
+#sidebar-toggle:hover {
+    color: var(--text);
+    background: var(--hover);
+}
+
+/* Collapsed sidebar */
+#sidebar.collapsed {
+    width: 50px;
+}
+#sidebar.collapsed #sidebar-toggle {
+    text-align: center;
+    padding: 8px 0;
+}
+#sidebar.collapsed .sidebar-item {
+    justify-content: center;
+    padding: 12px 0;
+    gap: 0;
+}
+#sidebar.collapsed .sidebar-item .icon {
+    margin: 0;
+}
+#sidebar.collapsed .sidebar-item .close-tab,
+#sidebar.collapsed .sidebar-item .sidebar-label,
+#sidebar.collapsed .sidebar-item > span:not(.icon) {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+#sidebar.collapsed .sidebar-item.active {
+    padding-left: 0;
+    border-left-width: 4px;
+}
+#sidebar.collapsed .sidebar-divider {
+    margin: 10px 5px;
 }
 
 .sidebar-item {
@@ -61,6 +115,8 @@ body {
     transition: all 0.2s;
     user-select: none;
     font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .sidebar-item:hover {
