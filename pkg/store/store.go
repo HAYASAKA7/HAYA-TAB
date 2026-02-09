@@ -28,10 +28,10 @@ type Category struct {
 }
 
 type Settings struct {
-	Theme        string   `json:"theme"`        // "dark", "light", "system"
-	Background   string   `json:"background"`   // URL or path
-	BgType       string   `json:"bgType"`       // "url", "local"
-	OpenMethod   string   `json:"openMethod"`   // "system", "inner"
+	Theme        string   `json:"theme"`      // "dark", "light", "system"
+	Background   string   `json:"background"` // URL or path
+	BgType       string   `json:"bgType"`     // "url", "local"
+	OpenMethod   string   `json:"openMethod"` // "system", "inner"
 	SyncPaths    []string `json:"syncPaths"`
 	SyncStrategy string   `json:"syncStrategy"` // "skip", "overwrite"
 }
@@ -57,8 +57,9 @@ func NewStore(dataPath string) *Store {
 		Categories: []Category{},
 		Settings: Settings{
 			Theme:        "system",
-			OpenMethod:   "system",
+			OpenMethod:   "inner",
 			SyncStrategy: "skip",
+			SyncPaths:    []string{},
 		},
 	}
 }
@@ -122,7 +123,6 @@ func (s *Store) UpdateSettings(settings Settings) error {
 	return s.Save()
 }
 
-
 func (s *Store) AddTab(tab Tab) error {
 	s.mu.Lock()
 	// Check if ID exists, if so update
@@ -168,16 +168,16 @@ func (s *Store) DeleteCategory(id string) error {
 		}
 	}
 	s.Categories = newCats
-	
-	// Optional: Move children tabs to root or parent? 
+
+	// Optional: Move children tabs to root or parent?
 	// For simplicity, let's move tabs in this category to root ("")
 	for i := range s.Tabs {
 		if s.Tabs[i].CategoryID == id {
 			s.Tabs[i].CategoryID = ""
 		}
 	}
-	// Note: We are not recursively deleting sub-categories here for simplicity, 
-	// but strictly speaking we should. 
+	// Note: We are not recursively deleting sub-categories here for simplicity,
+	// but strictly speaking we should.
 	// Let's also move sub-categories to root.
 	for i := range s.Categories {
 		if s.Categories[i].ParentID == id {

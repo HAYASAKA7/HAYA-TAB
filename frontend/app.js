@@ -91,8 +91,8 @@ function showConfirmModal(title, message, okText = "Confirm", isDanger = true) {
 }
 
 async function refreshData() {
-    tabs = await window.go.main.App.GetTabs();
-    categories = await window.go.main.App.GetCategories();
+    tabs = await window.go.main.App.GetTabs() || [];
+    categories = await window.go.main.App.GetCategories() || [];
     renderGrid();
     updateBatchActionBar();
 }
@@ -704,6 +704,11 @@ async function loadSettings() {
     currentSettings = await window.go.main.App.GetSettings();
     if (!currentSettings) return;
 
+    // Ensure syncPaths is always an array
+    if (!currentSettings.syncPaths) {
+        currentSettings.syncPaths = [];
+    }
+
     // Apply Theme
     if (currentSettings.theme === 'light') {
         document.body.setAttribute('data-theme', 'light');
@@ -837,6 +842,8 @@ function removeSyncPath(index) {
 async function triggerSync() {
     showToast("Sync started...");
     try {
+        // Save current settings (including sync paths) before syncing
+        await window.go.main.App.SaveSettings(currentSettings);
         const msg = await window.go.main.App.TriggerSync();
         showToast(msg);
         refreshData();

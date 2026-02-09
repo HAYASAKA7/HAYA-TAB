@@ -17,6 +17,24 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+// getAppDir returns the directory where the executable is located
+// This is more reliable than os.Getwd() for built applications
+func getAppDir() string {
+	exePath, err := os.Executable()
+	if err != nil {
+		// Fallback to working directory
+		cwd, _ := os.Getwd()
+		return cwd
+	}
+	// Resolve symlinks to get the real path
+	exePath, err = filepath.EvalSymlinks(exePath)
+	if err != nil {
+		cwd, _ := os.Getwd()
+		return cwd
+	}
+	return filepath.Dir(exePath)
+}
+
 // App struct
 type App struct {
 	ctx   context.Context
@@ -33,9 +51,26 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	// Init store
-	cwd, _ := os.Getwd()
-	dbPath := filepath.Join(cwd, "data", "haya-tab.db")
-	jsonPath := filepath.Join(cwd, "data", "tabs.json")
+	appDir := getAppDir()
+	fmt.Printf("App directory: %s\n", appDir)
+
+	// Ensure required directories exist
+	requiredDirs := []string{
+		filepath.Join(appDir, "data"),
+		filepath.Join(appDir, "storage"),
+		filepath.Join(appDir, "covers"),
+	}
+	for _, dir := range requiredDirs {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			fmt.Printf("Error creating directory %s: %v\n", dir, err)
+		} else {
+			fmt.Printf("Directory ensured: %s\n", dir)
+		}
+	}
+
+	dbPath := filepath.Join(appDir, "data", "haya-tab.db")
+	jsonPath := filepath.Join(appDir, "data", "tabs.json")
+	fmt.Printf("Database path: %s\n", dbPath)
 
 	a.store = store.NewDBStore(dbPath)
 	if err := a.store.Initialize(); err != nil {
@@ -164,6 +199,8 @@ func (a *App) TriggerSync() (string, error) {
 			// No conflict, add as new
 			if err := a.store.AddTab(newTab); err == nil {
 				added++
+				// Async cover fetch for synced tabs
+				a.fetchCoverAsync(newTab)
 			} else {
 				errors++
 			}
@@ -178,6 +215,37 @@ func (a *App) TriggerSync() (string, error) {
 	resultMsg := fmt.Sprintf("Sync complete: %d added, %d updated, %d skipped.", added, updated, skipped)
 	wailsRuntime.EventsEmit(a.ctx, "sync-complete", resultMsg)
 	return resultMsg, nil
+}
+
+// fetchCoverAsync downloads album cover art asynchronously for a tab
+func (a *App) fetchCoverAsync(tab store.Tab) {
+	if tab.Artist == "" || (tab.Album == "" && tab.Title == "") {
+		return // Not enough info to search for cover
+	}
+
+	appDir := getAppDir()
+	coverFilename := tab.ID + ".jpg"
+	coverPath := filepath.Join(appDir, "covers", coverFilename)
+	tabID := tab.ID // Capture for goroutine
+
+	go func() {
+		fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Title)
+		err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Title, tab.Country, tab.Language, coverPath)
+		if err == nil {
+			fmt.Printf("Cover downloaded successfully to: %s\n", coverPath)
+			// Fetch current tab state from DB and update cover path
+			currentTab, getErr := a.store.GetTab(tabID)
+			if getErr != nil || currentTab == nil {
+				fmt.Printf("Failed to get tab after cover download: %v\n", getErr)
+				return
+			}
+			currentTab.CoverPath = coverPath
+			a.store.AddTab(*currentTab)
+			wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab) // Notify frontend
+		} else {
+			fmt.Printf("Failed to download cover: %v\n", err)
+		}
+	}()
 }
 
 // GetTabs returns the list of tabs
@@ -373,13 +441,13 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) error {
 		return fmt.Errorf("a tab with title '%s' already exists", existingByTitle.Title)
 	}
 
-	cwd, _ := os.Getwd()
+	appDir := getAppDir()
 
 	// 1. Handle File Copy
 	if shouldCopy {
 		ext := filepath.Ext(tab.FilePath)
 		newFilename := tab.ID + ext
-		destPath := filepath.Join(cwd, "storage", newFilename)
+		destPath := filepath.Join(appDir, "storage", newFilename)
 
 		src, err := os.Open(tab.FilePath)
 		if err != nil {
@@ -403,35 +471,15 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) error {
 		tab.IsManaged = false
 	}
 
-	// 2. Handle Cover (Async-ish)
-	coverFilename := tab.ID + ".jpg"
-	coverPath := filepath.Join(cwd, "covers", coverFilename)
-
-	// If artist/album exists
-	if tab.Artist != "" && (tab.Album != "" || tab.Title != "") {
-		tabID := tab.ID // Capture ID for goroutine
-		go func() {
-			fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Title)
-			err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Title, tab.Country, tab.Language, coverPath)
-			if err == nil {
-				fmt.Printf("Cover downloaded successfully to: %s\n", coverPath)
-				// Fetch current tab state from DB and update cover path
-				currentTab, getErr := a.store.GetTab(tabID)
-				if getErr != nil || currentTab == nil {
-					fmt.Printf("Failed to get tab after cover download: %v\n", getErr)
-					return
-				}
-				currentTab.CoverPath = coverPath
-				a.store.AddTab(*currentTab)
-				wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab) // Notify frontend
-			} else {
-				fmt.Printf("Failed to download cover: %v\n", err)
-			}
-		}()
+	// Save initial version first
+	if err := a.store.AddTab(tab); err != nil {
+		return err
 	}
 
-	// Save initial version
-	return a.store.AddTab(tab)
+	// 2. Handle Cover (Async)
+	a.fetchCoverAsync(tab)
+
+	return nil
 }
 
 // UpdateTab updates an existing tab's metadata
@@ -441,34 +489,8 @@ func (a *App) UpdateTab(tab store.Tab) error {
 		return err
 	}
 
-	// Trigger Cover Update
-	cwd, _ := os.Getwd()
-	coverFilename := tab.ID + ".jpg"
-	coverPath := filepath.Join(cwd, "covers", coverFilename)
-
-	if tab.Artist != "" && (tab.Album != "" || tab.Title != "") {
-		tabID := tab.ID // Capture ID for goroutine
-		go func() {
-			fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Title)
-			err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Title, tab.Country, tab.Language, coverPath)
-			if err == nil {
-				fmt.Printf("Cover downloaded successfully to: %s\n", coverPath)
-				// Fetch current tab state from DB and update cover path
-				currentTab, getErr := a.store.GetTab(tabID)
-				if getErr != nil || currentTab == nil {
-					fmt.Printf("Failed to get tab after cover download: %v\n", getErr)
-					return
-				}
-				currentTab.CoverPath = coverPath
-				a.store.AddTab(*currentTab)
-				wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab)
-			} else {
-				// Failed
-				fmt.Printf("Failed to download cover for '%s': %v\n", tab.Title, err)
-				wailsRuntime.EventsEmit(a.ctx, "cover-error", fmt.Sprintf("Failed to update cover for '%s': %v", tab.Title, err))
-			}
-		}()
-	}
+	// Trigger Cover Update (Async)
+	a.fetchCoverAsync(tab)
 
 	return nil
 }

@@ -24,8 +24,9 @@ func NewDBStore(dbPath string) *DBStore {
 		dbPath: dbPath,
 		Settings: Settings{
 			Theme:        "system",
-			OpenMethod:   "system",
+			OpenMethod:   "inner",
 			SyncStrategy: "skip",
+			SyncPaths:    []string{},
 		},
 	}
 }
@@ -152,11 +153,11 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 		FROM tabs
 	`)
 	if err != nil {
-		return nil, err
+		return []Tab{}, err
 	}
 	defer rows.Close()
 
-	var tabs []Tab
+	tabs := []Tab{}
 	for rows.Next() {
 		var t Tab
 		var isManaged int
@@ -273,11 +274,11 @@ func (s *DBStore) GetCategories() ([]Category, error) {
 
 	rows, err := s.db.Query("SELECT id, name, parent_id FROM categories")
 	if err != nil {
-		return nil, err
+		return []Category{}, err
 	}
 	defer rows.Close()
 
-	var categories []Category
+	categories := []Category{}
 	for rows.Next() {
 		var c Category
 		if err := rows.Scan(&c.ID, &c.Name, &c.ParentID); err != nil {
