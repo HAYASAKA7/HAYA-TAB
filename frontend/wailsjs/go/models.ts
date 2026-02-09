@@ -50,6 +50,7 @@ export namespace store {
 	    categoryId: string;
 	    country: string;
 	    language: string;
+	    tag: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Tab(source);
@@ -68,6 +69,7 @@ export namespace store {
 	        this.categoryId = source["categoryId"];
 	        this.country = source["country"];
 	        this.language = source["language"];
+	        this.tag = source["tag"];
 	    }
 	}
 

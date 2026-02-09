@@ -53,6 +53,11 @@ func (s *DBStore) Initialize() error {
 		return fmt.Errorf("failed to create tables: %w", err)
 	}
 
+	// Run migrations for schema updates
+	if err := s.runMigrations(); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
 	// Load settings into memory
 	if err := s.loadSettings(); err != nil {
 		return fmt.Errorf("failed to load settings: %w", err)
@@ -74,7 +79,8 @@ func (s *DBStore) createTables() error {
 		cover_path TEXT DEFAULT '',
 		category_id TEXT DEFAULT '',
 		country TEXT DEFAULT '',
-		language TEXT DEFAULT ''
+		language TEXT DEFAULT '',
+		tag TEXT DEFAULT ''
 	);
 
 	CREATE TABLE IF NOT EXISTS categories (
@@ -94,6 +100,19 @@ func (s *DBStore) createTables() error {
 
 	_, err := s.db.Exec(schema)
 	return err
+}
+
+// runMigrations handles schema updates for existing databases
+func (s *DBStore) runMigrations() error {
+	// Add tag column if it doesn't exist (for databases created before this version)
+	_, err := s.db.Exec("ALTER TABLE tabs ADD COLUMN tag TEXT DEFAULT ''")
+	if err != nil {
+		// Ignore error if column already exists
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			// It's okay, column might already exist
+		}
+	}
+	return nil
 }
 
 func (s *DBStore) loadSettings() error {
@@ -149,7 +168,7 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 	defer s.mu.Unlock()
 
 	rows, err := s.db.Query(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language 
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
 		FROM tabs
 	`)
 	if err != nil {
@@ -161,7 +180,7 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 	for rows.Next() {
 		var t Tab
 		var isManaged int
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag); err != nil {
 			return nil, err
 		}
 		t.IsManaged = isManaged == 1
@@ -177,9 +196,9 @@ func (s *DBStore) GetTab(id string) (*Tab, error) {
 	var t Tab
 	var isManaged int
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language 
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
 		FROM tabs WHERE id = ?
-	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language)
+	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -200,9 +219,9 @@ func (s *DBStore) AddTab(tab Tab) error {
 	}
 
 	_, err := s.db.Exec(`
-		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.Type, isManaged, tab.CoverPath, tab.CategoryID, tab.Country, tab.Language)
+		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, tag)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.Type, isManaged, tab.CoverPath, tab.CategoryID, tab.Country, tab.Language, tab.Tag)
 	return err
 }
 
@@ -233,9 +252,9 @@ func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
 	var t Tab
 	var isManaged int
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language 
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
 		FROM tabs WHERE file_path = ?
-	`, filePath).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language)
+	`, filePath).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -253,9 +272,9 @@ func (s *DBStore) GetTabByTitle(title string) (*Tab, error) {
 	var t Tab
 	var isManaged int
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language 
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
 		FROM tabs WHERE title = ?
-	`, title).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language)
+	`, title).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

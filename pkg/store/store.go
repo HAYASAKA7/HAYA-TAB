@@ -19,6 +19,7 @@ type Tab struct {
 	CategoryID string `json:"categoryId"` // Virtual folder ID
 	Country    string `json:"country"`    // e.g. "US", "JP"
 	Language   string `json:"language"`   // e.g. "ja_jp"
+	Tag        string `json:"tag"`        // e.g. "Lead Guitar", "First Version"
 }
 
 type Category struct {

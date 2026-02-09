@@ -287,6 +287,19 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
     font-size: 0.7rem; padding: 2px 6px; border-radius: 4px;
     text-transform: uppercase;
 }
+.tag-badge {
+    margin-top: 6px;
+    background: var(--primary);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 /* Settings View */
 .settings-container {

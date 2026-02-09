@@ -406,6 +406,8 @@ function renderGrid() {
             ? `<div class="edit-btn" onclick="event.stopPropagation(); editTab('${tab.id}')"><span class="icon-edit"></span></div>`
             : '';
 
+        const tagHtml = tab.tag ? `<div class="tag-badge" title="${tab.tag}">${tab.tag}</div>` : '';
+
         card.innerHTML = `
             ${checkboxHtml}
             ${editBtnHtml}
@@ -416,6 +418,7 @@ function renderGrid() {
                 <div class="title" title="${tab.title}">${tab.title}</div>
                 <div class="artist" title="${tab.artist}">${tab.artist}</div>
                 <div class="type-badge">${tab.type}</div>
+                ${tagHtml}
             </div>
         `;
         grid.appendChild(card);
@@ -923,6 +926,7 @@ function openModal(d, m) {
     document.getElementById('edit-type').value = d.type;
     document.getElementById('edit-country').value = d.country || "US";
     document.getElementById('edit-lang').value = d.language || "en_us";
+    document.getElementById('edit-tag').value = d.tag || "";
     document.getElementById('edit-form').dataset.id = d.id;
     document.querySelector('#modal-overlay .modal h2').innerText = isEditMode ? "Edit Tab Metadata" : "Add New Tab";
     document.getElementById('modal-overlay').classList.remove('hidden');
@@ -942,7 +946,8 @@ async function saveTab() {
         coverPath: existing ? existing.coverPath : "",
         categoryId: existing ? existing.categoryId : currentCategoryId,
         country: document.getElementById('edit-country').value,
-        language: document.getElementById('edit-lang').value
+        language: document.getElementById('edit-lang').value,
+        tag: document.getElementById('edit-tag').value
     };
     try {
         if (isEditMode) await window.go.main.App.UpdateTab(t);
