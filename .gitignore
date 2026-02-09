@@ -1,5 +1,7 @@
 GEMINI.md
-build/
+build/bin
+build/windows
+build/appicon.png
 data/
 storage/
 covers/
