@@ -96,6 +96,8 @@ button, input, select, textarea {
     overflow: hidden;
     white-space: nowrap;
     transition: opacity 0.2s;
+    margin: 0;
+    flex: 0 !important;
 }
 #sidebar.collapsed .sidebar-item.active {
     padding-left: 0;
