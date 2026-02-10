@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
-import { useTabsStore } from '@/stores'
+import { useTabsStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 
 const props = defineProps<{
@@ -9,6 +9,7 @@ const props = defineProps<{
 }>()
 
 const tabsStore = useTabsStore()
+const settingsStore = useSettingsStore()
 const { showToast } = useToast()
 
 const tab = computed(() => tabsStore.getTabById(props.tabId))
@@ -27,6 +28,39 @@ const playbackSpeed = ref(1.0)
 const metronomeEnabled = ref(false)
 const tracks = ref<any[]>([])
 const selectedTrack = ref(0)
+
+watch(() => settingsStore.settings.audioDevice, (newId) => {
+  updateAudioOutput(newId)
+})
+
+async function updateAudioOutput(deviceId: string) {
+  if (!api.value) return
+  
+  // Empty string is default device in Web Audio API
+  if (deviceId === 'default') deviceId = ''
+
+  try {
+    // Attempt to find AudioContext in AlphaTab instance
+    // Check multiple possible locations depending on AlphaTab version/internals
+    const player = api.value.player
+    let ctx = (api.value as any).audioContext || (player && player.context)
+
+    // Check inside synthesis/renderer if not found on player
+    if (!ctx && player) {
+       // @ts-ignore
+       if (player.synthesis && player.synthesis.audioContext) {
+         // @ts-ignore
+         ctx = player.synthesis.audioContext
+       }
+    }
+
+    if (ctx && typeof ctx.setSinkId === 'function') {
+      await ctx.setSinkId(deviceId)
+    }
+  } catch (e) {
+    console.warn('Failed to update audio output device', e)
+  }
+}
 
 onUnmounted(() => {
   if (api.value) {
@@ -68,6 +102,9 @@ async function loadGpTab() {
         staveProfile: 'default'
       }
     })
+
+    // Apply audio device
+    updateAudioOutput(settingsStore.settings.audioDevice)
 
     // Load the binary GP file data
     api.value.load(data)

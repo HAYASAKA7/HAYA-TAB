@@ -10,6 +10,7 @@ export const useSettingsStore = defineStore('settings', () => {
     bgType: '',
     openMethod: 'inner',
     openGpMethod: 'inner',
+    audioDevice: 'default',
     syncPaths: [],
     syncStrategy: 'skip',
     autoSyncEnabled: false,
@@ -28,6 +29,7 @@ export const useSettingsStore = defineStore('settings', () => {
         settings.value = {
           ...settings.value,
           ...loaded,
+          audioDevice: loaded.audioDevice || 'default',
           syncPaths: loaded.syncPaths || []
         }
       }

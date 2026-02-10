@@ -8,3 +8,4 @@ storage/
 covers/
 RELEASE.md
 node_modules/
+frontend/dist/

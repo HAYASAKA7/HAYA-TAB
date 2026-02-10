@@ -28,6 +28,7 @@ export interface Settings {
   bgType: 'url' | 'local' | ''
   openMethod: 'system' | 'inner'
   openGpMethod: 'system' | 'inner'
+  audioDevice: string
   syncPaths: string[]
   syncStrategy: 'skip' | 'overwrite'
   autoSyncEnabled: boolean

@@ -65,6 +65,7 @@ export namespace store {
 	    bgType: string;
 	    openMethod: string;
 	    openGpMethod: string;
+	    audioDevice: string;
 	    syncPaths: string[];
 	    syncStrategy: string;
 	    autoSyncEnabled: boolean;
@@ -82,6 +83,7 @@ export namespace store {
 	        this.bgType = source["bgType"];
 	        this.openMethod = source["openMethod"];
 	        this.openGpMethod = source["openGpMethod"];
+	        this.audioDevice = source["audioDevice"];
 	        this.syncPaths = source["syncPaths"];
 	        this.syncStrategy = source["syncStrategy"];
 	        this.autoSyncEnabled = source["autoSyncEnabled"];

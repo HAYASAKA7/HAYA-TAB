@@ -29,13 +29,14 @@ type Category struct {
 }
 
 type Settings struct {
-	Theme             string   `json:"theme"`             // "dark", "light", "system"
-	Background        string   `json:"background"`        // URL or path
-	BgType            string   `json:"bgType"`            // "url", "local"
-	OpenMethod        string   `json:"openMethod"`        // "system", "inner"
-	OpenGpMethod      string   `json:"openGpMethod"`      // "system", "inner"
+	Theme             string   `json:"theme"`        // "dark", "light", "system"
+	Background        string   `json:"background"`   // URL or path
+	BgType            string   `json:"bgType"`       // "url", "local"
+	OpenMethod        string   `json:"openMethod"`   // "system", "inner"
+	OpenGpMethod      string   `json:"openGpMethod"` // "system", "inner"
+	AudioDevice       string   `json:"audioDevice"`  // Device ID for audio output
 	SyncPaths         []string `json:"syncPaths"`
-	SyncStrategy      string   `json:"syncStrategy"`      // "skip", "overwrite"
+	SyncStrategy      string   `json:"syncStrategy"` // "skip", "overwrite"
 	AutoSyncEnabled   bool     `json:"autoSyncEnabled"`
 	AutoSyncFrequency string   `json:"autoSyncFrequency"` // "startup", "weekly", "monthly", "yearly"
 	LastSyncTime      int64    `json:"lastSyncTime"`      // Unix timestamp

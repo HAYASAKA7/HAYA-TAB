@@ -1,9 +1,60 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 
 const settingsStore = useSettingsStore()
 const { showToast } = useToast()
+const audioDevices = ref<MediaDeviceInfo[]>([])
+const isAudioOutputSupported = ref(false)
+
+onMounted(async () => {
+  // Check if AudioContext supports setSinkId (required for changing output device)
+  // @ts-ignore
+  if (window.AudioContext && typeof AudioContext.prototype.setSinkId === 'function') {
+    isAudioOutputSupported.value = true
+    await fetchAudioDevices()
+  }
+})
+
+async function fetchAudioDevices() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      console.warn('Media devices API not supported')
+      return
+    }
+
+    // First try without requesting permission
+    let devices = await navigator.mediaDevices.enumerateDevices()
+    
+    // Check if we have audio output devices and if they have labels
+    // If labels are empty, we might need permission
+    const hasAudioOutput = devices.some(d => d.kind === 'audiooutput')
+    const hasLabels = devices.some(d => d.kind === 'audiooutput' && d.label)
+
+    if (hasAudioOutput && !hasLabels) {
+      console.log('Audio devices found but execution blocked/no labels. Requesting permission...')
+      try {
+        // Request microphone permission to reveal device labels/ids
+        // This is a browser security restriction
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        // Stop the stream immediately, we only needed permission
+        stream.getTracks().forEach(t => t.stop())
+        
+        // Refresh valid devices list
+        devices = await navigator.mediaDevices.enumerateDevices()
+      } catch (permErr) {
+        console.warn('Permission denied for audio devices or no microphone found:', permErr)
+        // Continue with what we have (ids might still work even if labels are empty, though less useful)
+      }
+    }
+
+    audioDevices.value = devices.filter(d => d.kind === 'audiooutput')
+  } catch (e) {
+    console.error('Error fetching audio devices', e)
+    showToast('Failed to list audio devices: ' + e, 'error')
+  }
+}
 
 async function handleSave() {
   try {
@@ -129,6 +180,24 @@ async function handleSync() {
             Built-in Viewer (AlphaTab)
           </label>
         </div>
+      </div>
+    </section>
+
+    <section class="settings-section" v-if="isAudioOutputSupported">
+      <h3><span class="icon-volume"></span> Audio</h3>
+      <div class="form-group">
+        <label>Output Device</label>
+        <select v-model="settingsStore.settings.audioDevice">
+          <option value="default">Default</option>
+          <option
+            v-for="device in audioDevices"
+            :key="device.deviceId"
+            :value="device.deviceId"
+          >
+            {{ device.label || 'Unknown Device (' + device.deviceId.slice(0, 8) + '...)' }}
+          </option>
+        </select>
+        <p class="hint">Applied to Guitar Pro playback</p>
       </div>
     </section>
 
