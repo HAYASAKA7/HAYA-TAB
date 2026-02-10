@@ -22,6 +22,16 @@ export interface Category {
 }
 
 // Settings represents application settings
+export interface KeyBindings {
+  scrollDown: string
+  scrollUp: string
+  metronome: string
+  playPause: string
+  stop: string
+  bpmPlus: string
+  bpmMinus: string
+}
+
 export interface Settings {
   theme: 'dark' | 'light' | 'system'
   background: string
@@ -34,6 +44,7 @@ export interface Settings {
   autoSyncEnabled: boolean
   autoSyncFrequency: 'startup' | 'weekly' | 'monthly' | 'yearly'
   lastSyncTime: number
+  keyBindings: KeyBindings
 }
 
 // TabsResponse represents a paginated response for tabs

@@ -13,6 +13,7 @@ export const useUIStore = defineStore('ui', () => {
   const moveModalVisible = ref(false)
   const batchMoveModalVisible = ref(false)
   const confirmModalVisible = ref(false)
+  const keyBindingsModalVisible = ref(false)
 
   // Modal data
   const editModalData = ref<any>(null)
@@ -95,6 +96,14 @@ export const useUIStore = defineStore('ui', () => {
     confirmModalData.value = null
   }
 
+  function showKeyBindingsModal() {
+    keyBindingsModalVisible.value = true
+  }
+
+  function hideKeyBindingsModal() {
+    keyBindingsModalVisible.value = false
+  }
+
   function showContextMenu(x: number, y: number, items: any[]) {
     contextMenuX.value = x
     contextMenuY.value = y
@@ -116,6 +125,7 @@ export const useUIStore = defineStore('ui', () => {
     moveModalVisible,
     batchMoveModalVisible,
     confirmModalVisible,
+    keyBindingsModalVisible,
     editModalData,
     categoryModalData,
     moveModalTabId,
@@ -138,6 +148,8 @@ export const useUIStore = defineStore('ui', () => {
     hideBatchMoveModal,
     showConfirmModal,
     hideConfirmModal,
+    showKeyBindingsModal,
+    hideKeyBindingsModal,
     showContextMenu,
     hideContextMenu
   }

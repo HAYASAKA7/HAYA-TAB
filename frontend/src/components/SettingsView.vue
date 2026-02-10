@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useSettingsStore } from '@/stores'
+import { useSettingsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 
 const settingsStore = useSettingsStore()
+const uiStore = useUIStore()
 const { showToast } = useToast()
 const audioDevices = ref<MediaDeviceInfo[]>([])
 const isAudioOutputSupported = ref(false)
@@ -198,6 +199,14 @@ async function handleSync() {
           </option>
         </select>
         <p class="hint">Applied to Guitar Pro playback</p>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3><span class="icon-keyboard"></span> Shortcuts</h3>
+      <div class="form-group">
+        <label>Key Bindings</label>
+        <button class="btn" @click="uiStore.showKeyBindingsModal">Configure Key Bindings</button>
       </div>
     </section>
 

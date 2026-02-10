@@ -14,6 +14,7 @@ import CategoryModal from '@/components/modals/CategoryModal.vue'
 import MoveTabModal from '@/components/modals/MoveTabModal.vue'
 import BatchMoveModal from '@/components/modals/BatchMoveModal.vue'
 import ConfirmModal from '@/components/modals/ConfirmModal.vue'
+import KeyBindingModal from '@/components/modals/KeyBindingModal.vue'
 import BatchActionBar from '@/components/BatchActionBar.vue'
 
 const tabsStore = useTabsStore()
@@ -121,6 +122,7 @@ function isViewActive(viewType: string): boolean {
     <MoveTabModal />
     <BatchMoveModal />
     <ConfirmModal />
+    <KeyBindingModal />
 
     <!-- Toast & Context Menu -->
     <Toast />

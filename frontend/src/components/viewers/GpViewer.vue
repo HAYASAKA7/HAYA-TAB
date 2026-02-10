@@ -63,6 +63,7 @@ async function updateAudioOutput(deviceId: string) {
 }
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
   if (api.value) {
     try {
       api.value.stop()
@@ -197,8 +198,53 @@ function base64ToUint8Array(base64: string) {
   return arr
 }
 
+function scrollGp(amount: number) {
+  if (!containerRef.value) return
+  const scrollEl = containerRef.value.querySelector('.gp-scroll-wrapper')
+  if (scrollEl) {
+    scrollEl.scrollTop += amount
+  }
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (!props.visible) return
+
+  const target = e.target as HTMLElement
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) {
+    return
+  }
+
+  const step = 100
+  const keys = settingsStore.settings.keyBindings
+  const key = e.key.toLowerCase()
+
+  if (key === keys.scrollDown) {
+    scrollGp(step)
+  } else if (key === keys.scrollUp) {
+    scrollGp(-step)
+  } else if (key === keys.metronome) {
+    toggleMetronome()
+  } else if (key === keys.playPause) {
+    playPause()
+  } else if (key === keys.stop) {
+    stop()
+  } else if (key === keys.bpmPlus) {
+    currentBpm.value += 10
+    onBpmChange()
+  } else if (key === keys.bpmMinus) {
+    currentBpm.value -= 10
+    onBpmChange()
+  }
+}
+
 // Watch for visibility changes - initialize alphaTab when visible
 watch(() => props.visible, async (newVal) => {
+  if (newVal) {
+    window.addEventListener('keydown', handleKeydown)
+  } else {
+    window.removeEventListener('keydown', handleKeydown)
+  }
+
   if (newVal && !api.value && isGp.value && tab.value) {
     // Wait for next tick to ensure DOM is rendered and visible
     await nextTick()

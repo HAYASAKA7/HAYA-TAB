@@ -15,7 +15,16 @@ export const useSettingsStore = defineStore('settings', () => {
     syncStrategy: 'skip',
     autoSyncEnabled: false,
     autoSyncFrequency: 'startup',
-    lastSyncTime: 0
+    lastSyncTime: 0,
+    keyBindings: {
+      scrollDown: 'j',
+      scrollUp: 'k',
+      metronome: 'm',
+      playPause: 'p',
+      stop: 'o',
+      bpmPlus: 'l',
+      bpmMinus: 'h'
+    }
   })
 
   const loading = ref(false)
@@ -30,7 +39,11 @@ export const useSettingsStore = defineStore('settings', () => {
           ...settings.value,
           ...loaded,
           audioDevice: loaded.audioDevice || 'default',
-          syncPaths: loaded.syncPaths || []
+          syncPaths: loaded.syncPaths || [],
+          keyBindings: {
+            ...settings.value.keyBindings,
+            ...(loaded.keyBindings || {})
+          }
         }
       }
       applyTheme()
