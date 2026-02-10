@@ -694,6 +694,7 @@ async function openInternalGpTab(tab) {
                     <button class="btn-icon" data-action="playPause" title="Play/Pause"><span class="icon-play"></span></button>
                     <div class="divider"></div>
                     <button class="btn-icon" data-action="metronome" title="Metronome"><span class="icon-metronome"></span></button>
+                    <input type="number" class="bpm-input" min="30" max="300" value="120" title="Set Moderate (BPM)">
                     <div class="divider"></div>
                     <span class="label">Track:</span>
                     <select class="track-selector">
@@ -742,9 +743,12 @@ async function openInternalGpTab(tab) {
         const btnPlay = view.querySelector('[data-action="playPause"]');
         const btnStop = view.querySelector('[data-action="stop"]');
         const btnMetro = view.querySelector('[data-action="metronome"]');
+        const inputBpm = view.querySelector('.bpm-input');
         const sliderSpeed = view.querySelector('.speed-slider');
         const labelSpeed = view.querySelector('.speed-val');
         const trackSelector = view.querySelector('.track-selector');
+
+        let baseTempo = 120;
 
         btnPlay.onclick = () => api.playPause();
         btnStop.onclick = () => api.stop();
@@ -754,10 +758,23 @@ async function openInternalGpTab(tab) {
             btnMetro.classList.toggle('active', api.metronomeVolume > 0);
         };
 
+        inputBpm.onchange = (e) => {
+            let val = parseInt(e.target.value);
+            if (isNaN(val) || val < 20) val = 20;
+            if (val > 500) val = 500;
+            inputBpm.value = val;
+
+            const ratio = val / baseTempo;
+            api.playbackSpeed = ratio;
+            sliderSpeed.value = ratio;
+            labelSpeed.innerText = Math.round(ratio * 100) + '%';
+        };
+
         sliderSpeed.oninput = (e) => {
             const val = parseFloat(e.target.value);
             api.playbackSpeed = val;
             labelSpeed.innerText = Math.round(val * 100) + '%';
+            inputBpm.value = Math.round(baseTempo * val);
         };
 
         // Track selector change handler
@@ -770,6 +787,10 @@ async function openInternalGpTab(tab) {
 
         // Populate track selector when score is loaded
         api.scoreLoaded.on((score) => {
+            if (score && score.tempo) {
+                baseTempo = score.tempo;
+                inputBpm.value = baseTempo;
+            }
             trackSelector.innerHTML = '';
             if (score && score.tracks && score.tracks.length > 0) {
                 score.tracks.forEach((track, index) => {
@@ -825,9 +846,24 @@ async function openInternalTab(tab) {
         view.className = 'view pdf-view hidden';
         view.id = `pdf-view-${tab.id}`;
         
+        // Determine PDF.js Theme (0: Auto, 1: Light, 2: Dark)
+        let pdfTheme = 2; // Default Dark
+        if (document.body.getAttribute('data-theme') === 'light') {
+            pdfTheme = 1;
+        }
+
+        // Determine Locale
+        // Use the App's declared language to ensure consistency between App and PDF Viewer.
+        // Fallback to navigator.language if App language is not set.
+        let appLang = document.documentElement.lang || navigator.language || 'en-US';
+        if (appLang === 'en') appLang = 'en-US'; // Normalize
+
+        // Construct URL with Hash Params
+        const viewerUrl = `pdfjs/web/viewer.html?file=${encodeURIComponent(blobUrl)}#locale=${appLang}&viewerCssTheme=${pdfTheme}`;
+
         view.innerHTML = `
             <div class="pdf-container">
-                <iframe src="pdfjs/web/viewer.html?file=${encodeURIComponent(blobUrl)}" class="pdf-frame"></iframe>
+                <iframe src="${viewerUrl}" class="pdf-frame"></iframe>
             </div>
         `;
         container.appendChild(view);

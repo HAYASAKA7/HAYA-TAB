@@ -622,6 +622,26 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 .track-selector:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2); }
 .track-selector option { background: var(--card-bg); color: var(--text); }
 
+.bpm-input {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    outline: none;
+    width: 60px;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+.bpm-input::-webkit-outer-spin-button,
+.bpm-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.bpm-input:hover { border-color: var(--primary); }
+.bpm-input:focus { border-color: var(--primary); }
+
 /* Range Slider */
 input[type=range] {
     -webkit-appearance: none;

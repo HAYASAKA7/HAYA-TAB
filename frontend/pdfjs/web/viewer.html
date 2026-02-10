@@ -32,6 +32,7 @@ See https://github.com/adobe-type-tools/cmap-resources
 <script src="../build/pdf.js"></script>
 
     <link rel="stylesheet" href="viewer.css">
+    <link rel="stylesheet" href="custom_viewer.css">
 
   <script src="viewer.js"></script>
   </head>
@@ -482,5 +483,27 @@ See https://github.com/adobe-type-tools/cmap-resources
     <div id="printContainer"></div>
 
     <input type="file" id="fileInput" class="hidden">
+
+    <script>
+      (function() {
+        try {
+          var hash = document.location.hash.substring(1);
+          var params = {};
+          hash.split('&').forEach(function(hk) {
+            var temp = hk.split('=');
+            if (temp.length === 2) {
+                params[temp[0]] = decodeURIComponent(temp[1]);
+            }
+          });
+          
+          var theme = params.viewerCssTheme; // 1: Light, 2: Dark
+          if (theme === '1') {
+            document.body.classList.add('theme-light');
+          } else if (theme === '2') {
+             document.body.classList.add('theme-dark');
+          }
+        } catch (e) { console.error("Error applying custom theme:", e); }
+      })();
+    </script>
   </body>
 </html>
