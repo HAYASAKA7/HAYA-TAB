@@ -96,11 +96,45 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}
 
-	// Auto Sync on Startup
+	// Auto Sync Logic
 	go func() {
-		// Small delay to ensure UI is ready if we want to emit events (optional)
+		// Small delay to ensure UI is ready
 		time.Sleep(1 * time.Second)
-		a.TriggerSync()
+
+		settings := a.store.GetSettings()
+		if !settings.AutoSyncEnabled {
+			return
+		}
+
+		shouldSync := false
+		now := time.Now()
+		lastSync := time.Unix(settings.LastSyncTime, 0)
+
+		switch settings.AutoSyncFrequency {
+		case "startup":
+			shouldSync = true
+		case "weekly":
+			y1, w1 := lastSync.ISOWeek()
+			y2, w2 := now.ISOWeek()
+			if y1 != y2 || w1 != w2 {
+				shouldSync = true
+			}
+		case "monthly":
+			if lastSync.Month() != now.Month() || lastSync.Year() != now.Year() {
+				shouldSync = true
+			}
+		case "yearly":
+			if lastSync.Year() != now.Year() {
+				shouldSync = true
+			}
+		default: // Fallback
+			shouldSync = true
+		}
+
+		if shouldSync {
+			fmt.Println("Auto-sync triggered due to schedule.")
+			a.TriggerSync()
+		}
 	}()
 
 	// Initialize file watcher if sync paths are configured
@@ -294,6 +328,10 @@ func (a *App) TriggerSync() (string, error) {
 		}
 	}
 
+	// Update Last Sync Time
+	settings.LastSyncTime = time.Now().Unix()
+	a.store.UpdateSettings(settings)
+
 	resultMsg := fmt.Sprintf("Sync complete: %d added, %d updated, %d skipped.", added, updated, skipped)
 	wailsRuntime.EventsEmit(a.ctx, "sync-complete", resultMsg)
 	return resultMsg, nil
@@ -340,8 +378,8 @@ func (a *App) GetTabs() []store.Tab {
 	return tabs
 }
 
-// GetTabsPaginated returns a paginated list of tabs
-func (a *App) GetTabsPaginated(categoryId string, page, pageSize int) TabsResponse {
+// GetTabsPaginated returns a paginated list of tabs with optional search
+func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool) TabsResponse {
 	if page < 1 {
 		page = 1
 	}
@@ -362,12 +400,56 @@ func (a *App) GetTabsPaginated(categoryId string, page, pageSize int) TabsRespon
 		}
 	}
 
-	// Filter by category
+	// Filter
 	var filteredTabs []store.Tab
+	searchQuery = strings.ToLower(strings.TrimSpace(searchQuery))
+	
+	if len(filterBy) == 0 {
+		filterBy = []string{"title"}
+	}
+
 	for _, tab := range allTabs {
-		if (categoryId == "" && tab.CategoryID == "") || tab.CategoryID == categoryId {
-			filteredTabs = append(filteredTabs, tab)
+		// 1. Category Filter (skip if global search)
+		if !isGlobal {
+			if (categoryId == "" && tab.CategoryID == "") || tab.CategoryID == categoryId {
+				// pass
+			} else {
+				continue
+			}
 		}
+
+		// 2. Search Filter
+		if searchQuery != "" {
+			match := false
+			for _, field := range filterBy {
+				switch field {
+				case "title":
+					if strings.Contains(strings.ToLower(tab.Title), searchQuery) {
+						match = true
+					}
+				case "artist":
+					if strings.Contains(strings.ToLower(tab.Artist), searchQuery) {
+						match = true
+					}
+				case "album":
+					if strings.Contains(strings.ToLower(tab.Album), searchQuery) {
+						match = true
+					}
+				case "tag":
+					if strings.Contains(strings.ToLower(tab.Tag), searchQuery) {
+						match = true
+					}
+				}
+				if match {
+					break
+				}
+			}
+			if !match {
+				continue
+			}
+		}
+
+		filteredTabs = append(filteredTabs, tab)
 	}
 
 	total := len(filteredTabs)

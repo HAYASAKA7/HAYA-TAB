@@ -5,7 +5,7 @@ import type { ViewType } from '@/types'
 export const useUIStore = defineStore('ui', () => {
   // State
   const currentView = ref<ViewType>('home')
-  const sidebarCollapsed = ref(false)
+  const sidebarCollapsed = ref(true)
 
   // Modal states
   const editModalVisible = ref(false)

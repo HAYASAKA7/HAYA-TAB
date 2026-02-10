@@ -11,7 +11,10 @@ export const useSettingsStore = defineStore('settings', () => {
     openMethod: 'inner',
     openGpMethod: 'inner',
     syncPaths: [],
-    syncStrategy: 'skip'
+    syncStrategy: 'skip',
+    autoSyncEnabled: false,
+    autoSyncFrequency: 'startup',
+    lastSyncTime: 0
   })
 
   const loading = ref(false)

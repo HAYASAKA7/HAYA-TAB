@@ -135,6 +135,21 @@ async function handleSync() {
     <section class="settings-section">
       <h3><span class="icon-sync"></span> Auto Sync</h3>
       <div class="form-group">
+        <label>
+          <input type="checkbox" v-model="settingsStore.settings.autoSyncEnabled">
+          Enable Auto Sync
+        </label>
+      </div>
+      <div class="form-group" v-if="settingsStore.settings.autoSyncEnabled">
+        <label>Sync Frequency</label>
+        <select v-model="settingsStore.settings.autoSyncFrequency">
+          <option value="startup">Every Startup</option>
+          <option value="weekly">First Startup of Week</option>
+          <option value="monthly">First Startup of Month</option>
+          <option value="yearly">First Startup of Year</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Sync Strategy (for duplicates)</label>
         <select id="set-sync-strategy" v-model="settingsStore.settings.syncStrategy">
           <option value="skip">Skip (Keep existing)</option>

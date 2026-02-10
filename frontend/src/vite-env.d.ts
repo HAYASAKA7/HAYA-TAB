@@ -11,7 +11,7 @@ interface Window {
     main: {
       App: {
         GetTabs(): Promise<import('./types').Tab[]>
-        GetTabsPaginated(categoryId: string, page: number, pageSize: number): Promise<import('./types').TabsResponse>
+        GetTabsPaginated(categoryId: string, page: number, pageSize: number, searchQuery: string, filterBy: string[], isGlobal: boolean): Promise<import('./types').TabsResponse>
         GetCategories(): Promise<import('./types').Category[]>
         GetSettings(): Promise<import('./types').Settings>
         SaveSettings(settings: import('./types').Settings): Promise<void>

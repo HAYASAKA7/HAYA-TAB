@@ -15,16 +15,26 @@ export const useTabsStore = defineStore('tabs', () => {
     hasMore: true
   })
 
+  // Search state
+  const searchQuery = ref('')
+  const searchFilters = ref<string[]>(['title'])
+  const searchScope = ref<'global' | 'local'>('local')
+
   // Batch selection state
   const isBatchSelectMode = ref(false)
   const selectedTabIds = ref<Set<string>>(new Set())
 
   // Getters
   const currentTabs = computed(() => {
-    return tabs.value.filter(t => (t.categoryId || '') === currentCategoryId.value)
+    // Backend handles filtering now
+    return tabs.value
   })
 
   const currentCategories = computed(() => {
+    // Hide categories when searching
+    if (searchQuery.value) {
+      return []
+    }
     return categories.value.filter(c => c.parentId === currentCategoryId.value)
   })
 
@@ -55,7 +65,10 @@ export const useTabsStore = defineStore('tabs', () => {
       const response: TabsResponse = await window.go.main.App.GetTabsPaginated(
         categoryId ?? currentCategoryId.value,
         pagination.value.page,
-        pagination.value.pageSize
+        pagination.value.pageSize,
+        searchQuery.value,
+        searchFilters.value,
+        searchScope.value === 'global'
       )
       tabs.value = response.tabs
       pagination.value.total = response.total
@@ -77,7 +90,10 @@ export const useTabsStore = defineStore('tabs', () => {
       const response: TabsResponse = await window.go.main.App.GetTabsPaginated(
         currentCategoryId.value,
         pagination.value.page,
-        pagination.value.pageSize
+        pagination.value.pageSize,
+        searchQuery.value,
+        searchFilters.value,
+        searchScope.value === 'global'
       )
       tabs.value = [...tabs.value, ...response.tabs]
       pagination.value.hasMore = response.hasMore
@@ -86,6 +102,28 @@ export const useTabsStore = defineStore('tabs', () => {
       pagination.value.page--
     } finally {
       loading.value = false
+    }
+  }
+
+  function setSearchQuery(query: string) {
+    searchQuery.value = query
+    pagination.value.page = 1
+    fetchTabsPaginated()
+  }
+
+  function setSearchFilters(filters: string[]) {
+    searchFilters.value = filters
+    if (searchQuery.value) {
+      pagination.value.page = 1
+      fetchTabsPaginated()
+    }
+  }
+
+  function setSearchScope(scope: 'global' | 'local') {
+    searchScope.value = scope
+    if (searchQuery.value) {
+      pagination.value.page = 1
+      fetchTabsPaginated()
     }
   }
 
@@ -99,7 +137,7 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   async function refreshData() {
-    await Promise.all([fetchTabs(), fetchCategories()])
+    await Promise.all([fetchTabsPaginated(), fetchCategories()])
   }
 
   async function addTab(tab: Tab, shouldCopy: boolean) {
@@ -229,6 +267,9 @@ export const useTabsStore = defineStore('tabs', () => {
     pagination,
     isBatchSelectMode,
     selectedTabIds,
+    searchQuery,
+    searchFilters,
+    searchScope,
 
     // Getters
     currentTabs,
@@ -240,6 +281,9 @@ export const useTabsStore = defineStore('tabs', () => {
     fetchTabs,
     fetchTabsPaginated,
     loadMore,
+    setSearchQuery,
+    setSearchFilters,
+    setSearchScope,
     fetchCategories,
     refreshData,
     addTab,

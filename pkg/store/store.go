@@ -29,13 +29,16 @@ type Category struct {
 }
 
 type Settings struct {
-	Theme        string   `json:"theme"`        // "dark", "light", "system"
-	Background   string   `json:"background"`   // URL or path
-	BgType       string   `json:"bgType"`       // "url", "local"
-	OpenMethod   string   `json:"openMethod"`   // "system", "inner"
-	OpenGpMethod string   `json:"openGpMethod"` // "system", "inner"
-	SyncPaths    []string `json:"syncPaths"`
-	SyncStrategy string   `json:"syncStrategy"` // "skip", "overwrite"
+	Theme             string   `json:"theme"`             // "dark", "light", "system"
+	Background        string   `json:"background"`        // URL or path
+	BgType            string   `json:"bgType"`            // "url", "local"
+	OpenMethod        string   `json:"openMethod"`        // "system", "inner"
+	OpenGpMethod      string   `json:"openGpMethod"`      // "system", "inner"
+	SyncPaths         []string `json:"syncPaths"`
+	SyncStrategy      string   `json:"syncStrategy"`      // "skip", "overwrite"
+	AutoSyncEnabled   bool     `json:"autoSyncEnabled"`
+	AutoSyncFrequency string   `json:"autoSyncFrequency"` // "startup", "weekly", "monthly", "yearly"
+	LastSyncTime      int64    `json:"lastSyncTime"`      // Unix timestamp
 }
 
 type Store struct {
@@ -58,11 +61,14 @@ func NewStore(dataPath string) *Store {
 		Tabs:       []Tab{},
 		Categories: []Category{},
 		Settings: Settings{
-			Theme:        "system",
-			OpenMethod:   "inner",
-			OpenGpMethod: "system",
-			SyncStrategy: "skip",
-			SyncPaths:    []string{},
+			Theme:             "system",
+			OpenMethod:        "inner",
+			OpenGpMethod:      "system",
+			SyncStrategy:      "skip",
+			SyncPaths:         []string{},
+			AutoSyncEnabled:   false,
+			AutoSyncFrequency: "startup",
+			LastSyncTime:      0,
 		},
 	}
 }

@@ -5,6 +5,7 @@ import { useToast } from '@/composables/useToast'
 import TabCard from './TabCard.vue'
 import CategoryCard from './CategoryCard.vue'
 import BackCard from './BackCard.vue'
+import SearchBar from '@/components/common/SearchBar.vue'
 
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
@@ -74,6 +75,10 @@ function goHome() {
       <button class="btn primary" @click="addTab(true)">Upload Tab</button>
     </div>
   </header>
+
+  <div class="search-container" style="padding: 1rem 1.5rem 0;">
+    <SearchBar />
+  </div>
 
   <div
     id="tab-grid"

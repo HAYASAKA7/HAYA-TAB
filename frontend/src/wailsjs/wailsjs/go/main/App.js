@@ -46,8 +46,8 @@ export function GetTabs() {
   return window['go']['main']['App']['GetTabs']();
 }
 
-export function GetTabsPaginated(arg1, arg2, arg3) {
-  return window['go']['main']['App']['GetTabsPaginated'](arg1, arg2, arg3);
+export function GetTabsPaginated(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['GetTabsPaginated'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 export function MoveCategory(arg1, arg2) {

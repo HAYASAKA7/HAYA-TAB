@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-02-10
+
+### Added
+- **Advanced Search Component:** New collapsible search bar with detailed filtering options.
+  - Added "Range" filter (Inside Category vs. Global).
+  - Added "Type" filter (Song Name, Artist, Album, Tag).
+  - Implemented "Click Outside" to collapse functionality.
+- **SVG Icons:** Replaced font icons with SVG icons in the search component for better rendering.
+
+### Changed
+- **Sidebar Behavior:** Left sidebar is now collapsed by default on application start.
+- **Search Logic:** Searching now hides category folders in the grid view to purely focus on tab results.
+- **UI Styling:** Updated search component styles to match the application's card/board theme exactly.
+
 ## [1.3.0] - 2026-02-10
 
 ### Added

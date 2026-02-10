@@ -30,6 +30,9 @@ export interface Settings {
   openGpMethod: 'system' | 'inner'
   syncPaths: string[]
   syncStrategy: 'skip' | 'overwrite'
+  autoSyncEnabled: boolean
+  autoSyncFrequency: 'startup' | 'weekly' | 'monthly' | 'yearly'
+  lastSyncTime: number
 }
 
 // TabsResponse represents a paginated response for tabs

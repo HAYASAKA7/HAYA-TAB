@@ -25,7 +25,7 @@ export function GetTabContent(arg1:string):Promise<string>;
 
 export function GetTabs():Promise<Array<store.Tab>>;
 
-export function GetTabsPaginated(arg1:string,arg2:number,arg3:number):Promise<main.TabsResponse>;
+export function GetTabsPaginated(arg1:string,arg2:number,arg3:number,arg4:string,arg5:Array<string>,arg6:boolean):Promise<main.TabsResponse>;
 
 export function MoveCategory(arg1:string,arg2:string):Promise<void>;
 

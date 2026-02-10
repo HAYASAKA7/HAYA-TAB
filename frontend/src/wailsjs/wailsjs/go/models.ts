@@ -67,6 +67,9 @@ export namespace store {
 	    openGpMethod: string;
 	    syncPaths: string[];
 	    syncStrategy: string;
+	    autoSyncEnabled: boolean;
+	    autoSyncFrequency: string;
+	    lastSyncTime: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -81,6 +84,9 @@ export namespace store {
 	        this.openGpMethod = source["openGpMethod"];
 	        this.syncPaths = source["syncPaths"];
 	        this.syncStrategy = source["syncStrategy"];
+	        this.autoSyncEnabled = source["autoSyncEnabled"];
+	        this.autoSyncFrequency = source["autoSyncFrequency"];
+	        this.lastSyncTime = source["lastSyncTime"];
 	    }
 	}
 	export class Tab {
