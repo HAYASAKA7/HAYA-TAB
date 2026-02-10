@@ -259,30 +259,39 @@ async function saveBatchMove() {
 function switchView(viewName) {
     // Hide all views
     document.querySelectorAll('.view').forEach(el => el.classList.add('hidden'));
-    
+
+    // Hide containers
+    document.getElementById('pdf-views-container').classList.remove('active');
+    document.getElementById('gp-views-container').classList.remove('active');
+
     // Toggle Sidebar active state
     document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-    
+
     if (viewName === 'home') {
         document.getElementById('view-home').classList.remove('hidden');
         document.getElementById('nav-home').classList.add('active');
-        // Hide all PDF/GP views
-        document.querySelectorAll('.pdf-view, .gp-view').forEach(el => el.classList.add('hidden'));
     } else if (viewName === 'settings') {
         document.getElementById('view-settings').classList.remove('hidden');
         document.getElementById('nav-settings').classList.add('active');
-         // Hide all PDF/GP views
-         document.querySelectorAll('.pdf-view, .gp-view').forEach(el => el.classList.add('hidden'));
-    } else if (viewName.startsWith('pdf-') || viewName.startsWith('gp-')) {
-        // Show specific view
-        const tabId = viewName.split('-')[1];
-        
+    } else if (viewName.startsWith('pdf-')) {
+        // Show PDF view
+        const tabId = viewName.substring(4); // Remove 'pdf-' prefix
         const pdfView = document.getElementById(`pdf-view-${tabId}`);
-        if (pdfView) pdfView.classList.remove('hidden');
-        
+        if (pdfView) {
+            pdfView.classList.remove('hidden');
+            document.getElementById('pdf-views-container').classList.add('active');
+        }
+
+        // active sidebar item
+        const navItem = document.getElementById(`nav-tab-${tabId}`);
+        if(navItem) navItem.classList.add('active');
+    } else if (viewName.startsWith('gp-')) {
+        // Show GP view
+        const tabId = viewName.substring(3); // Remove 'gp-' prefix
         const gpView = document.getElementById(`gp-view-${tabId}`);
         if (gpView) {
             gpView.classList.remove('hidden');
+            document.getElementById('gp-views-container').classList.add('active');
             // Trigger resize for alphaTab to render correctly
             window.dispatchEvent(new Event('resize'));
         }
@@ -665,7 +674,6 @@ async function openInternalGpTab(tab) {
     try {
         const contentBase64 = await window.go.main.App.GetTabContent(tab.id);
         const data = base64ToUint8Array(contentBase64);
-        const dataBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
 
         // 1. Add to openedTabs and render sidebar
         if (!openedTabs.includes(tab.id)) {
@@ -678,7 +686,7 @@ async function openInternalGpTab(tab) {
         const view = document.createElement('div');
         view.className = 'view gp-view hidden';
         view.id = `gp-view-${tab.id}`;
-        
+
         view.innerHTML = `
             <div class="gp-toolbar">
                 <div class="gp-controls">
@@ -698,13 +706,15 @@ async function openInternalGpTab(tab) {
         `;
         container.appendChild(view);
 
-        // Init alphaTab
+        // Show the view FIRST so alphaTab can calculate dimensions
+        switchView(`gp-${tab.id}`);
+
+        // Init alphaTab AFTER the view is visible
         const renderArea = view.querySelector('.gp-render-area');
         const scrollElement = view.querySelector('.gp-scroll-wrapper');
-        
+
         const api = new alphaTab.AlphaTabApi(renderArea, {
             core: {
-                file: dataBuffer,
                 fontDirectory: 'alphatab/font/'
             },
             player: {
@@ -717,7 +727,10 @@ async function openInternalGpTab(tab) {
                 staveProfile: 'default'
             }
         });
-        
+
+        // Load the binary GP file data
+        api.load(data);
+
         view.alphaTabApi = api; 
 
         // Toolbar Bindings
@@ -750,8 +763,6 @@ async function openInternalGpTab(tab) {
                 icon.className = 'icon-play';
             }
         });
-
-        switchView(`gp-${tab.id}`);
 
     } catch (e) {
         showToast("Failed to load GP Tab: " + e, "error");
@@ -826,7 +837,7 @@ function closeInternalTab(id) {
         // Stop alphaTab player if running
         if (gpView.alphaTabApi) {
              try {
-                gpView.alphaTabApi.soundPlayer.stop();
+                gpView.alphaTabApi.stop();
                 gpView.alphaTabApi.destroy();
              } catch(e) { console.error("Error destroying alphaTab", e); }
         }

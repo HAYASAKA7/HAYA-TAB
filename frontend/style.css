@@ -352,7 +352,7 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
     display: none;
     flex-direction: column;
 }
-#pdf-views-container:has(.pdf-view:not(.hidden)) {
+#pdf-views-container.active {
     display: flex;
 }
 .pdf-view {
@@ -551,7 +551,7 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
     display: none;
     flex-direction: column;
 }
-#gp-views-container:has(.gp-view:not(.hidden)) {
+#gp-views-container.active {
     display: flex;
 }
 .gp-view {
