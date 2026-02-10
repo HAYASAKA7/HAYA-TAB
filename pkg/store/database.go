@@ -147,6 +147,20 @@ func (s *DBStore) loadSettings() error {
 	if v, ok := settings["openGpMethod"]; ok {
 		s.Settings.OpenGpMethod = v
 	}
+	if v, ok := settings["audioDevice"]; ok {
+		s.Settings.AudioDevice = v
+	}
+	if v, ok := settings["autoSyncEnabled"]; ok {
+		s.Settings.AutoSyncEnabled = (v == "true")
+	}
+	if v, ok := settings["autoSyncFrequency"]; ok {
+		s.Settings.AutoSyncFrequency = v
+	}
+	if v, ok := settings["lastSyncTime"]; ok {
+		var t int64
+		fmt.Sscanf(v, "%d", &t)
+		s.Settings.LastSyncTime = t
+	}
 	if v, ok := settings["syncStrategy"]; ok {
 		s.Settings.SyncStrategy = v
 	}
@@ -374,13 +388,17 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 
 	// Save each setting
 	settingsMap := map[string]string{
-		"theme":        settings.Theme,
-		"background":   settings.Background,
-		"bgType":       settings.BgType,
-		"openMethod":   settings.OpenMethod,
-		"openGpMethod": settings.OpenGpMethod,
-		"syncStrategy": settings.SyncStrategy,
-		"syncPaths":    strings.Join(settings.SyncPaths, "|"),
+		"theme":             settings.Theme,
+		"background":        settings.Background,
+		"bgType":            settings.BgType,
+		"openMethod":        settings.OpenMethod,
+		"openGpMethod":      settings.OpenGpMethod,
+		"audioDevice":       settings.AudioDevice,
+		"autoSyncEnabled":   fmt.Sprintf("%v", settings.AutoSyncEnabled),
+		"autoSyncFrequency": settings.AutoSyncFrequency,
+		"lastSyncTime":      fmt.Sprintf("%d", settings.LastSyncTime),
+		"syncStrategy":      settings.SyncStrategy,
+		"syncPaths":         strings.Join(settings.SyncPaths, "|"),
 	}
 
 	for key, value := range settingsMap {
