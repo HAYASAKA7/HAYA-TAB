@@ -34,12 +34,12 @@ export function GetCover(arg1) {
   return window['go']['main']['App']['GetCover'](arg1);
 }
 
-export function GetSettings() {
-  return window['go']['main']['App']['GetSettings']();
+export function GetFileServerPort() {
+  return window['go']['main']['App']['GetFileServerPort']();
 }
 
-export function GetTabContent(arg1) {
-  return window['go']['main']['App']['GetTabContent'](arg1);
+export function GetSettings() {
+  return window['go']['main']['App']['GetSettings']();
 }
 
 export function GetTabs() {
@@ -66,10 +66,6 @@ export function ProcessFile(arg1) {
   return window['go']['main']['App']['ProcessFile'](arg1);
 }
 
-export function ReadPDF(arg1) {
-  return window['go']['main']['App']['ReadPDF'](arg1);
-}
-
 export function SaveSettings(arg1) {
   return window['go']['main']['App']['SaveSettings'](arg1);
 }
@@ -88,6 +84,10 @@ export function SelectFolder() {
 
 export function SelectImage() {
   return window['go']['main']['App']['SelectImage']();
+}
+
+export function SetFileServerPort(arg1) {
+  return window['go']['main']['App']['SetFileServerPort'](arg1);
 }
 
 export function TriggerSync() {

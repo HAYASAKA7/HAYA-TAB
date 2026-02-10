@@ -34,6 +34,10 @@ export function GetCover(arg1) {
   return window['go']['main']['App']['GetCover'](arg1);
 }
 
+export function GetFileServerPort() {
+  return window['go']['main']['App']['GetFileServerPort']();
+}
+
 export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }

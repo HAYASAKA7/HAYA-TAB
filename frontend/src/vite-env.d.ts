@@ -32,7 +32,7 @@ interface Window {
         SelectImage(): Promise<string>
         TriggerSync(): Promise<string>
         GetCover(path: string): Promise<string>
-        GetTabContent(id: string): Promise<string>
+        GetFileServerPort(): Promise<number>
       }
     }
   }

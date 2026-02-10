@@ -35,13 +35,9 @@ async function loadPdf() {
   if (!tab.value) return
 
   try {
-    // Get file as base64 from Go backend
-    const b64 = await window.go.main.App.GetTabContent(props.tabId)
-
-    // Convert base64 to blob
-    const blob = base64ToBlob(b64)
-    const url = URL.createObjectURL(blob)
-    blobUrl.value = url
+    const port = await window.go.main.App.GetFileServerPort()
+    // Use streaming endpoint from local server
+    const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
 
     // Determine PDF.js Theme (0: Auto, 1: Light, 2: Dark)
     let pdfTheme = 2 // Default Dark
@@ -58,16 +54,6 @@ async function loadPdf() {
   } catch (e) {
     console.error('Failed to load PDF:', e)
   }
-}
-
-function base64ToBlob(base64: string, type = 'application/pdf') {
-  const binStr = atob(base64)
-  const len = binStr.length
-  const arr = new Uint8Array(len)
-  for (let i = 0; i < len; i++) {
-    arr[i] = binStr.charCodeAt(i)
-  }
-  return new Blob([arr], { type: type })
 }
 
 function scrollPdf(amount: number) {

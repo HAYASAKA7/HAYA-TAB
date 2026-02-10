@@ -1636,6 +1636,7 @@ exports.PDFViewerApplication = PDFViewerApplication;
     if (!file) {
       return;
     }
+    return; // HAYA-TAB PATCH: Disable origin validation
     try {
       const viewerOrigin = new URL(window.location.href).origin || "null";
       if (HOSTED_VIEWER_ORIGINS.includes(viewerOrigin)) {

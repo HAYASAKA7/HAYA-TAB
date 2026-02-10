@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,6 +18,30 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// StartFileServer starts a local HTTP server to serve files
+func StartFileServer(app *App) int {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		fmt.Printf("Failed to bind to random port: %v\n", err)
+		return 0
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	mux := http.NewServeMux()
+	handler := &FileHandler{app: app}
+	mux.Handle("/", handler)
+
+	fmt.Printf("[FileServer] Listening on http://127.0.0.1:%d\n", port)
+
+	go func() {
+		if err := http.Serve(listener, mux); err != nil {
+			fmt.Printf("FileServer error: %v\n", err)
+		}
+	}()
+
+	return port
+}
+
 // FileHandler handles HTTP requests for streaming files
 type FileHandler struct {
 	app *App
@@ -29,7 +54,21 @@ func NewFileHandler(app *App) *FileHandler {
 
 // ServeHTTP implements http.Handler for streaming files
 func (h *FileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Enable CORS for local development
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	path := r.URL.Path
+	// Only log api calls to avoid noise
+	if strings.HasPrefix(path, "/api/") {
+		fmt.Printf("[FileHandler] Request: %s\n", path)
+	}
 
 	// Handle /api/file/{id} - stream tab file content
 	if strings.HasPrefix(path, "/api/file/") {
@@ -48,21 +87,32 @@ func (h *FileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id string) {
+	fmt.Printf("[ServeTabFile] Request for ID: %s\n", id)
 	if h.app == nil || h.app.store == nil {
+		fmt.Println("[ServeTabFile] Store is nil")
 		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 
 	tab, err := h.app.store.GetTab(id)
-	if err != nil || tab == nil {
-		http.Error(w, "Tab not found", http.StatusNotFound)
+	if err != nil {
+		fmt.Printf("[ServeTabFile] Error getting tab %s: %v\n", id, err)
+		http.Error(w, "Tab not found", http.StatusBadRequest)
 		return
 	}
+	if tab == nil {
+		fmt.Printf("[ServeTabFile] Tab not found for ID: %s\n", id)
+		http.Error(w, "Tab not found", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Printf("[ServeTabFile] Found tab: %s, Path: %s\n", tab.Title, tab.FilePath)
 
 	// Open the file
 	file, err := os.Open(tab.FilePath)
 	if err != nil {
-		http.Error(w, "File not found", http.StatusNotFound)
+		fmt.Printf("[ServeTabFile] Failed to open file %s: %v\n", tab.FilePath, err)
+		http.Error(w, "File not found", http.StatusInternalServerError)
 		return
 	}
 	defer file.Close()
@@ -70,6 +120,7 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 	// Get file info for content-length
 	stat, err := file.Stat()
 	if err != nil {
+		fmt.Printf("[ServeTabFile] Failed to stat file: %v\n", err)
 		http.Error(w, "Cannot read file", http.StatusInternalServerError)
 		return
 	}
@@ -150,6 +201,10 @@ func (h *FileHandler) serveCoverFile(w http.ResponseWriter, r *http.Request, id 
 func main() {
 	// Create an instance of the app structure
 	app := NewApp()
+
+	// Start local file server
+	port := StartFileServer(app)
+	app.SetFileServerPort(port)
 
 	// Create file handler for streaming
 	fileHandler := NewFileHandler(app)

@@ -207,6 +207,93 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 	return tabs, nil
 }
 
+func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool) ([]Tab, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// 1. Build Base Query & Args
+	var whereClauses []string
+	var args []interface{}
+
+	// Category Filter
+	if !isGlobal {
+		// If categoryId is empty, we might want root tabs?
+		// Current app logic seems to imply categoryId="" means root.
+		// However, if the user selects "All Tabs" (global), we skip this.
+		// Let's follow the app.go logic:
+		// if (categoryId == "" && tab.CategoryID == "") || tab.CategoryID == categoryId
+		if categoryId == "" {
+			whereClauses = append(whereClauses, "(category_id = '' OR category_id IS NULL)")
+		} else {
+			whereClauses = append(whereClauses, "category_id = ?")
+			args = append(args, categoryId)
+		}
+	}
+
+	// Search Filter
+	if searchQuery != "" && len(filterBy) > 0 {
+		var searchConditions []string
+		term := "%" + searchQuery + "%"
+		for _, field := range filterBy {
+			// Sanitize field name to prevent SQL injection (though these come from code, safe to check)
+			switch field {
+			case "title", "artist", "album", "tag":
+				searchConditions = append(searchConditions, fmt.Sprintf("%s LIKE ?", field))
+				args = append(args, term)
+			}
+		}
+		if len(searchConditions) > 0 {
+			whereClauses = append(whereClauses, "("+strings.Join(searchConditions, " OR ")+")")
+		}
+	}
+
+	whereSQL := ""
+	if len(whereClauses) > 0 {
+		whereSQL = "WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	// 2. Count Total
+	countQuery := "SELECT COUNT(*) FROM tabs " + whereSQL
+	var total int
+	if err := s.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// 3. Get Page Data
+	offset := (page - 1) * pageSize
+	limit := pageSize
+
+	query := fmt.Sprintf(`
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
+		FROM tabs 
+		%s 
+		ORDER BY title ASC 
+		LIMIT ? OFFSET ?
+	`, whereSQL)
+
+	// Append limit/offset args
+	queryArgs := append(args, limit, offset)
+
+	rows, err := s.db.Query(query, queryArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	tabs := []Tab{}
+	for rows.Next() {
+		var t Tab
+		var isManaged int
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag); err != nil {
+			return nil, 0, err
+		}
+		t.IsManaged = isManaged == 1
+		tabs = append(tabs, t)
+	}
+
+	return tabs, total, nil
+}
+
 func (s *DBStore) GetTab(id string) (*Tab, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

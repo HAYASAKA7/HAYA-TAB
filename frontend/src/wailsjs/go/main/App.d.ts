@@ -19,9 +19,9 @@ export function GetCategories():Promise<Array<store.Category>>;
 
 export function GetCover(arg1:string):Promise<string>;
 
-export function GetSettings():Promise<store.Settings>;
+export function GetFileServerPort():Promise<number>;
 
-export function GetTabContent(arg1:string):Promise<string>;
+export function GetSettings():Promise<store.Settings>;
 
 export function GetTabs():Promise<Array<store.Tab>>;
 

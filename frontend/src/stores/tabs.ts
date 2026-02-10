@@ -197,6 +197,7 @@ export const useTabsStore = defineStore('tabs', () => {
     currentCategoryId.value = categoryId
     pagination.value.page = 1
     pagination.value.hasMore = true
+    fetchTabsPaginated()
   }
 
   function goHome() {

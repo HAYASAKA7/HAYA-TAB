@@ -78,10 +78,6 @@ async function loadGpTab() {
   if (!tab.value || !containerRef.value) return
 
   try {
-    // Get file as base64 from Go backend
-    const b64 = await window.go.main.App.GetTabContent(props.tabId)
-    const data = base64ToUint8Array(b64)
-
     const scrollElement = containerRef.value.querySelector('.gp-scroll-wrapper')
     const renderArea = containerRef.value.querySelector('.gp-render-area')
 
@@ -107,8 +103,10 @@ async function loadGpTab() {
     // Apply audio device
     updateAudioOutput(settingsStore.settings.audioDevice)
 
-    // Load the binary GP file data
-    api.value.load(data)
+    // Load from URL
+    const port = await window.go.main.App.GetFileServerPort()
+    const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
+    api.value.load(url)
 
     // Event handlers
     api.value.scoreLoaded.on((score: any) => {
@@ -186,16 +184,6 @@ function onTrackChange() {
   if (trackIndex >= 0 && api.value.score.tracks[trackIndex]) {
     api.value.renderTracks([api.value.score.tracks[trackIndex]])
   }
-}
-
-function base64ToUint8Array(base64: string) {
-  const binStr = atob(base64)
-  const len = binStr.length
-  const arr = new Uint8Array(len)
-  for (let i = 0; i < len; i++) {
-    arr[i] = binStr.charCodeAt(i)
-  }
-  return arr
 }
 
 function scrollGp(amount: number) {

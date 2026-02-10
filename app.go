@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"haya-tab/pkg/logger"
 	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
 	"haya-tab/pkg/watcher"
@@ -30,6 +31,13 @@ type TabsResponse struct {
 // getAppDir returns the directory where the executable is located
 // This is more reliable than os.Getwd() for built applications
 func getAppDir() string {
+	// Check if running in Dev mode (project root contains wails.json)
+	if cwd, err := os.Getwd(); err == nil {
+		if _, err := os.Stat(filepath.Join(cwd, "wails.json")); err == nil {
+			return cwd
+		}
+	}
+
 	exePath, err := os.Executable()
 	if err != nil {
 		// Fallback to working directory
@@ -47,9 +55,11 @@ func getAppDir() string {
 
 // App struct
 type App struct {
-	ctx         context.Context
-	store       *store.DBStore
-	fileWatcher *watcher.FileWatcher
+	ctx            context.Context
+	store          *store.DBStore
+	fileWatcher    *watcher.FileWatcher
+	logger         *logger.Logger
+	fileServerPort int
 }
 
 // NewApp creates a new App application struct
@@ -57,13 +67,26 @@ func NewApp() *App {
 	return &App{}
 }
 
+// SetFileServerPort sets the port of the local file server
+func (a *App) SetFileServerPort(port int) {
+	a.fileServerPort = port
+}
+
+// GetFileServerPort returns the port of the local file server
+func (a *App) GetFileServerPort() int {
+	return a.fileServerPort
+}
+
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	// Init store
 	appDir := getAppDir()
-	fmt.Printf("App directory: %s\n", appDir)
+
+	// Init Logger
+	a.logger = logger.NewLogger(appDir)
+	a.logger.SetContext(ctx)
+	a.logger.Info("App starting in directory: %s", appDir)
 
 	// Ensure required directories exist
 	requiredDirs := []string{
@@ -73,26 +96,26 @@ func (a *App) startup(ctx context.Context) {
 	}
 	for _, dir := range requiredDirs {
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			fmt.Printf("Error creating directory %s: %v\n", dir, err)
+			a.logger.Error("Error creating directory %s: %v", dir, err)
 		} else {
-			fmt.Printf("Directory ensured: %s\n", dir)
+			a.logger.Info("Directory ensured: %s", dir)
 		}
 	}
 
 	dbPath := filepath.Join(appDir, "data", "haya-tab.db")
 	jsonPath := filepath.Join(appDir, "data", "tabs.json")
-	fmt.Printf("Database path: %s\n", dbPath)
+	a.logger.Info("Database path: %s", dbPath)
 
 	a.store = store.NewDBStore(dbPath)
 	if err := a.store.Initialize(); err != nil {
-		fmt.Printf("Error initializing database: %v\n", err)
+		a.logger.Error("Error initializing database: %v", err)
 		return
 	}
 
 	// Migrate from JSON if database is empty and JSON exists
 	if !a.store.HasData() {
 		if err := a.store.MigrateFromJSON(jsonPath); err != nil {
-			fmt.Printf("Error migrating from JSON: %v\n", err)
+			a.logger.Error("Error migrating from JSON: %v", err)
 		}
 	}
 
@@ -132,7 +155,7 @@ func (a *App) startup(ctx context.Context) {
 		}
 
 		if shouldSync {
-			fmt.Println("Auto-sync triggered due to schedule.")
+			a.logger.Info("Auto-sync triggered due to schedule.")
 			a.TriggerSync()
 		}
 	}()
@@ -144,14 +167,15 @@ func (a *App) startup(ctx context.Context) {
 			// Emit event to frontend when changes detected
 			wailsRuntime.EventsEmit(a.ctx, "file-changes-detected", "Files have changed in sync directories")
 		})
+		a.fileWatcher.SetLogger(a.logger)
 
 		if err := a.fileWatcher.Start(); err != nil {
-			fmt.Printf("Failed to start file watcher: %v\n", err)
+			a.logger.Error("Failed to start file watcher: %v", err)
 		} else {
 			// Add all sync paths to watcher
 			for _, path := range settings.SyncPaths {
 				if err := a.fileWatcher.AddPath(path); err != nil {
-					fmt.Printf("Failed to watch path %s: %v\n", path, err)
+					a.logger.Error("Failed to watch path %s: %v", path, err)
 				}
 			}
 		}
@@ -167,6 +191,10 @@ func (a *App) shutdown(ctx context.Context) {
 
 	if a.store != nil {
 		a.store.Close()
+	}
+
+	if a.logger != nil {
+		a.logger.Close()
 	}
 }
 
@@ -190,15 +218,17 @@ func (a *App) SaveSettings(s store.Settings) error {
 			a.fileWatcher = watcher.NewFileWatcher(func() {
 				wailsRuntime.EventsEmit(a.ctx, "file-changes-detected", "Files have changed in sync directories")
 			})
+			a.fileWatcher.SetLogger(a.logger)
+
 			if err := a.fileWatcher.Start(); err != nil {
-				fmt.Printf("Failed to start file watcher: %v\n", err)
+				a.logger.Error("Failed to start file watcher: %v", err)
 			}
 		}
 
 		// Update watched paths
 		if a.fileWatcher != nil && a.fileWatcher.IsRunning() {
 			if err := a.fileWatcher.SetPaths(s.SyncPaths); err != nil {
-				fmt.Printf("Failed to update watcher paths: %v\n", err)
+				a.logger.Error("Failed to update watcher paths: %v", err)
 			}
 		}
 	} else if a.fileWatcher != nil {
@@ -219,7 +249,7 @@ func (a *App) SaveSettings(s store.Settings) error {
 	}
 
 	if pathsChanged && len(s.SyncPaths) > 0 {
-		fmt.Printf("File watcher updated with %d paths\n", len(s.SyncPaths))
+		a.logger.Info("File watcher updated with %d paths", len(s.SyncPaths))
 	}
 
 	return nil
@@ -227,7 +257,7 @@ func (a *App) SaveSettings(s store.Settings) error {
 
 // TriggerSync scans the sync paths and adds/updates tabs based on strategy
 func (a *App) TriggerSync() (string, error) {
-	fmt.Println("Starting TriggerSync...")
+	a.logger.Info("Starting TriggerSync...")
 	settings := a.store.GetSettings()
 	if len(settings.SyncPaths) == 0 {
 		return "No sync paths configured", nil
@@ -247,10 +277,10 @@ func (a *App) TriggerSync() (string, error) {
 	}
 
 	for _, root := range settings.SyncPaths {
-		fmt.Printf("Scanning path: %s\n", root)
+		a.logger.Info("Scanning path: %s", root)
 		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				fmt.Printf("Error accessing path %s: %v\n", path, err)
+				a.logger.Error("Error accessing path %s: %v", path, err)
 				return nil // Skip unreadable
 			}
 			if info.IsDir() {
@@ -324,7 +354,7 @@ func (a *App) TriggerSync() (string, error) {
 			return nil
 		})
 		if err != nil {
-			fmt.Printf("Error walking %s: %v\n", root, err)
+			a.logger.Error("Error walking %s: %v", root, err)
 		}
 	}
 
@@ -349,21 +379,21 @@ func (a *App) fetchCoverAsync(tab store.Tab) {
 	tabID := tab.ID // Capture for goroutine
 
 	go func() {
-		fmt.Printf("Attempting to download cover for: %s - %s\n", tab.Artist, tab.Title)
+		a.logger.Info("Attempting to download cover for: %s - %s", tab.Artist, tab.Title)
 		err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Title, tab.Country, tab.Language, coverPath)
 		if err == nil {
-			fmt.Printf("Cover downloaded successfully to: %s\n", coverPath)
+			a.logger.Info("Cover downloaded successfully to: %s", coverPath)
 			// Fetch current tab state from DB and update cover path
 			currentTab, getErr := a.store.GetTab(tabID)
 			if getErr != nil || currentTab == nil {
-				fmt.Printf("Failed to get tab after cover download: %v\n", getErr)
+				a.logger.Error("Failed to get tab after cover download: %v", getErr)
 				return
 			}
 			currentTab.CoverPath = coverPath
 			a.store.AddTab(*currentTab)
 			wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab) // Notify frontend
 		} else {
-			fmt.Printf("Failed to download cover: %v\n", err)
+			a.logger.Error("Failed to download cover: %v", err)
 		}
 	}()
 }
@@ -372,7 +402,7 @@ func (a *App) fetchCoverAsync(tab store.Tab) {
 func (a *App) GetTabs() []store.Tab {
 	tabs, err := a.store.GetTabs()
 	if err != nil {
-		fmt.Printf("Error getting tabs: %v\n", err)
+		a.logger.Error("Error getting tabs: %v", err)
 		return []store.Tab{}
 	}
 	return tabs
@@ -387,10 +417,14 @@ func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuer
 		pageSize = 50
 	}
 
-	// Get all tabs first
-	allTabs, err := a.store.GetTabs()
+	if len(filterBy) == 0 {
+		filterBy = []string{"title"}
+	}
+	searchQuery = strings.ToLower(strings.TrimSpace(searchQuery))
+
+	tabs, total, err := a.store.GetTabsPaginated(categoryId, page, pageSize, searchQuery, filterBy, isGlobal)
 	if err != nil {
-		fmt.Printf("Error getting tabs: %v\n", err)
+		a.logger.Error("Error getting paginated tabs: %v", err)
 		return TabsResponse{
 			Tabs:     []store.Tab{},
 			Total:    0,
@@ -400,82 +434,12 @@ func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuer
 		}
 	}
 
-	// Filter
-	var filteredTabs []store.Tab
-	searchQuery = strings.ToLower(strings.TrimSpace(searchQuery))
-	
-	if len(filterBy) == 0 {
-		filterBy = []string{"title"}
-	}
-
-	for _, tab := range allTabs {
-		// 1. Category Filter (skip if global search)
-		if !isGlobal {
-			if (categoryId == "" && tab.CategoryID == "") || tab.CategoryID == categoryId {
-				// pass
-			} else {
-				continue
-			}
-		}
-
-		// 2. Search Filter
-		if searchQuery != "" {
-			match := false
-			for _, field := range filterBy {
-				switch field {
-				case "title":
-					if strings.Contains(strings.ToLower(tab.Title), searchQuery) {
-						match = true
-					}
-				case "artist":
-					if strings.Contains(strings.ToLower(tab.Artist), searchQuery) {
-						match = true
-					}
-				case "album":
-					if strings.Contains(strings.ToLower(tab.Album), searchQuery) {
-						match = true
-					}
-				case "tag":
-					if strings.Contains(strings.ToLower(tab.Tag), searchQuery) {
-						match = true
-					}
-				}
-				if match {
-					break
-				}
-			}
-			if !match {
-				continue
-			}
-		}
-
-		filteredTabs = append(filteredTabs, tab)
-	}
-
-	total := len(filteredTabs)
-	start := (page - 1) * pageSize
-	end := start + pageSize
-
-	if start >= total {
-		return TabsResponse{
-			Tabs:     []store.Tab{},
-			Total:    total,
-			Page:     page,
-			PageSize: pageSize,
-			HasMore:  false,
-		}
-	}
-
-	if end > total {
-		end = total
-	}
-
 	return TabsResponse{
-		Tabs:     filteredTabs[start:end],
+		Tabs:     tabs,
 		Total:    total,
 		Page:     page,
 		PageSize: pageSize,
-		HasMore:  end < total,
+		HasMore:  (page * pageSize) < total,
 	}
 }
 
@@ -505,7 +469,7 @@ func (a *App) ProcessFile(path string) store.Tab {
 func (a *App) GetCategories() []store.Category {
 	categories, err := a.store.GetCategories()
 	if err != nil {
-		fmt.Printf("Error getting categories: %v\n", err)
+		a.logger.Error("Error getting categories: %v", err)
 		return []store.Category{}
 	}
 	return categories
@@ -539,7 +503,7 @@ func (a *App) DeleteTab(id string) error {
 	if targetTab.IsManaged {
 		// Try to delete the file, log error but proceed with DB deletion
 		if err := os.Remove(targetTab.FilePath); err != nil {
-			fmt.Printf("Warning: Failed to delete managed file %s: %v\n", targetTab.FilePath, err)
+			a.logger.Error("Warning: Failed to delete managed file %s: %v", targetTab.FilePath, err)
 		}
 		// Also delete cover?
 		if targetTab.CoverPath != "" {
@@ -562,7 +526,7 @@ func (a *App) BatchDeleteTabs(ids []string) (int, error) {
 		if targetTab.IsManaged {
 			// Try to delete the file
 			if err := os.Remove(targetTab.FilePath); err != nil {
-				fmt.Printf("Warning: Failed to delete managed file %s: %v\n", targetTab.FilePath, err)
+				a.logger.Error("Warning: Failed to delete managed file %s: %v", targetTab.FilePath, err)
 			}
 			// Also delete cover
 			if targetTab.CoverPath != "" {
@@ -753,23 +717,6 @@ func (a *App) GetCover(path string) string {
 	return base64.StdEncoding.EncodeToString(data)
 }
 
-// GetTabContent returns the base64 encoded content of the tab file for the internal viewer
-func (a *App) GetTabContent(id string) (string, error) {
-	targetTab, err := a.store.GetTab(id)
-	if err != nil {
-		return "", fmt.Errorf("failed to get tab: %w", err)
-	}
-	if targetTab == nil {
-		return "", fmt.Errorf("tab not found")
-	}
-
-	data, err := os.ReadFile(targetTab.FilePath)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(data), nil
-}
-
 // SelectFiles opens a file dialog and returns the selected file paths
 func (a *App) SelectFiles() []string {
 	selection, err := wailsRuntime.OpenMultipleFilesDialog(a.ctx, wailsRuntime.OpenDialogOptions{
@@ -798,13 +745,4 @@ func (a *App) SelectImage() string {
 		return ""
 	}
 	return selection
-}
-
-// ReadPDF reads a PDF file and returns its base64 encoded content
-func (a *App) ReadPDF(path string) string {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	return base64.StdEncoding.EncodeToString(data)
 }

@@ -10,6 +10,12 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+// Logger interface for dependency injection
+type Logger interface {
+	Info(format string, args ...interface{})
+	Error(format string, args ...interface{})
+}
+
 // FileWatcher watches directories for file changes
 type FileWatcher struct {
 	watcher    *fsnotify.Watcher
@@ -19,6 +25,7 @@ type FileWatcher struct {
 	running    bool
 	debounceMs int
 	stopChan   chan struct{}
+	logger     Logger
 }
 
 // NewFileWatcher creates a new file watcher
@@ -28,6 +35,11 @@ func NewFileWatcher(onChange func()) *FileWatcher {
 		debounceMs: 1000, // 1 second debounce
 		stopChan:   make(chan struct{}),
 	}
+}
+
+// SetLogger sets the logger
+func (w *FileWatcher) SetLogger(l Logger) {
+	w.logger = l
 }
 
 // Start initializes and starts the file watcher
@@ -92,7 +104,9 @@ func (w *FileWatcher) AddPath(path string) error {
 	}
 
 	w.paths = append(w.paths, path)
-	fmt.Printf("Watching path: %s\n", path)
+	if w.logger != nil {
+		w.logger.Info("Watching path: %s", path)
+	}
 	return nil
 }
 
@@ -139,11 +153,15 @@ func (w *FileWatcher) SetPaths(paths []string) error {
 	// Add new paths
 	for _, path := range paths {
 		if err := w.watcher.Add(path); err != nil {
-			fmt.Printf("Warning: failed to watch path %s: %v\n", path, err)
+			if w.logger != nil {
+				w.logger.Error("Warning: failed to watch path %s: %v", path, err)
+			}
 			continue
 		}
 		w.paths = append(w.paths, path)
-		fmt.Printf("Watching path: %s\n", path)
+		if w.logger != nil {
+			w.logger.Info("Watching path: %s", path)
+		}
 	}
 
 	return nil
@@ -196,7 +214,9 @@ func (w *FileWatcher) watchLoop() {
 				continue
 			}
 
-			fmt.Printf("File change detected: %s (%s)\n", event.Name, event.Op)
+			if w.logger != nil {
+				w.logger.Info("File change detected: %s (%s)", event.Name, event.Op)
+			}
 
 			// Debounce: wait for changes to settle
 			pendingChange = true
@@ -214,7 +234,9 @@ func (w *FileWatcher) watchLoop() {
 			if !ok {
 				return
 			}
-			fmt.Printf("Watcher error: %v\n", err)
+			if w.logger != nil {
+				w.logger.Error("Watcher error: %v", err)
+			}
 		}
 	}
 }
