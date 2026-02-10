@@ -10,13 +10,13 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 
 - **Tab Management** - Organize your PDF and Guitar Pro (.gp, .gp5, .gpx) tabs in one place
 - **Upload or Link** - Upload tabs to internal storage or link existing files from your filesystem
-- **Folder Sync** - Automatically sync tabs from specified folders on startup
+- **Real-time Sync** - Automatically watches synced folders for file changes (add/delete/rename)
 - **Smart Metadata** - Auto-parse artist, album, and song info from filenames
 - **Tag Support** - Add version/part tags to tabs (e.g., "Lead Guitar", "Bass", "First Version")
 - **Album Artwork** - Automatic cover art fetching from iTunes (now also for synced tabs)
 - **Categories** - Organize tabs into virtual folders with drag-and-drop support
 - **Batch Operations** - Select and move/delete multiple tabs at once
-- **Built-in PDF Viewer** - View PDF tabs without leaving the app (now default)
+- **Internal Viewer** - Built-in viewer for both PDF and Guitar Pro files
 - **Dark/Light Theme** - System-aware theme with manual override
 - **Duplicate Detection** - Prevents adding the same tab twice
 
@@ -26,13 +26,19 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAYA-TAB/releases) page.
 
 ### Build from Source
-1. Ensure you have [Go](https://go.dev/) and [Wails](https://wails.io/) installed
+1. Ensure you have [Go](https://go.dev/), [Node.js](https://nodejs.org/) (npm), and [Wails](https://wails.io/) installed
 2. Clone this repository
-3. Run the development server:
+3. Install frontend dependencies:
+   ```bash
+   cd frontend
+   npm install
+   cd ..
+   ```
+4. Run the development server:
    ```bash
    wails dev
    ```
-4. To build for production:
+5. To build for production:
    ```bash
    # Build for current platform
    wails build
@@ -56,13 +62,14 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 ```
 ├── app.go              # Backend logic (Tab management, File ops)
 ├── main.go             # Application entry point
-├── frontend/           # UI (HTML/CSS/JS)
-│   ├── app.js          # Frontend application logic
-│   ├── style.css       # Styles
-│   └── pdfjs/          # PDF.js viewer
+├── frontend/           # UI (Vue 3 + Vite)
+│   ├── src/            # Frontend source code
+│   ├── index.html      # Entry point
+│   └── vite.config.ts  # Build config
 ├── pkg/                # Internal packages
 │   ├── store/          # Database storage
-│   └── metadata/       # Metadata parsing & cover art
+│   ├── metadata/       # Metadata parsing & cover art
+│   └── watcher/        # File system watcher
 ├── storage/            # Uploaded tabs (managed files)
 ├── covers/             # Downloaded cover art
 └── data/               # SQLite database
@@ -71,9 +78,9 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 ## 🛠️ Tech Stack
 
 - **Backend**: Go + Wails v2
-- **Frontend**: Vanilla HTML/CSS/JS
+- **Frontend**: Vue 3 + TypeScript + Vite
 - **Database**: SQLite
-- **PDF Viewer**: PDF.js
+- **Viewer Engine**: PDF.js & alphaTab
 
 ## 📄 License
 

@@ -3,6 +3,7 @@ module haya-tab
 go 1.25.4
 
 require (
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/wailsapp/wails/v2 v2.11.0
 	modernc.org/sqlite v1.44.3
 )

@@ -1,7 +1,10 @@
 GEMINI.md
 build/bin
 build/windows
+build/linux
+build/darwin
 data/
 storage/
 covers/
 RELEASE.md
+node_modules/

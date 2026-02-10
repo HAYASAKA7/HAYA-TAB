@@ -2,18 +2,157 @@ package main
 
 import (
 	"embed"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
-//go:embed frontend
+//go:embed all:frontend/dist
 var assets embed.FS
+
+// FileHandler handles HTTP requests for streaming files
+type FileHandler struct {
+	app *App
+}
+
+// NewFileHandler creates a new file handler
+func NewFileHandler(app *App) *FileHandler {
+	return &FileHandler{app: app}
+}
+
+// ServeHTTP implements http.Handler for streaming files
+func (h *FileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+
+	// Handle /api/file/{id} - stream tab file content
+	if strings.HasPrefix(path, "/api/file/") {
+		h.serveTabFile(w, r, strings.TrimPrefix(path, "/api/file/"))
+		return
+	}
+
+	// Handle /api/cover/{id} - stream cover image
+	if strings.HasPrefix(path, "/api/cover/") {
+		h.serveCoverFile(w, r, strings.TrimPrefix(path, "/api/cover/"))
+		return
+	}
+
+	// Not found
+	http.NotFound(w, r)
+}
+
+func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id string) {
+	if h.app == nil || h.app.store == nil {
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	tab, err := h.app.store.GetTab(id)
+	if err != nil || tab == nil {
+		http.Error(w, "Tab not found", http.StatusNotFound)
+		return
+	}
+
+	// Open the file
+	file, err := os.Open(tab.FilePath)
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	// Get file info for content-length
+	stat, err := file.Stat()
+	if err != nil {
+		http.Error(w, "Cannot read file", http.StatusInternalServerError)
+		return
+	}
+
+	// Set content type based on file extension
+	ext := strings.ToLower(filepath.Ext(tab.FilePath))
+	contentType := "application/octet-stream"
+	switch ext {
+	case ".pdf":
+		contentType = "application/pdf"
+	case ".gp", ".gp5", ".gpx":
+		contentType = "application/x-guitar-pro"
+	}
+
+	// Set headers
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filepath.Base(tab.FilePath)))
+	w.Header().Set("Cache-Control", "private, max-age=3600")
+
+	// Stream the file
+	io.Copy(w, file)
+}
+
+func (h *FileHandler) serveCoverFile(w http.ResponseWriter, r *http.Request, id string) {
+	if h.app == nil || h.app.store == nil {
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	tab, err := h.app.store.GetTab(id)
+	if err != nil || tab == nil {
+		http.Error(w, "Tab not found", http.StatusNotFound)
+		return
+	}
+
+	if tab.CoverPath == "" {
+		http.Error(w, "No cover available", http.StatusNotFound)
+		return
+	}
+
+	// Open the cover file
+	file, err := os.Open(tab.CoverPath)
+	if err != nil {
+		http.Error(w, "Cover not found", http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	// Get file info
+	stat, err := file.Stat()
+	if err != nil {
+		http.Error(w, "Cannot read cover", http.StatusInternalServerError)
+		return
+	}
+
+	// Determine content type
+	ext := strings.ToLower(filepath.Ext(tab.CoverPath))
+	contentType := "image/jpeg"
+	switch ext {
+	case ".png":
+		contentType = "image/png"
+	case ".webp":
+		contentType = "image/webp"
+	case ".gif":
+		contentType = "image/gif"
+	}
+
+	// Set headers
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
+	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache covers for 24 hours
+
+	// Stream the file
+	io.Copy(w, file)
+}
 
 func main() {
 	// Create an instance of the app structure
 	app := NewApp()
+
+	// Create file handler for streaming
+	fileHandler := NewFileHandler(app)
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -21,7 +160,8 @@ func main() {
 		Width:  1024,
 		Height: 768,
 		AssetServer: &assetserver.Options{
-			Assets: assets,
+			Assets:  assets,
+			Handler: fileHandler,
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.startup,

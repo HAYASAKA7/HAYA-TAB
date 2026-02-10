@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
+	"haya-tab/pkg/watcher"
 	"io"
 	"os"
 	"os/exec"
@@ -16,6 +17,15 @@ import (
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+// TabsResponse represents a paginated response for tabs
+type TabsResponse struct {
+	Tabs     []store.Tab `json:"tabs"`
+	Total    int         `json:"total"`
+	Page     int         `json:"page"`
+	PageSize int         `json:"pageSize"`
+	HasMore  bool        `json:"hasMore"`
+}
 
 // getAppDir returns the directory where the executable is located
 // This is more reliable than os.Getwd() for built applications
@@ -37,8 +47,9 @@ func getAppDir() string {
 
 // App struct
 type App struct {
-	ctx   context.Context
-	store *store.DBStore
+	ctx         context.Context
+	store       *store.DBStore
+	fileWatcher *watcher.FileWatcher
 }
 
 // NewApp creates a new App application struct
@@ -91,10 +102,35 @@ func (a *App) startup(ctx context.Context) {
 		time.Sleep(1 * time.Second)
 		a.TriggerSync()
 	}()
+
+	// Initialize file watcher if sync paths are configured
+	settings := a.store.GetSettings()
+	if len(settings.SyncPaths) > 0 {
+		a.fileWatcher = watcher.NewFileWatcher(func() {
+			// Emit event to frontend when changes detected
+			wailsRuntime.EventsEmit(a.ctx, "file-changes-detected", "Files have changed in sync directories")
+		})
+
+		if err := a.fileWatcher.Start(); err != nil {
+			fmt.Printf("Failed to start file watcher: %v\n", err)
+		} else {
+			// Add all sync paths to watcher
+			for _, path := range settings.SyncPaths {
+				if err := a.fileWatcher.AddPath(path); err != nil {
+					fmt.Printf("Failed to watch path %s: %v\n", path, err)
+				}
+			}
+		}
+	}
 }
 
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
+	// Stop file watcher
+	if a.fileWatcher != nil {
+		a.fileWatcher.Stop()
+	}
+
 	if a.store != nil {
 		a.store.Close()
 	}
@@ -107,7 +143,52 @@ func (a *App) GetSettings() store.Settings {
 
 // SaveSettings updates the settings
 func (a *App) SaveSettings(s store.Settings) error {
-	return a.store.UpdateSettings(s)
+	// Update file watcher paths if they changed
+	oldSettings := a.store.GetSettings()
+	if err := a.store.UpdateSettings(s); err != nil {
+		return err
+	}
+
+	// Update file watcher if sync paths changed
+	if len(s.SyncPaths) > 0 {
+		if a.fileWatcher == nil {
+			// Create new watcher
+			a.fileWatcher = watcher.NewFileWatcher(func() {
+				wailsRuntime.EventsEmit(a.ctx, "file-changes-detected", "Files have changed in sync directories")
+			})
+			if err := a.fileWatcher.Start(); err != nil {
+				fmt.Printf("Failed to start file watcher: %v\n", err)
+			}
+		}
+
+		// Update watched paths
+		if a.fileWatcher != nil && a.fileWatcher.IsRunning() {
+			if err := a.fileWatcher.SetPaths(s.SyncPaths); err != nil {
+				fmt.Printf("Failed to update watcher paths: %v\n", err)
+			}
+		}
+	} else if a.fileWatcher != nil {
+		// No sync paths, stop watcher
+		a.fileWatcher.Stop()
+		a.fileWatcher = nil
+	}
+
+	// Check if paths changed to emit notification
+	pathsChanged := len(oldSettings.SyncPaths) != len(s.SyncPaths)
+	if !pathsChanged {
+		for i := range oldSettings.SyncPaths {
+			if oldSettings.SyncPaths[i] != s.SyncPaths[i] {
+				pathsChanged = true
+				break
+			}
+		}
+	}
+
+	if pathsChanged && len(s.SyncPaths) > 0 {
+		fmt.Printf("File watcher updated with %d paths\n", len(s.SyncPaths))
+	}
+
+	return nil
 }
 
 // TriggerSync scans the sync paths and adds/updates tabs based on strategy
@@ -249,7 +330,7 @@ func (a *App) fetchCoverAsync(tab store.Tab) {
 	}()
 }
 
-// GetTabs returns the list of tabs
+// GetTabs returns the list of tabs (backward compatibility)
 func (a *App) GetTabs() []store.Tab {
 	tabs, err := a.store.GetTabs()
 	if err != nil {
@@ -257,6 +338,63 @@ func (a *App) GetTabs() []store.Tab {
 		return []store.Tab{}
 	}
 	return tabs
+}
+
+// GetTabsPaginated returns a paginated list of tabs
+func (a *App) GetTabsPaginated(categoryId string, page, pageSize int) TabsResponse {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 200 {
+		pageSize = 50
+	}
+
+	// Get all tabs first
+	allTabs, err := a.store.GetTabs()
+	if err != nil {
+		fmt.Printf("Error getting tabs: %v\n", err)
+		return TabsResponse{
+			Tabs:     []store.Tab{},
+			Total:    0,
+			Page:     page,
+			PageSize: pageSize,
+			HasMore:  false,
+		}
+	}
+
+	// Filter by category
+	var filteredTabs []store.Tab
+	for _, tab := range allTabs {
+		if (categoryId == "" && tab.CategoryID == "") || tab.CategoryID == categoryId {
+			filteredTabs = append(filteredTabs, tab)
+		}
+	}
+
+	total := len(filteredTabs)
+	start := (page - 1) * pageSize
+	end := start + pageSize
+
+	if start >= total {
+		return TabsResponse{
+			Tabs:     []store.Tab{},
+			Total:    total,
+			Page:     page,
+			PageSize: pageSize,
+			HasMore:  false,
+		}
+	}
+
+	if end > total {
+		end = total
+	}
+
+	return TabsResponse{
+		Tabs:     filteredTabs[start:end],
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+		HasMore:  end < total,
+	}
 }
 
 // ProcessFile takes a file path and returns a pre-filled Tab struct

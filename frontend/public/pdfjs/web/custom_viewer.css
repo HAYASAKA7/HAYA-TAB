@@ -1,0 +1,97 @@
+:root {
+    /* HAYA-TAB Dark Theme (Default) */
+    --ht-bg: #1e1e1e;
+    --ht-sidebar-bg: #252526;
+    --ht-card-bg: #2d2d2d;
+    --ht-text: #ffffff;
+    --ht-text-muted: #aaaaaa;
+    --ht-primary: #965233;
+    --ht-border: #3e3e42;
+    --ht-hover: #3e3e42;
+
+    /* Override PDF.js Variables */
+    --body-bg-color: var(--ht-bg);
+    --sidebar-narrow-bg-color: var(--ht-sidebar-bg);
+    --sidebar-toolbar-bg-color: var(--ht-sidebar-bg);
+    --toolbar-bg-color: var(--ht-card-bg);
+    --toolbar-icon-bg-color: var(--ht-text);
+    --toolbar-icon-hover-bg-color: var(--ht-hover);
+    --toolbar-border-color: var(--ht-border);
+    --toolbar-box-shadow: none;
+    --sidebar-bg-color: var(--ht-sidebar-bg);
+    --doorhanger-bg-color: var(--ht-card-bg);
+    --doorhanger-border-color: var(--ht-border);
+    --overlay-container-bg-color: rgba(0, 0, 0, 0.5); /* Modal overlay */
+    
+    /* Scrollbars */
+    scrollbar-color: var(--ht-border) var(--ht-bg);
+}
+
+/* Light Theme Class */
+body.theme-light {
+    --ht-bg: #f5f5f5;
+    --ht-sidebar-bg: #e3e3e3;
+    --ht-card-bg: #ffffff;
+    --ht-text: #333333;
+    --ht-text-muted: #666666;
+    --ht-primary: #965233;
+    --ht-border: #cccccc;
+    --ht-hover: #d0d0d0;
+
+    /* Re-map for Light Mode */
+    --body-bg-color: var(--ht-bg);
+    --sidebar-narrow-bg-color: var(--ht-sidebar-bg);
+    --sidebar-toolbar-bg-color: var(--ht-sidebar-bg);
+    --toolbar-bg-color: var(--ht-card-bg);
+    --toolbar-icon-bg-color: var(--ht-text);
+    --toolbar-icon-hover-bg-color: var(--ht-hover);
+    --toolbar-border-color: var(--ht-border);
+}
+
+/* Force specific overrides for PDF.js classes if variables aren't enough */
+.toolbar, .findbar, .secondaryToolbar, .editorParamsToolbar {
+    background-color: var(--ht-card-bg) !important;
+    background-image: none !important;
+    border-bottom: 1px solid var(--ht-border) !important;
+    box-shadow: none !important;
+}
+
+.toolbarButton::before, .secondaryToolbarButton::before, .dropdownToolbarButton::before {
+    background-color: var(--ht-text) !important;
+    filter: none !important; /* Remove PDF.js invert filters */
+}
+
+/* Active/Toggled Buttons */
+.toolbarButton.toggled::before, .secondaryToolbarButton.toggled::before {
+    background-color: #fff !important;
+}
+.toolbarButton.toggled, .secondaryToolbarButton.toggled {
+    background-color: var(--ht-primary) !important;
+}
+
+/* Sidebar */
+#sidebarContainer {
+    background-color: var(--ht-sidebar-bg) !important;
+    border-right: 1px solid var(--ht-border) !important;
+}
+
+/* Page Border */
+.pdfViewer .page {
+    border: 1px solid var(--ht-border) !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+}
+
+/* Inputs */
+.toolbarField {
+    background-color: var(--ht-bg) !important;
+    color: var(--ht-text) !important;
+    border: 1px solid var(--ht-border) !important;
+}
+.toolbarField:focus {
+    border-color: var(--ht-primary) !important;
+}
+
+/* Loading Bar */
+#loadingBar .progress {
+    background-color: var(--ht-primary) !important;
+}

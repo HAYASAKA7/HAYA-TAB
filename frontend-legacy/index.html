@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAYA-TAB</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="icons.css">
+    <script src="alphatab/alphaTab.min.js"></script>
+</head>
+<body>
+    <div id="app-layout">
+        <aside id="sidebar" class="collapsed">
+            <button id="sidebar-toggle" onclick="toggleSidebar()"><span class="icon-menu"></span></button>
+            <div class="sidebar-item active" id="nav-home" onclick="switchView('home')">
+                <span class="icon"><span class="icon-home"></span></span><span class="sidebar-label">Home</span>
+            </div>
+            <div class="sidebar-item" id="nav-settings" onclick="switchView('settings')">
+                <span class="icon"><span class="icon-settings"></span></span><span class="sidebar-label">Settings</span>
+            </div>
+            <div class="sidebar-divider"></div>
+            <div id="opened-tabs-list">
+                <!-- Opened PDF tabs will go here -->
+            </div>
+        </aside>
+
+        <main id="main-content">
+            <!-- Home View -->
+            <div id="view-home" class="view">
+                <header>
+                    <h1 onclick="goHome()">Library</h1>
+                    <div class="actions">
+                        <button class="btn" id="btn-select-mode" onclick="toggleBatchSelectMode()">
+                            <span class="icon-checkbox"></span> Select
+                        </button>
+                        <button class="btn" onclick="addTab(false)">Link Local Tab</button>
+                        <button class="btn primary" onclick="addTab(true)">Upload Tab</button>
+                    </div>
+                </header>
+                <div id="tab-grid">
+                    <!-- Tabs injected here -->
+                </div>
+            </div>
+
+            <!-- Batch Action Bar (floating at bottom) -->
+            <div id="batch-action-bar" class="hidden">
+                <div class="batch-info">
+                    <span id="batch-selected-count">0</span> selected
+                    <button class="btn small" onclick="selectAllTabs()">Select All</button>
+                </div>
+                <div class="batch-actions">
+                    <button class="btn" onclick="openBatchMoveModal()">
+                        <span class="icon-folder"></span> Move to...
+                    </button>
+                    <button class="btn danger" onclick="batchDeleteSelected()">
+                        <span class="icon-trash"></span> Remove
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings View -->
+            <div id="view-settings" class="view hidden">
+                <header><h1>Settings</h1></header>
+                <div class="settings-container">
+                    
+                    <section class="settings-section">
+                        <h3><span class="icon-palette"></span> Appearance</h3>
+                        <div class="form-group">
+                            <label>Theme</label>
+                            <select id="set-theme">
+                                <option value="system">System Default</option>
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Background Image</label>
+                            <select id="set-bg-type" onchange="uiToggleBgInput()">
+                                <option value="">None</option>
+                                <option value="url">Online URL</option>
+                                <option value="local">Local File</option>
+                            </select>
+                        </div>
+                        <div id="bg-input-wrapper" class="form-group hidden">
+                            <input type="text" id="set-bg-val" placeholder="Enter URL or Path">
+                            <button class="btn" id="btn-browse-bg" onclick="browseBg()" style="display:none;">Browse...</button>
+                        </div>
+                    </section>
+
+                    <section class="settings-section">
+                        <h3><span class="icon-document"></span> Viewers</h3>
+                        <div class="form-group">
+                            <label>Open PDF Method</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="openMethod" value="system"> System Default App</label>
+                                <label><input type="radio" name="openMethod" value="inner"> Built-in Viewer (Tabs)</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Open Guitar Pro Method</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="openGpMethod" value="system"> System Default App</label>
+                                <label><input type="radio" name="openGpMethod" value="inner"> Built-in Viewer (AlphaTab)</label>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="settings-section">
+                        <h3><span class="icon-sync"></span> Auto Sync</h3>
+                        <div class="form-group">
+                            <label>Sync Strategy (for duplicates)</label>
+                            <select id="set-sync-strategy">
+                                <option value="skip">Skip (Keep existing)</option>
+                                <option value="overwrite">Overwrite (Prefer found files)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Monitored Folders</label>
+                            <ul id="sync-path-list"></ul>
+                            <button class="btn small" onclick="addSyncPath()">+ Add Folder</button>
+                        </div>
+                        <div class="sync-actions">
+                            <button class="btn primary" onclick="triggerSync()">Sync Now</button>
+                        </div>
+                    </section>
+
+                    <div class="settings-footer">
+                        <button class="btn primary" onclick="saveSettings()">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dynamic PDF Views container -->
+            <div id="pdf-views-container"></div>
+            <!-- Dynamic GP Views container -->
+            <div id="gp-views-container"></div>
+        </main>
+    </div>
+
+    <!-- Modals (unchanged) -->
+    <div id="modal-overlay" class="hidden">
+        <div class="modal">
+            <h2>Edit Tab Info</h2>
+            <form id="edit-form" onsubmit="event.preventDefault(); saveTab();">
+                <input type="hidden" id="edit-path">
+                <input type="hidden" id="edit-copy">
+                
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="edit-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Artist</label>
+                    <input type="text" id="edit-artist">
+                </div>
+                <div class="form-group">
+                    <label>Album</label>
+                    <input type="text" id="edit-album">
+                </div>
+                <div class="form-group">
+                    <label>File Type</label>
+                    <input type="text" id="edit-type" disabled>
+                </div>
+                
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label>Country (ISO)</label>
+                        <select id="edit-country">
+                            <option value="US">US</option>
+                            <option value="JP">Japan</option>
+                            <option value="CN">China</option>
+                            <option value="GB">UK</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Language</label>
+                        <select id="edit-lang">
+                            <option value="en_us">English</option>
+                            <option value="ja_jp">Japanese</option>
+                            <option value="zh_cn">Chinese</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Tag (Version/Part)</label>
+                    <input type="text" id="edit-tag" placeholder="e.g. Lead Guitar, First Version, Bass">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn primary">Save & Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="category-modal" class="hidden">
+        <div class="modal">
+            <h2>New Category</h2>
+            <form onsubmit="event.preventDefault(); saveCategory();">
+                <input type="hidden" id="cat-id">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="cat-name" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeCategoryModal()">Cancel</button>
+                    <button type="submit" class="btn primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Move Tab Modal -->
+    <div id="move-modal" class="hidden">
+        <div class="modal">
+            <h2>Move to Category</h2>
+            <form onsubmit="event.preventDefault(); saveMove();">
+                <input type="hidden" id="move-tab-id">
+                <div class="form-group">
+                    <label>Select Category</label>
+                    <select id="move-select">
+                        <option value="">(Root)</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="document.getElementById('move-modal').classList.add('hidden')">Cancel</button>
+                    <button type="submit" class="btn primary">Move</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Batch Move Modal -->
+    <div id="batch-move-modal" class="hidden">
+        <div class="modal">
+            <h2>Move Selected to Category</h2>
+            <form onsubmit="event.preventDefault(); saveBatchMove();">
+                <div class="form-group">
+                    <label>Select Destination Category</label>
+                    <select id="batch-move-select">
+                        <option value="">(Root)</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeBatchMoveModal()">Cancel</button>
+                    <button type="submit" class="btn primary">Move Selected</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="hidden">
+        <div class="modal confirm-modal">
+            <h2 id="confirm-title">Confirm</h2>
+            <div id="confirm-message" class="confirm-message"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn" id="confirm-cancel-btn">Cancel</button>
+                <button type="button" class="btn danger" id="confirm-ok-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <ul id="context-menu-items"></ul>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- Wails Auto-Injected Scripts (Simulated here for structure) -->
+    <script src="/wailsjs/go/main/App.js"></script>
+    <script src="/wailsjs/runtime/runtime.js"></script>
+    <script src="/app.js"></script>
+</body>
+</html>
