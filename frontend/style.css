@@ -605,6 +605,23 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 .gp-controls .label { font-size: 0.8rem; color: var(--text-muted); }
 .gp-controls .speed-val { font-size: 0.9rem; width: 45px; text-align: right; font-variant-numeric: tabular-nums; }
 
+/* Track Selector */
+.track-selector {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    min-width: 120px;
+    max-width: 200px;
+}
+.track-selector:hover { border-color: var(--primary); }
+.track-selector:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2); }
+.track-selector option { background: var(--card-bg); color: var(--text); }
+
 /* Range Slider */
 input[type=range] {
     -webkit-appearance: none;

@@ -695,6 +695,11 @@ async function openInternalGpTab(tab) {
                     <div class="divider"></div>
                     <button class="btn-icon" data-action="metronome" title="Metronome"><span class="icon-metronome"></span></button>
                     <div class="divider"></div>
+                    <span class="label">Track:</span>
+                    <select class="track-selector">
+                        <option value="-1">Loading...</option>
+                    </select>
+                    <div class="divider"></div>
                     <span class="label">Speed:</span>
                     <input type="range" min="0.25" max="2.0" step="0.25" value="1.0" class="speed-slider">
                     <span class="speed-val">100%</span>
@@ -739,10 +744,11 @@ async function openInternalGpTab(tab) {
         const btnMetro = view.querySelector('[data-action="metronome"]');
         const sliderSpeed = view.querySelector('.speed-slider');
         const labelSpeed = view.querySelector('.speed-val');
+        const trackSelector = view.querySelector('.track-selector');
 
         btnPlay.onclick = () => api.playPause();
         btnStop.onclick = () => api.stop();
-        
+
         btnMetro.onclick = () => {
             api.metronomeVolume = api.metronomeVolume === 0 ? 1 : 0;
             btnMetro.classList.toggle('active', api.metronomeVolume > 0);
@@ -754,11 +760,34 @@ async function openInternalGpTab(tab) {
             labelSpeed.innerText = Math.round(val * 100) + '%';
         };
 
+        // Track selector change handler
+        trackSelector.onchange = (e) => {
+            const trackIndex = parseInt(e.target.value);
+            if (trackIndex >= 0 && api.score && api.score.tracks[trackIndex]) {
+                api.renderTracks([api.score.tracks[trackIndex]]);
+            }
+        };
+
+        // Populate track selector when score is loaded
+        api.scoreLoaded.on((score) => {
+            trackSelector.innerHTML = '';
+            if (score && score.tracks && score.tracks.length > 0) {
+                score.tracks.forEach((track, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = track.name || `Track ${index + 1}`;
+                    trackSelector.appendChild(option);
+                });
+                // Select first track by default
+                trackSelector.value = '0';
+            }
+        });
+
         // Update Play Button State
         api.playerStateChanged.on((args) => {
             const icon = btnPlay.querySelector('span');
             if (args.state === 1) { // Playing
-                icon.className = 'icon-pause'; // Assuming you have an icon-pause, if not, I'll need to check icons.css or use text
+                icon.className = 'icon-pause';
             } else {
                 icon.className = 'icon-play';
             }
