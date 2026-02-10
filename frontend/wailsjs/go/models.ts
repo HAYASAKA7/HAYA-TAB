@@ -21,6 +21,7 @@ export namespace store {
 	    background: string;
 	    bgType: string;
 	    openMethod: string;
+	    openGpMethod: string;
 	    syncPaths: string[];
 	    syncStrategy: string;
 	
@@ -34,6 +35,7 @@ export namespace store {
 	        this.background = source["background"];
 	        this.bgType = source["bgType"];
 	        this.openMethod = source["openMethod"];
+	        this.openGpMethod = source["openGpMethod"];
 	        this.syncPaths = source["syncPaths"];
 	        this.syncStrategy = source["syncStrategy"];
 	    }

@@ -178,8 +178,9 @@ button, input, select, textarea {
 .view {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
     width: 100%;
+    min-height: 0;
 }
 .hidden { display: none !important; }
 
@@ -342,8 +343,27 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 .delete-icon:hover { background: rgba(255,0,0,0.1); border-radius: 4px; }
 
 /* PDF View */
-#pdf-views-container { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.pdf-view { flex: 1; min-height: 0; }
+#pdf-views-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    flex-direction: column;
+}
+#pdf-views-container:has(.pdf-view:not(.hidden)) {
+    display: flex;
+}
+.pdf-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
 .pdf-container { width: 100%; height: 100%; background: #333; display: flex; flex-direction: column; }
 .pdf-frame { flex: 1; border: none; width: 100%; height: 100%; }
 
@@ -520,3 +540,107 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
     margin: 5px 0;
     pointer-events: none;
 }
+
+/* GP Viewer Styles */
+#gp-views-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    flex-direction: column;
+}
+#gp-views-container:has(.gp-view:not(.hidden)) {
+    display: flex;
+}
+.gp-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+}
+
+.gp-toolbar {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.gp-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(0,0,0,0.2);
+    padding: 8px 20px;
+    border-radius: 30px;
+    border: 1px solid var(--border);
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.btn-icon:hover { background: var(--hover); color: var(--primary); }
+.btn-icon.active { color: var(--primary); }
+.btn-icon .icon-play, .btn-icon .icon-pause, .btn-icon .icon-stop, .btn-icon .icon-metronome { width: 1.5em; height: 1.5em; }
+
+.divider { width: 1px; height: 20px; background: var(--border); }
+
+.gp-controls .label { font-size: 0.8rem; color: var(--text-muted); }
+.gp-controls .speed-val { font-size: 0.9rem; width: 45px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Range Slider */
+input[type=range] {
+    -webkit-appearance: none;
+    width: 100px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+.gp-scroll-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    background: #fafafa; /* Sheet music paper color */
+    min-height: 0;
+}
+
+/* AlphaTab Container */
+.gp-render-area {
+    width: 100%;
+    min-height: 100%;
+}
+
+/* AlphaTab Customization */
+.at-cursor-bar { fill: rgba(150, 82, 51, 0.2) !important; }
+.at-selection-group { fill: rgba(150, 82, 51, 0.1) !important; }
+.at-cursor-beat { fill: rgba(150, 82, 51, 0.5) !important; }

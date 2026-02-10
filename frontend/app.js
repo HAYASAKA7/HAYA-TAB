@@ -266,23 +266,30 @@ function switchView(viewName) {
     if (viewName === 'home') {
         document.getElementById('view-home').classList.remove('hidden');
         document.getElementById('nav-home').classList.add('active');
-        // Hide all PDF views
-        document.querySelectorAll('.pdf-view').forEach(el => el.classList.add('hidden'));
+        // Hide all PDF/GP views
+        document.querySelectorAll('.pdf-view, .gp-view').forEach(el => el.classList.add('hidden'));
     } else if (viewName === 'settings') {
         document.getElementById('view-settings').classList.remove('hidden');
         document.getElementById('nav-settings').classList.add('active');
-         // Hide all PDF views
-         document.querySelectorAll('.pdf-view').forEach(el => el.classList.add('hidden'));
-    } else if (viewName.startsWith('pdf-')) {
-        // Show specific PDF view
+         // Hide all PDF/GP views
+         document.querySelectorAll('.pdf-view, .gp-view').forEach(el => el.classList.add('hidden'));
+    } else if (viewName.startsWith('pdf-') || viewName.startsWith('gp-')) {
+        // Show specific view
         const tabId = viewName.split('-')[1];
+        
         const pdfView = document.getElementById(`pdf-view-${tabId}`);
-        if (pdfView) {
-            pdfView.classList.remove('hidden');
-            // active sidebar item
-            const navItem = document.getElementById(`nav-pdf-${tabId}`);
-            if(navItem) navItem.classList.add('active');
+        if (pdfView) pdfView.classList.remove('hidden');
+        
+        const gpView = document.getElementById(`gp-view-${tabId}`);
+        if (gpView) {
+            gpView.classList.remove('hidden');
+            // Trigger resize for alphaTab to render correctly
+            window.dispatchEvent(new Event('resize'));
         }
+
+        // active sidebar item
+        const navItem = document.getElementById(`nav-tab-${tabId}`);
+        if(navItem) navItem.classList.add('active');
     }
 }
 
@@ -557,12 +564,15 @@ function renderSidebarTabs() {
         const isPinned = pinnedTabs.has(tabId);
         const item = document.createElement('div');
         item.className = 'sidebar-item' + (isPinned ? ' pinned' : '');
-        item.id = `nav-pdf-${tabId}`;
+        item.id = `nav-tab-${tabId}`;
         item.draggable = true;
         item.dataset.tabId = tabId;
         
+        // Determine view prefix
+        const prefix = tab.type === 'pdf' ? 'pdf' : 'gp';
+
         // Click to switch view
-        item.onclick = () => switchView(`pdf-${tabId}`);
+        item.onclick = () => switchView(`${prefix}-${tabId}`);
         
         // Context menu (right-click)
         item.oncontextmenu = (e) => showSidebarTabContextMenu(e, tabId);
@@ -583,11 +593,11 @@ function renderSidebarTabs() {
     }
     
     // Update active state
-    const activeNav = document.querySelector('.sidebar-item.active[id^="nav-pdf-"]');
+    const activeNav = document.querySelector('.sidebar-item.active[id^="nav-tab-"]');
     if (activeNav) {
-        const activeId = activeNav.id.replace('nav-pdf-', '');
-        document.querySelectorAll('.sidebar-item[id^="nav-pdf-"]').forEach(el => el.classList.remove('active'));
-        const newActive = document.getElementById(`nav-pdf-${activeId}`);
+        const activeId = activeNav.id.replace('nav-tab-', '');
+        document.querySelectorAll('.sidebar-item[id^="nav-tab-"]').forEach(el => el.classList.remove('active'));
+        const newActive = document.getElementById(`nav-tab-${activeId}`);
         if (newActive) newActive.classList.add('active');
     }
 }
@@ -612,6 +622,8 @@ async function openTab(id) {
     // Check Settings
     if (currentSettings.openMethod === "inner" && tab.type === "pdf") {
         openInternalTab(tab);
+    } else if (currentSettings.openGpMethod === "inner" && tab.type === "gp") {
+        openInternalGpTab(tab);
     } else {
         // System Default
         try {
@@ -631,6 +643,120 @@ function base64ToBlob(base64, type = "application/pdf") {
         arr[i] = binStr.charCodeAt(i);
     }
     return new Blob([arr], { type: type });
+}
+
+function base64ToUint8Array(base64) {
+    const binStr = atob(base64);
+    const len = binStr.length;
+    const arr = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        arr[i] = binStr.charCodeAt(i);
+    }
+    return arr;
+}
+
+async function openInternalGpTab(tab) {
+    // Check if already open
+    if (document.getElementById(`gp-view-${tab.id}`)) {
+        switchView(`gp-${tab.id}`);
+        return;
+    }
+
+    try {
+        const contentBase64 = await window.go.main.App.GetTabContent(tab.id);
+        const data = base64ToUint8Array(contentBase64);
+        const dataBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+
+        // 1. Add to openedTabs and render sidebar
+        if (!openedTabs.includes(tab.id)) {
+            openedTabs.push(tab.id);
+        }
+        renderSidebarTabs();
+
+        // 2. Create View Container
+        const container = document.getElementById('gp-views-container');
+        const view = document.createElement('div');
+        view.className = 'view gp-view hidden';
+        view.id = `gp-view-${tab.id}`;
+        
+        view.innerHTML = `
+            <div class="gp-toolbar">
+                <div class="gp-controls">
+                    <button class="btn-icon" data-action="stop" title="Stop"><span class="icon-stop"></span></button>
+                    <button class="btn-icon" data-action="playPause" title="Play/Pause"><span class="icon-play"></span></button>
+                    <div class="divider"></div>
+                    <button class="btn-icon" data-action="metronome" title="Metronome"><span class="icon-metronome"></span></button>
+                    <div class="divider"></div>
+                    <span class="label">Speed:</span>
+                    <input type="range" min="0.25" max="2.0" step="0.25" value="1.0" class="speed-slider">
+                    <span class="speed-val">100%</span>
+                </div>
+            </div>
+            <div class="gp-scroll-wrapper">
+                <div class="gp-render-area"></div>
+            </div>
+        `;
+        container.appendChild(view);
+
+        // Init alphaTab
+        const renderArea = view.querySelector('.gp-render-area');
+        const scrollElement = view.querySelector('.gp-scroll-wrapper');
+        
+        const api = new alphaTab.AlphaTabApi(renderArea, {
+            core: {
+                file: dataBuffer,
+                fontDirectory: 'alphatab/font/'
+            },
+            player: {
+                enablePlayer: true,
+                soundFont: 'alphatab/soundfont/sonivox.sf2',
+                scrollElement: scrollElement
+            },
+            display: {
+                layoutMode: 'page',
+                staveProfile: 'default'
+            }
+        });
+        
+        view.alphaTabApi = api; 
+
+        // Toolbar Bindings
+        const btnPlay = view.querySelector('[data-action="playPause"]');
+        const btnStop = view.querySelector('[data-action="stop"]');
+        const btnMetro = view.querySelector('[data-action="metronome"]');
+        const sliderSpeed = view.querySelector('.speed-slider');
+        const labelSpeed = view.querySelector('.speed-val');
+
+        btnPlay.onclick = () => api.playPause();
+        btnStop.onclick = () => api.stop();
+        
+        btnMetro.onclick = () => {
+            api.metronomeVolume = api.metronomeVolume === 0 ? 1 : 0;
+            btnMetro.classList.toggle('active', api.metronomeVolume > 0);
+        };
+
+        sliderSpeed.oninput = (e) => {
+            const val = parseFloat(e.target.value);
+            api.playbackSpeed = val;
+            labelSpeed.innerText = Math.round(val * 100) + '%';
+        };
+
+        // Update Play Button State
+        api.playerStateChanged.on((args) => {
+            const icon = btnPlay.querySelector('span');
+            if (args.state === 1) { // Playing
+                icon.className = 'icon-pause'; // Assuming you have an icon-pause, if not, I'll need to check icons.css or use text
+            } else {
+                icon.className = 'icon-play';
+            }
+        });
+
+        switchView(`gp-${tab.id}`);
+
+    } catch (e) {
+        showToast("Failed to load GP Tab: " + e, "error");
+        console.error(e);
+    }
 }
 
 async function openInternalTab(tab) {
@@ -684,14 +810,27 @@ function closeInternalTab(id) {
     // Remove from pinned tabs if pinned
     pinnedTabs.delete(id);
 
-    // Remove View
-    const view = document.getElementById(`pdf-view-${id}`);
-    if(view) {
-        const iframe = view.querySelector('iframe');
+    // Remove PDF View
+    const pdfView = document.getElementById(`pdf-view-${id}`);
+    if(pdfView) {
+        const iframe = pdfView.querySelector('iframe');
         if (iframe && iframe.src.startsWith('blob:')) {
             URL.revokeObjectURL(iframe.src);
         }
-        view.remove();
+        pdfView.remove();
+    }
+
+    // Remove GP View
+    const gpView = document.getElementById(`gp-view-${id}`);
+    if (gpView) {
+        // Stop alphaTab player if running
+        if (gpView.alphaTabApi) {
+             try {
+                gpView.alphaTabApi.soundPlayer.stop();
+                gpView.alphaTabApi.destroy();
+             } catch(e) { console.error("Error destroying alphaTab", e); }
+        }
+        gpView.remove();
     }
     
     // Re-render sidebar tabs
@@ -760,6 +899,11 @@ async function loadSettings() {
         if (input.value === (currentSettings.openMethod || "system")) input.checked = true;
     }
 
+    const openGpMethodInputs = document.querySelectorAll('input[name="openGpMethod"]');
+    for (const input of openGpMethodInputs) {
+        if (input.value === (currentSettings.openGpMethod || "system")) input.checked = true;
+    }
+
     document.getElementById('set-sync-strategy').value = currentSettings.syncStrategy || "skip";
     
     renderSyncPaths();
@@ -786,6 +930,9 @@ async function saveSettings() {
     
     const openMethod = document.querySelector('input[name="openMethod"]:checked');
     currentSettings.openMethod = openMethod ? openMethod.value : "system";
+
+    const openGpMethod = document.querySelector('input[name="openGpMethod"]:checked');
+    currentSettings.openGpMethod = openGpMethod ? openGpMethod.value : "system";
     
     currentSettings.syncStrategy = document.getElementById('set-sync-strategy').value;
     // syncPaths is already updated in memory

@@ -169,10 +169,11 @@ func (a *App) TriggerSync() (string, error) {
 			}
 
 			if conflictTab != nil {
-				if strategy == "skip" {
+				switch strategy {
+				case "skip":
 					skipped++
 					return nil
-				} else if strategy == "overwrite" {
+				case "overwrite":
 					// Handle Overwrite
 
 					// If old one was managed (uploaded), delete the file
@@ -263,9 +264,10 @@ func (a *App) ProcessFile(path string) store.Tab {
 	meta := metadata.ParseFilename(path)
 	ext := strings.ToLower(filepath.Ext(path))
 	typeStr := "unknown"
-	if ext == ".pdf" {
+	switch ext {
+	case ".pdf":
 		typeStr = "pdf"
-	} else if ext == ".gp" || ext == ".gp5" || ext == ".gpx" {
+	case ".gp", ".gp5", ".gpx":
 		typeStr = "gp"
 	}
 

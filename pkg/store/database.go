@@ -25,6 +25,7 @@ func NewDBStore(dbPath string) *DBStore {
 		Settings: Settings{
 			Theme:        "system",
 			OpenMethod:   "inner",
+			OpenGpMethod: "inner",
 			SyncStrategy: "skip",
 			SyncPaths:    []string{},
 		},
@@ -142,6 +143,9 @@ func (s *DBStore) loadSettings() error {
 	}
 	if v, ok := settings["openMethod"]; ok {
 		s.Settings.OpenMethod = v
+	}
+	if v, ok := settings["openGpMethod"]; ok {
+		s.Settings.OpenGpMethod = v
 	}
 	if v, ok := settings["syncStrategy"]; ok {
 		s.Settings.SyncStrategy = v
@@ -374,6 +378,7 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 		"background":   settings.Background,
 		"bgType":       settings.BgType,
 		"openMethod":   settings.OpenMethod,
+		"openGpMethod": settings.OpenGpMethod,
 		"syncStrategy": settings.SyncStrategy,
 		"syncPaths":    strings.Join(settings.SyncPaths, "|"),
 	}

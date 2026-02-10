@@ -29,10 +29,11 @@ type Category struct {
 }
 
 type Settings struct {
-	Theme        string   `json:"theme"`      // "dark", "light", "system"
-	Background   string   `json:"background"` // URL or path
-	BgType       string   `json:"bgType"`     // "url", "local"
-	OpenMethod   string   `json:"openMethod"` // "system", "inner"
+	Theme        string   `json:"theme"`        // "dark", "light", "system"
+	Background   string   `json:"background"`   // URL or path
+	BgType       string   `json:"bgType"`       // "url", "local"
+	OpenMethod   string   `json:"openMethod"`   // "system", "inner"
+	OpenGpMethod string   `json:"openGpMethod"` // "system", "inner"
 	SyncPaths    []string `json:"syncPaths"`
 	SyncStrategy string   `json:"syncStrategy"` // "skip", "overwrite"
 }
@@ -59,6 +60,7 @@ func NewStore(dataPath string) *Store {
 		Settings: Settings{
 			Theme:        "system",
 			OpenMethod:   "inner",
+			OpenGpMethod: "system",
 			SyncStrategy: "skip",
 			SyncPaths:    []string{},
 		},

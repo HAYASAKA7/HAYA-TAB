@@ -6,6 +6,7 @@
     <title>HAYA-TAB</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="icons.css">
+    <script src="alphatab/alphaTab.min.js"></script>
 </head>
 <body>
     <div id="app-layout">
@@ -87,12 +88,19 @@
                     </section>
 
                     <section class="settings-section">
-                        <h3><span class="icon-document"></span> PDF Viewer</h3>
+                        <h3><span class="icon-document"></span> Viewers</h3>
                         <div class="form-group">
                             <label>Open PDF Method</label>
                             <div class="radio-group">
                                 <label><input type="radio" name="openMethod" value="system"> System Default App</label>
                                 <label><input type="radio" name="openMethod" value="inner"> Built-in Viewer (Tabs)</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Open Guitar Pro Method</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="openGpMethod" value="system"> System Default App</label>
+                                <label><input type="radio" name="openGpMethod" value="inner"> Built-in Viewer (AlphaTab)</label>
                             </div>
                         </div>
                     </section>
@@ -124,6 +132,8 @@
             
             <!-- Dynamic PDF Views container -->
             <div id="pdf-views-container"></div>
+            <!-- Dynamic GP Views container -->
+            <div id="gp-views-container"></div>
         </main>
     </div>
 
