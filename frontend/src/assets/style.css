@@ -372,6 +372,74 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 .delete-icon { cursor: pointer; color: #ff4444; padding: 5px; }
 .delete-icon:hover { background: rgba(255,0,0,0.1); border-radius: 4px; }
 
+/* Sync Progress Styles */
+.sync-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+.sync-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+}
+.sync-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.sync-progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sync-progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    width: 300px;
+}
+.sync-progress-bar-inner {
+    height: 100%;
+    width: 30%;
+    background: var(--primary);
+    border-radius: 2px;
+    animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+@keyframes progress-indeterminate {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(200%); }
+    100% { transform: translateX(-100%); }
+}
+.sync-progress-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.sync-status {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sync-count {
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
 /* PDF View */
 #pdf-views-container {
     position: absolute;

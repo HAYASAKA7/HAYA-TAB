@@ -303,12 +303,12 @@ func (a *App) TriggerSync() (string, error) {
 			}
 
 			totalProcessed++
-			if totalProcessed%10 == 0 {
-				wailsRuntime.EventsEmit(a.ctx, "sync-progress", map[string]interface{}{
-					"message": fmt.Sprintf("Scanning: %s", filepath.Base(path)),
-					"count":   totalProcessed,
-				})
-			}
+			// Emit progress for every file processed
+			wailsRuntime.EventsEmit(a.ctx, "sync-progress", map[string]interface{}{
+				"message":  fmt.Sprintf("Processing: %s", filepath.Base(path)),
+				"count":    totalProcessed,
+				"filePath": path,
+			})
 
 			// 1. Check if EXACT path exists using DB
 			existingTab, err := a.store.GetTabByPath(path)
@@ -328,24 +328,17 @@ func (a *App) TriggerSync() (string, error) {
 					skipped++
 					return nil
 				case "overwrite":
-					// Handle Overwrite
+					// Non-destructive overwrite: Keep old file, rename new title
+					// Generate unique title with _copy suffix
+					uniqueTitle := a.generateUniqueTitle(newTab.Title)
+					newTab.Title = uniqueTitle
 
-					// If old one was managed (uploaded), delete the file
-					if conflictTab.IsManaged {
-						os.Remove(conflictTab.FilePath) // Ignore error
-						conflictTab.IsManaged = false
-					}
-
-					// Update path
-					conflictTab.FilePath = path
-					// Update Metadata? Maybe keep old custom metadata?
-					// Prompt implies replacing, so let's update basic fields but keep ID
-					// Actually, let's keep Category, ID, Cover. Update FilePath and maybe Type.
-					conflictTab.Type = newTab.Type
-
-					// Save
-					if err := a.store.UpdateTab(*conflictTab); err == nil {
-						updated++
+					// Add as new tab with renamed title
+					if err := a.store.AddTab(newTab); err == nil {
+						added++
+						a.fetchCoverAsync(newTab)
+					} else {
+						errors++
 					}
 					return nil
 				}
@@ -462,6 +455,27 @@ func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuer
 		Page:     page,
 		PageSize: pageSize,
 		HasMore:  (page * pageSize) < total,
+	}
+}
+
+// generateUniqueTitle creates a unique title by appending _copy1, _copy2, etc.
+// This ensures non-destructive sync by never overwriting existing entries
+func (a *App) generateUniqueTitle(baseTitle string) string {
+	copyNum := 1
+	candidate := fmt.Sprintf("%s_copy%d", baseTitle, copyNum)
+
+	for {
+		existing, _ := a.store.GetTabByTitle(candidate)
+		if existing == nil {
+			return candidate
+		}
+		copyNum++
+		candidate = fmt.Sprintf("%s_copy%d", baseTitle, copyNum)
+
+		// Safety limit to prevent infinite loop
+		if copyNum > 1000 {
+			return fmt.Sprintf("%s_copy_%d", baseTitle, time.Now().UnixNano())
+		}
 	}
 }
 
@@ -710,7 +724,9 @@ func (a *App) UpdateTab(tab store.Tab) error {
 
 // UpdateTabMetadata updates only the metadata fields (title, artist, album) for a tab.
 // This is called by the frontend after AlphaTab parses the file's internal metadata.
-// It implements a "smart update" strategy: only update if the new data is better than existing.
+// It implements a "smart update" strategy:
+// - If no cover exists: prefer AlphaTab's data (more authoritative than filename parsing)
+// - If cover exists: only update placeholder fields (existing data was good enough for cover search)
 func (a *App) UpdateTabMetadata(id string, title string, artist string, album string) error {
 	// Get current tab
 	currentTab, err := a.store.GetTab(id)
@@ -722,6 +738,7 @@ func (a *App) UpdateTabMetadata(id string, title string, artist string, album st
 	}
 
 	needsUpdate := false
+	noCoverYet := currentTab.CoverPath == ""
 
 	// Helper to check if existing value is "placeholder" (empty or "Unknown")
 	isPlaceholder := func(s string) bool {
@@ -743,25 +760,49 @@ func (a *App) UpdateTabMetadata(id string, title string, artist string, album st
 		return true
 	}
 
-	// Update title if current is placeholder and new is meaningful
-	if isPlaceholder(currentTab.Title) && isMeaningful(title) {
-		currentTab.Title = strings.TrimSpace(title)
-		needsUpdate = true
-		a.logger.Info("Updating title for tab %s: %s", id, title)
+	// Helper to check if values are different (case-insensitive)
+	isDifferent := func(old, new string) bool {
+		return !strings.EqualFold(strings.TrimSpace(old), strings.TrimSpace(new))
 	}
 
-	// Update artist if current is placeholder and new is meaningful
-	if isPlaceholder(currentTab.Artist) && isMeaningful(artist) {
-		currentTab.Artist = strings.TrimSpace(artist)
-		needsUpdate = true
-		a.logger.Info("Updating artist for tab %s: %s", id, artist)
+	// Update title: if no cover AND AlphaTab has meaningful different data, prefer it
+	// Otherwise only update if current is placeholder
+	if isMeaningful(title) {
+		if noCoverYet && isDifferent(currentTab.Title, title) {
+			currentTab.Title = strings.TrimSpace(title)
+			needsUpdate = true
+			a.logger.Info("Updating title for tab %s (no cover, prefer AlphaTab): %s", id, title)
+		} else if isPlaceholder(currentTab.Title) {
+			currentTab.Title = strings.TrimSpace(title)
+			needsUpdate = true
+			a.logger.Info("Updating title for tab %s: %s", id, title)
+		}
 	}
 
-	// Update album if current is placeholder and new is meaningful
-	if isPlaceholder(currentTab.Album) && isMeaningful(album) {
-		currentTab.Album = strings.TrimSpace(album)
-		needsUpdate = true
-		a.logger.Info("Updating album for tab %s: %s", id, album)
+	// Update artist: same logic
+	if isMeaningful(artist) {
+		if noCoverYet && isDifferent(currentTab.Artist, artist) {
+			currentTab.Artist = strings.TrimSpace(artist)
+			needsUpdate = true
+			a.logger.Info("Updating artist for tab %s (no cover, prefer AlphaTab): %s", id, artist)
+		} else if isPlaceholder(currentTab.Artist) {
+			currentTab.Artist = strings.TrimSpace(artist)
+			needsUpdate = true
+			a.logger.Info("Updating artist for tab %s: %s", id, artist)
+		}
+	}
+
+	// Update album: same logic
+	if isMeaningful(album) {
+		if noCoverYet && isDifferent(currentTab.Album, album) {
+			currentTab.Album = strings.TrimSpace(album)
+			needsUpdate = true
+			a.logger.Info("Updating album for tab %s (no cover, prefer AlphaTab): %s", id, album)
+		} else if isPlaceholder(currentTab.Album) {
+			currentTab.Album = strings.TrimSpace(album)
+			needsUpdate = true
+			a.logger.Info("Updating album for tab %s: %s", id, album)
+		}
 	}
 
 	if needsUpdate {

@@ -10,6 +10,8 @@ const { showToast } = useToast()
 const audioDevices = ref<MediaDeviceInfo[]>([])
 const isAudioOutputSupported = ref(false)
 const syncStatus = ref('')
+const syncFilename = ref('')
+const syncCount = ref(0)
 const isSyncing = ref(false)
 
 onMounted(async () => {
@@ -87,11 +89,17 @@ async function handleSync() {
   if (isSyncing.value) return
   isSyncing.value = true
   syncStatus.value = 'Starting sync...'
-  // showToast('Sync started...') // Optional, maybe redundant with status text
+  syncFilename.value = ''
+  syncCount.value = 0
 
   EventsOn('sync-progress', (data: any) => {
-    if (data && data.message) {
-      syncStatus.value = data.message
+    if (data) {
+      if (data.message) {
+        syncStatus.value = data.message
+      }
+      if (data.count !== undefined) {
+        syncCount.value = data.count
+      }
     }
   })
 
@@ -108,6 +116,7 @@ async function handleSync() {
     setTimeout(() => {
       if (syncStatus.value === 'Sync completed') {
         syncStatus.value = ''
+        syncCount.value = 0
       }
     }, 3000)
   }
@@ -254,7 +263,7 @@ async function handleSync() {
         <label>Sync Strategy (for duplicates)</label>
         <select id="set-sync-strategy" v-model="settingsStore.settings.syncStrategy">
           <option value="skip">Skip (Keep existing)</option>
-          <option value="overwrite">Overwrite (Prefer found files)</option>
+          <option value="overwrite">Add as Copy (Rename new files)</option>
         </select>
       </div>
       <div class="form-group">
@@ -271,9 +280,18 @@ async function handleSync() {
       </div>
       <div class="sync-actions">
         <button class="btn primary" @click="handleSync" :disabled="isSyncing">
+          <span v-if="isSyncing" class="sync-spinner"></span>
           {{ isSyncing ? 'Syncing...' : 'Sync Now' }}
         </button>
-        <span v-if="syncStatus" class="sync-status">{{ syncStatus }}</span>
+        <div v-if="isSyncing || syncStatus" class="sync-progress-container">
+          <div v-if="isSyncing" class="sync-progress-bar">
+            <div class="sync-progress-bar-inner"></div>
+          </div>
+          <div class="sync-progress-info">
+            <span class="sync-status">{{ syncStatus }}</span>
+            <span v-if="syncCount > 0" class="sync-count">({{ syncCount }} files processed)</span>
+          </div>
+        </div>
       </div>
     </section>
 

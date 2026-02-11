@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.3] - 2026-02-11
+
+### Added
+- **Non-destructive Sync:** When a duplicate title is detected during sync, the new file is now added with a `_copy1`, `_copy2`, etc. suffix instead of overwriting or deleting the existing file. This prevents accidental data loss.
+- **Enhanced Sync Progress UI:** Added an animated progress bar, spinner on the Sync button, and real-time file count display ("X files processed") during synchronization.
+- **Real-time File Feedback:** Backend now emits progress for every file being processed (not just every 10th), showing "Processing: [filename]" to indicate the app is active.
+
+### Improved
+- **Smart Metadata Updates:** When opening a GP file without cover art, AlphaTab's parsed metadata now overwrites filename-parsed data (considered more authoritative). If cover art already exists, only placeholder fields are updated.
+- **Sync Strategy Label:** Updated the "Overwrite" option label to "Add as Copy (Rename new files)" to better reflect its non-destructive behavior.
+
 ## [1.4.2] - 2026-02-11
 
 ### Added
