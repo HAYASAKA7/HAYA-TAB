@@ -1,0 +1,6 @@
+2026/02/11 10:15:51 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 10:15:51 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 10:15:51 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 10:15:51 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 10:15:51 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 10:15:51 [ERROR] Failed to watch path F:\1\TABS: failed to add path F:\1\TABS: GetFileAttributes: The system cannot find the path specified.

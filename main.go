@@ -19,11 +19,10 @@ import (
 var assets embed.FS
 
 // StartFileServer starts a local HTTP server to serve files
-func StartFileServer(app *App) int {
+func StartFileServer(app *App) (int, error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		fmt.Printf("Failed to bind to random port: %v\n", err)
-		return 0
+		return 0, fmt.Errorf("failed to bind to random port: %w", err)
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
 
@@ -39,7 +38,7 @@ func StartFileServer(app *App) int {
 		}
 	}()
 
-	return port
+	return port, nil
 }
 
 // FileHandler handles HTTP requests for streaming files
@@ -203,14 +202,20 @@ func main() {
 	app := NewApp()
 
 	// Start local file server
-	port := StartFileServer(app)
+	port, err := StartFileServer(app)
+	if err != nil {
+		println("Error starting file server:", err.Error())
+		// In a GUI app, we might want to show a dialog, but main() runs before wails.Run,
+		// so we can't use wails runtime dialogs yet. Standard output is best effort here.
+		return
+	}
 	app.SetFileServerPort(port)
 
 	// Create file handler for streaming
 	fileHandler := NewFileHandler(app)
 
 	// Create application with options
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:  "HAYA-TAB",
 		Width:  1024,
 		Height: 768,

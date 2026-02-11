@@ -42,6 +42,7 @@ type Settings struct {
 	LastSyncTime      int64    `json:"lastSyncTime"`      // Unix timestamp
 }
 
+// Deprecated: Use DBStore instead
 type Store struct {
 	mu         sync.Mutex
 	Tabs       []Tab
@@ -50,12 +51,14 @@ type Store struct {
 	DataPath   string
 }
 
+// Deprecated: Use DBStore instead
 type PersistenceData struct {
 	Tabs       []Tab      `json:"tabs"`
 	Categories []Category `json:"categories"`
 	Settings   Settings   `json:"settings"`
 }
 
+// Deprecated: Use NewDBStore instead
 func NewStore(dataPath string) *Store {
 	return &Store{
 		DataPath:   dataPath,
@@ -74,6 +77,7 @@ func NewStore(dataPath string) *Store {
 	}
 }
 
+// Deprecated: Use DBStore instead
 func (s *Store) Load() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -103,6 +107,7 @@ func (s *Store) Load() error {
 	return nil
 }
 
+// Deprecated: Use DBStore instead
 func (s *Store) Save() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

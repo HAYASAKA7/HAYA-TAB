@@ -114,7 +114,7 @@ func (a *App) startup(ctx context.Context) {
 
 	// Migrate from JSON if database is empty and JSON exists
 	if !a.store.HasData() {
-		if err := a.store.MigrateFromJSON(jsonPath); err != nil {
+		if err := store.MigrateFromJSON(a.store, jsonPath); err != nil {
 			a.logger.Error("Error migrating from JSON: %v", err)
 		}
 	}

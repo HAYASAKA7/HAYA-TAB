@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-1.3.1-green)
+![Version](https://img.shields.io/badge/version-1.3.2-green)
 ![License](https://img.shields.io/badge/license-MIT-yellow)
 
 ## ✨ Features
@@ -80,7 +80,7 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 
 - **Backend**: Go + Wails v2
 - **Frontend**: Vue 3 + TypeScript + Vite
-- **Database**: SQLite
+- **Database**: SQLite (via modernc.org/sqlite)
 - **Viewer Engine**: PDF.js & alphaTab
 
 ## 📄 License
