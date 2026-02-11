@@ -60,6 +60,23 @@ func (s *DBStore) Initialize() error {
 	}
 	s.db = db
 
+	// Enable WAL mode for better read/write concurrency
+	// This allows reading while writing, preventing UI freezes during sync
+	if _, err := s.db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		return fmt.Errorf("failed to enable WAL mode: %w", err)
+	}
+
+	// Optimize SQLite settings for better performance
+	if _, err := s.db.Exec("PRAGMA synchronous=NORMAL"); err != nil {
+		return fmt.Errorf("failed to set synchronous mode: %w", err)
+	}
+	if _, err := s.db.Exec("PRAGMA cache_size=-64000"); err != nil { // 64MB cache
+		return fmt.Errorf("failed to set cache size: %w", err)
+	}
+	if _, err := s.db.Exec("PRAGMA temp_store=MEMORY"); err != nil {
+		return fmt.Errorf("failed to set temp store: %w", err)
+	}
+
 	// Create tables
 	if err := s.createTables(); err != nil {
 		return fmt.Errorf("failed to create tables: %w", err)
@@ -110,7 +127,39 @@ func (s *DBStore) createTables() error {
 	CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
 	`
 
-	_, err := s.db.Exec(schema)
+	if _, err := s.db.Exec(schema); err != nil {
+		return err
+	}
+
+	// Create FTS5 virtual table for full-text search
+	// Using content= option for external content table (keeps data in sync with tabs table)
+	ftsSchema := `
+	CREATE VIRTUAL TABLE IF NOT EXISTS tabs_fts USING fts5(
+		title, artist, album, tag,
+		content='tabs',
+		content_rowid='rowid'
+	);
+
+	-- Triggers to keep FTS index in sync with main table
+	CREATE TRIGGER IF NOT EXISTS tabs_ai AFTER INSERT ON tabs BEGIN
+		INSERT INTO tabs_fts(rowid, title, artist, album, tag) 
+		VALUES (NEW.rowid, NEW.title, NEW.artist, NEW.album, NEW.tag);
+	END;
+
+	CREATE TRIGGER IF NOT EXISTS tabs_ad AFTER DELETE ON tabs BEGIN
+		INSERT INTO tabs_fts(tabs_fts, rowid, title, artist, album, tag) 
+		VALUES ('delete', OLD.rowid, OLD.title, OLD.artist, OLD.album, OLD.tag);
+	END;
+
+	CREATE TRIGGER IF NOT EXISTS tabs_au AFTER UPDATE ON tabs BEGIN
+		INSERT INTO tabs_fts(tabs_fts, rowid, title, artist, album, tag) 
+		VALUES ('delete', OLD.rowid, OLD.title, OLD.artist, OLD.album, OLD.tag);
+		INSERT INTO tabs_fts(rowid, title, artist, album, tag) 
+		VALUES (NEW.rowid, NEW.title, NEW.artist, NEW.album, NEW.tag);
+	END;
+	`
+
+	_, err := s.db.Exec(ftsSchema)
 	return err
 }
 
@@ -124,6 +173,13 @@ func (s *DBStore) runMigrations() error {
 			// It's okay, column might already exist
 		}
 	}
+
+	// Rebuild FTS index if needed (for existing databases upgrading to FTS5)
+	// This populates the FTS table with any existing tab data
+	if _, err := s.db.Exec("INSERT INTO tabs_fts(tabs_fts) VALUES('rebuild')"); err != nil {
+		// Ignore errors - table might not exist or already be populated
+	}
+
 	return nil
 }
 
@@ -254,17 +310,17 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// 1. Build Base Query & Args
+	// Use FTS5 for search if query is provided
+	if searchQuery != "" && len(filterBy) > 0 {
+		return s.getTabsPaginatedFTS(categoryId, page, pageSize, searchQuery, filterBy, isGlobal)
+	}
+
+	// Standard query without search
 	var whereClauses []string
 	var args []interface{}
 
 	// Category Filter
 	if !isGlobal {
-		// If categoryId is empty, we might want root tabs?
-		// Current app logic seems to imply categoryId="" means root.
-		// However, if the user selects "All Tabs" (global), we skip this.
-		// Let's follow the app.go logic:
-		// if (categoryId == "" && tab.CategoryID == "") || tab.CategoryID == categoryId
 		if categoryId == "" {
 			whereClauses = append(whereClauses, "(category_id = '' OR category_id IS NULL)")
 		} else {
@@ -273,36 +329,19 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 		}
 	}
 
-	// Search Filter
-	if searchQuery != "" && len(filterBy) > 0 {
-		var searchConditions []string
-		term := "%" + searchQuery + "%"
-		for _, field := range filterBy {
-			// Sanitize field name to prevent SQL injection (though these come from code, safe to check)
-			switch field {
-			case "title", "artist", "album", "tag":
-				searchConditions = append(searchConditions, fmt.Sprintf("%s LIKE ?", field))
-				args = append(args, term)
-			}
-		}
-		if len(searchConditions) > 0 {
-			whereClauses = append(whereClauses, "("+strings.Join(searchConditions, " OR ")+")")
-		}
-	}
-
 	whereSQL := ""
 	if len(whereClauses) > 0 {
 		whereSQL = "WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
-	// 2. Count Total
+	// Count Total
 	countQuery := "SELECT COUNT(*) FROM tabs " + whereSQL
 	var total int
 	if err := s.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
-	// 3. Get Page Data
+	// Get Page Data
 	offset := (page - 1) * pageSize
 	limit := pageSize
 
@@ -314,7 +353,167 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 		LIMIT ? OFFSET ?
 	`, whereSQL)
 
-	// Append limit/offset args
+	queryArgs := append(args, limit, offset)
+
+	rows, err := s.db.Query(query, queryArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	tabs := []Tab{}
+	for rows.Next() {
+		var t Tab
+		var isManaged int
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag); err != nil {
+			return nil, 0, err
+		}
+		t.IsManaged = isManaged == 1
+		tabs = append(tabs, t)
+	}
+
+	return tabs, total, nil
+}
+
+// getTabsPaginatedFTS uses FTS5 for fast full-text search
+func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool) ([]Tab, int, error) {
+	// Build FTS5 match query with column filters
+	// FTS5 supports column filters like: title:query OR artist:query
+	var ftsTerms []string
+	for _, field := range filterBy {
+		switch field {
+		case "title", "artist", "album", "tag":
+			// Escape special FTS5 characters and add wildcards for prefix matching
+			escapedQuery := strings.ReplaceAll(searchQuery, "\"", "\"\"")
+			ftsTerms = append(ftsTerms, fmt.Sprintf("%s:\"%s\"*", field, escapedQuery))
+		}
+	}
+
+	if len(ftsTerms) == 0 {
+		return nil, 0, fmt.Errorf("no valid filter fields")
+	}
+
+	ftsQuery := strings.Join(ftsTerms, " OR ")
+
+	// Build category filter
+	var catWhere string
+	var catArgs []interface{}
+	if !isGlobal {
+		if categoryId == "" {
+			catWhere = " AND (tabs.category_id = '' OR tabs.category_id IS NULL)"
+		} else {
+			catWhere = " AND tabs.category_id = ?"
+			catArgs = append(catArgs, categoryId)
+		}
+	}
+
+	// Count total with FTS5 join
+	countQuery := fmt.Sprintf(`
+		SELECT COUNT(*) 
+		FROM tabs 
+		INNER JOIN tabs_fts ON tabs.rowid = tabs_fts.rowid
+		WHERE tabs_fts MATCH ?%s
+	`, catWhere)
+
+	countArgs := append([]interface{}{ftsQuery}, catArgs...)
+	var total int
+	if err := s.db.QueryRow(countQuery, countArgs...).Scan(&total); err != nil {
+		// Fallback to LIKE query if FTS fails (e.g., special characters)
+		return s.getTabsPaginatedLike(categoryId, page, pageSize, searchQuery, filterBy, isGlobal)
+	}
+
+	// Get paginated results
+	offset := (page - 1) * pageSize
+	limit := pageSize
+
+	query := fmt.Sprintf(`
+		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, 
+			   tabs.is_managed, tabs.cover_path, tabs.category_id, tabs.country, tabs.language, 
+			   COALESCE(tabs.tag, '') 
+		FROM tabs 
+		INNER JOIN tabs_fts ON tabs.rowid = tabs_fts.rowid
+		WHERE tabs_fts MATCH ?%s
+		ORDER BY bm25(tabs_fts), tabs.title ASC 
+		LIMIT ? OFFSET ?
+	`, catWhere)
+
+	queryArgs := append([]interface{}{ftsQuery}, catArgs...)
+	queryArgs = append(queryArgs, limit, offset)
+
+	rows, err := s.db.Query(query, queryArgs...)
+	if err != nil {
+		// Fallback to LIKE query if FTS fails
+		return s.getTabsPaginatedLike(categoryId, page, pageSize, searchQuery, filterBy, isGlobal)
+	}
+	defer rows.Close()
+
+	tabs := []Tab{}
+	for rows.Next() {
+		var t Tab
+		var isManaged int
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag); err != nil {
+			return nil, 0, err
+		}
+		t.IsManaged = isManaged == 1
+		tabs = append(tabs, t)
+	}
+
+	return tabs, total, nil
+}
+
+// getTabsPaginatedLike is the fallback using LIKE (for special cases or when FTS fails)
+func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool) ([]Tab, int, error) {
+	var whereClauses []string
+	var args []interface{}
+
+	// Category Filter
+	if !isGlobal {
+		if categoryId == "" {
+			whereClauses = append(whereClauses, "(category_id = '' OR category_id IS NULL)")
+		} else {
+			whereClauses = append(whereClauses, "category_id = ?")
+			args = append(args, categoryId)
+		}
+	}
+
+	// Search Filter with LIKE
+	var searchConditions []string
+	term := "%" + searchQuery + "%"
+	for _, field := range filterBy {
+		switch field {
+		case "title", "artist", "album", "tag":
+			searchConditions = append(searchConditions, fmt.Sprintf("%s LIKE ?", field))
+			args = append(args, term)
+		}
+	}
+	if len(searchConditions) > 0 {
+		whereClauses = append(whereClauses, "("+strings.Join(searchConditions, " OR ")+")")
+	}
+
+	whereSQL := ""
+	if len(whereClauses) > 0 {
+		whereSQL = "WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	// Count Total
+	countQuery := "SELECT COUNT(*) FROM tabs " + whereSQL
+	var total int
+	if err := s.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// Get Page Data
+	offset := (page - 1) * pageSize
+	limit := pageSize
+
+	query := fmt.Sprintf(`
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
+		FROM tabs 
+		%s 
+		ORDER BY title ASC 
+		LIMIT ? OFFSET ?
+	`, whereSQL)
+
 	queryArgs := append(args, limit, offset)
 
 	rows, err := s.db.Query(query, queryArgs...)

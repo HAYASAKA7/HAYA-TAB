@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"haya-tab/pkg/coverpool"
 	"haya-tab/pkg/logger"
 	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
@@ -60,6 +61,7 @@ type App struct {
 	fileWatcher    *watcher.FileWatcher
 	logger         *logger.Logger
 	fileServerPort int
+	coverPool      *coverpool.CoverPool
 }
 
 // NewApp creates a new App application struct
@@ -118,6 +120,11 @@ func (a *App) startup(ctx context.Context) {
 			a.logger.Error("Error migrating from JSON: %v", err)
 		}
 	}
+
+	// Initialize cover download worker pool (3 concurrent downloads max)
+	a.coverPool = coverpool.NewCoverPool(3, metadata.DownloadCover)
+	a.coverPool.Start()
+	a.logger.Info("Cover download pool started with 3 workers")
 
 	// Auto Sync Logic
 	go func() {
@@ -184,6 +191,11 @@ func (a *App) startup(ctx context.Context) {
 
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
+	// Stop cover download pool
+	if a.coverPool != nil {
+		a.coverPool.Stop()
+	}
+
 	// Stop file watcher
 	if a.fileWatcher != nil {
 		a.fileWatcher.Stop()
@@ -370,7 +382,7 @@ func (a *App) TriggerSync() (string, error) {
 	return fmt.Sprintf("Sync complete. Added: %d, Updated: %d, Skipped: %d, Errors: %d", added, updated, skipped, errors), nil
 }
 
-// fetchCoverAsync downloads album cover art asynchronously for a tab
+// fetchCoverAsync downloads album cover art asynchronously for a tab using worker pool
 func (a *App) fetchCoverAsync(tab store.Tab) {
 	if tab.Artist == "" || (tab.Album == "" && tab.Title == "") {
 		return // Not enough info to search for cover
@@ -379,26 +391,33 @@ func (a *App) fetchCoverAsync(tab store.Tab) {
 	appDir := getAppDir()
 	coverFilename := tab.ID + ".jpg"
 	coverPath := filepath.Join(appDir, "covers", coverFilename)
-	tabID := tab.ID // Capture for goroutine
 
-	go func() {
-		a.logger.Info("Attempting to download cover for: %s - %s", tab.Artist, tab.Title)
-		err := metadata.DownloadCover(tab.Artist, tab.Album, tab.Title, tab.Country, tab.Language, coverPath)
-		if err == nil {
-			a.logger.Info("Cover downloaded successfully to: %s", coverPath)
-			// Fetch current tab state from DB and update cover path
-			currentTab, getErr := a.store.GetTab(tabID)
-			if getErr != nil || currentTab == nil {
-				a.logger.Error("Failed to get tab after cover download: %v", getErr)
-				return
+	// Submit to worker pool instead of spawning goroutine
+	a.coverPool.Submit(coverpool.CoverJob{
+		TabID:     tab.ID,
+		Artist:    tab.Artist,
+		Album:     tab.Album,
+		Title:     tab.Title,
+		Country:   tab.Country,
+		Language:  tab.Language,
+		CoverPath: coverPath,
+		OnComplete: func(tabID, coverPath string, err error) {
+			if err == nil {
+				a.logger.Info("Cover downloaded successfully to: %s", coverPath)
+				// Fetch current tab state from DB and update cover path
+				currentTab, getErr := a.store.GetTab(tabID)
+				if getErr != nil || currentTab == nil {
+					a.logger.Error("Failed to get tab after cover download: %v", getErr)
+					return
+				}
+				currentTab.CoverPath = coverPath
+				a.store.AddTab(*currentTab)
+				wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab) // Notify frontend
+			} else {
+				a.logger.Error("Failed to download cover: %v", err)
 			}
-			currentTab.CoverPath = coverPath
-			a.store.AddTab(*currentTab)
-			wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab) // Notify frontend
-		} else {
-			a.logger.Error("Failed to download cover: %v", err)
-		}
-	}()
+		},
+	})
 }
 
 // GetTabs returns the list of tabs (backward compatibility)

@@ -6,6 +6,7 @@ build/darwin
 data/
 storage/
 covers/
+logs/
 RELEASE.md
 node_modules/
 frontend/dist/

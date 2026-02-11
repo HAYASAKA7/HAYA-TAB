@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.2] - 2026-02-11
+
+### Added
+- **Cover Download Worker Pool:** Implemented a queuing mechanism that limits concurrent cover downloads to 3 workers. This prevents IP bans and system lag when syncing thousands of files.
+- **FTS5 Full-Text Search:** Replaced LIKE queries with SQLite's FTS5 module for microsecond-level search performance. Search results are now ranked by relevance using BM25 scoring.
+
+### Improved
+- **SQLite WAL Mode:** Enabled Write-Ahead Logging for the database, allowing simultaneous reading and writing. The UI now remains smooth while background sync operations write to the database.
+- **Database Performance:** Added optimized SQLite pragmas (64MB cache, memory temp store, normal synchronous mode) for faster overall database operations.
+- **Search Fallback:** FTS5 search gracefully falls back to LIKE queries for special characters or edge cases.
+
 ## [1.4.1] - 2026-02-11
 
 ### Changed
