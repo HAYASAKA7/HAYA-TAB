@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.7] - 2026-02-11
+
+### Improved
+- **Sync Performance:** Optimized synchronization logic to use direct database queries instead of loading all tabs into memory. This significantly reduces memory usage when managing large libraries (10,000+ files).
+- **Sync Feedback:** Added real-time progress updates during synchronization. The settings UI now displays the current file being scanned and the total count.
+
 ## [1.3.6] - 2026-02-11
 
 ### Fixed

@@ -2,12 +2,15 @@
 import { ref, onMounted } from 'vue'
 import { useSettingsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
+import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
 
 const settingsStore = useSettingsStore()
 const uiStore = useUIStore()
 const { showToast } = useToast()
 const audioDevices = ref<MediaDeviceInfo[]>([])
 const isAudioOutputSupported = ref(false)
+const syncStatus = ref('')
+const isSyncing = ref(false)
 
 onMounted(async () => {
   // Check if AudioContext supports setSinkId (required for changing output device)
@@ -81,12 +84,32 @@ async function handleBrowseBg() {
 }
 
 async function handleSync() {
-  showToast('Sync started...')
+  if (isSyncing.value) return
+  isSyncing.value = true
+  syncStatus.value = 'Starting sync...'
+  // showToast('Sync started...') // Optional, maybe redundant with status text
+
+  EventsOn('sync-progress', (data: any) => {
+    if (data && data.message) {
+      syncStatus.value = data.message
+    }
+  })
+
   try {
     const msg = await settingsStore.triggerSync()
     showToast(msg)
+    syncStatus.value = 'Sync completed'
   } catch (err) {
     showToast('Sync error: ' + err, 'error')
+    syncStatus.value = 'Sync failed'
+  } finally {
+    EventsOff('sync-progress')
+    isSyncing.value = false
+    setTimeout(() => {
+      if (syncStatus.value === 'Sync completed') {
+        syncStatus.value = ''
+      }
+    }, 3000)
   }
 }
 </script>
@@ -247,7 +270,10 @@ async function handleSync() {
         <button class="btn small" @click="handleAddSyncPath">+ Add Folder</button>
       </div>
       <div class="sync-actions">
-        <button class="btn primary" @click="handleSync">Sync Now</button>
+        <button class="btn primary" @click="handleSync" :disabled="isSyncing">
+          {{ isSyncing ? 'Syncing...' : 'Sync Now' }}
+        </button>
+        <span v-if="syncStatus" class="sync-status">{{ syncStatus }}</span>
       </div>
     </section>
 

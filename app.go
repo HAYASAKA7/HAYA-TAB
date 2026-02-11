@@ -267,14 +267,11 @@ func (a *App) TriggerSync() (string, error) {
 	updated := 0
 	skipped := 0
 	errors := 0
+	totalProcessed := 0
 
 	strategy := settings.SyncStrategy // "skip" or "overwrite"
 
-	// Get all tabs once for comparison
-	allTabs, err := a.store.GetTabs()
-	if err != nil {
-		return "", fmt.Errorf("failed to get tabs: %w", err)
-	}
+	wailsRuntime.EventsEmit(a.ctx, "sync-started", nil)
 
 	for _, root := range settings.SyncPaths {
 		a.logger.Info("Scanning path: %s", root)
@@ -293,25 +290,25 @@ func (a *App) TriggerSync() (string, error) {
 				return nil
 			}
 
-			// 1. Check if EXACT path exists
-			for _, t := range allTabs {
-				if t.FilePath == path {
-					return nil // Already exists
-				}
+			totalProcessed++
+			if totalProcessed%10 == 0 {
+				wailsRuntime.EventsEmit(a.ctx, "sync-progress", map[string]interface{}{
+					"message": fmt.Sprintf("Scanning: %s", filepath.Base(path)),
+					"count":   totalProcessed,
+				})
+			}
+
+			// 1. Check if EXACT path exists using DB
+			existingTab, err := a.store.GetTabByPath(path)
+			if err == nil && existingTab != nil {
+				return nil // Already exists
 			}
 
 			// 2. Parse Metadata to check Title conflict
 			newTab := a.ProcessFile(path) // This creates a Tab struct with parsed info
 
-			var conflictTab *store.Tab
-			for i, t := range allTabs {
-				// Compare Titles (or maybe normalize them?)
-				// Using Title as "same name" indicator
-				if t.Title == newTab.Title {
-					conflictTab = &allTabs[i]
-					break
-				}
-			}
+			// Check Title conflict using DB
+			conflictTab, _ := a.store.GetTabByTitle(newTab.Title)
 
 			if conflictTab != nil {
 				switch strategy {
@@ -335,7 +332,7 @@ func (a *App) TriggerSync() (string, error) {
 					conflictTab.Type = newTab.Type
 
 					// Save
-					if err := a.store.AddTab(*conflictTab); err == nil {
+					if err := a.store.UpdateTab(*conflictTab); err == nil {
 						updated++
 					}
 					return nil
@@ -358,13 +355,19 @@ func (a *App) TriggerSync() (string, error) {
 		}
 	}
 
+	wailsRuntime.EventsEmit(a.ctx, "sync-completed", map[string]interface{}{
+		"added":   added,
+		"updated": updated,
+		"skipped": skipped,
+		"errors":  errors,
+		"total":   totalProcessed,
+	})
+
 	// Update Last Sync Time
 	settings.LastSyncTime = time.Now().Unix()
 	a.store.UpdateSettings(settings)
 
-	resultMsg := fmt.Sprintf("Sync complete: %d added, %d updated, %d skipped.", added, updated, skipped)
-	wailsRuntime.EventsEmit(a.ctx, "sync-complete", resultMsg)
-	return resultMsg, nil
+	return fmt.Sprintf("Sync complete. Added: %d, Updated: %d, Skipped: %d, Errors: %d", added, updated, skipped, errors), nil
 }
 
 // fetchCoverAsync downloads album cover art asynchronously for a tab

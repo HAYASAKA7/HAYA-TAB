@@ -36,3 +36,17 @@
 2026/02/11 10:55:01 [ERROR] Failed to watch path F:\1\TABS: failed to add path F:\1\TABS: GetFileAttributes: The system cannot find the path specified.
 2026/02/11 10:58:11 [INFO] Attempting to download cover for: AVE Mujica  - Killkiss
 2026/02/11 10:58:11 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770778558744628700.jpg
+2026/02/11 11:13:07 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 11:13:07 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 11:13:07 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 11:13:07 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 11:13:07 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 11:13:07 [ERROR] Failed to watch path F:\1\TABS: failed to add path F:\1\TABS: GetFileAttributes: The system cannot find the path specified.
+2026/02/11 11:14:20 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 11:14:20 [INFO] File watcher updated with 1 paths
+2026/02/11 11:14:20 [INFO] Starting TriggerSync...
+2026/02/11 11:14:20 [INFO] Scanning path: D:\Documents\TabTest
+2026/02/11 11:14:20 [INFO] Attempting to download cover for: Final Roselia - Louder
+2026/02/11 11:14:21 [ERROR] Failed to download cover: no results found
+2026/02/11 11:14:39 [INFO] Attempting to download cover for: Roselia - Louder
+2026/02/11 11:14:40 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770779660902313700.jpg
