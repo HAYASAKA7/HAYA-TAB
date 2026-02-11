@@ -7,6 +7,18 @@
     --primary: #965233;
     --border: #3e3e42;
     --hover: #3e3e42;
+    
+    /* Extended theme variables for GP Viewer */
+    --bg-secondary: #252526;
+    --bg-tertiary: #1e1e1e;
+    --bg-hover: #3e3e42;
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --primary-color: #965233;
+    --border-color: #3e3e42;
+    --error-color: #e74c3c;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
 }
 
 [data-theme="light"] {
@@ -18,6 +30,18 @@
     --primary: #965233;
     --border: #cccccc;
     --hover: #d0d0d0;
+    
+    /* Extended theme variables for GP Viewer - Light */
+    --bg-secondary: #e8e8e8;
+    --bg-tertiary: #f5f5f5;
+    --bg-hover: #d8d8d8;
+    --text-primary: #333333;
+    --text-secondary: #555555;
+    --primary-color: #965233;
+    --border-color: #cccccc;
+    --error-color: #c0392b;
+    --success-color: #219a52;
+    --warning-color: #d68910;
 }
 
 body {
@@ -413,9 +437,10 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 
 #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 2000; }
 .toast {
-    background: #222; color: white; padding: 15px 25px; border-radius: 4px;
-    margin-top: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-    border-left: 4px solid var(--primary);
+    background: #222; color: white; padding: 10px 20px; border-radius: 4px;
+    margin-top: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    border-left: 3px solid var(--primary);
+    font-size: 0.9em;
     animation: fadeUp 0.3s;
 }
 .toast.error { border-left-color: #ff4444; }
@@ -679,6 +704,10 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     min-height: 0;
 }
 
+[data-theme="dark"] .gp-scroll-wrapper {
+    background: #f0f0f0;
+}
+
 /* AlphaTab Container */
 .gp-render-area {
     width: 100%;
@@ -689,3 +718,88 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .at-cursor-bar { fill: rgba(150, 82, 51, 0.2) !important; }
 .at-selection-group { fill: rgba(150, 82, 51, 0.1) !important; }
 .at-cursor-beat { fill: rgba(150, 82, 51, 0.5) !important; }
+
+/* Global Animation Utilities */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInFromLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInFromBottom {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* Smooth scrollbar for GP viewer */
+.gp-scroll-wrapper::-webkit-scrollbar {
+    width: 8px;
+}
+
+.gp-scroll-wrapper::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.gp-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(150, 82, 51, 0.3);
+    border-radius: 4px;
+}
+
+.gp-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(150, 82, 51, 0.5);
+}
+
+/* Focus visible styles for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

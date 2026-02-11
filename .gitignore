@@ -10,3 +10,4 @@ RELEASE.md
 node_modules/
 frontend/dist/
 frontend/package.json.md5
+phases/

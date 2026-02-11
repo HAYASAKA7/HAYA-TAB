@@ -27,6 +27,18 @@ func NewDBStore(dbPath string) *DBStore {
 			OpenGpMethod: "inner",
 			SyncStrategy: "skip",
 			SyncPaths:    []string{},
+			KeyBindings: KeyBindings{
+				ScrollDown:     "j",
+				ScrollUp:       "k",
+				Metronome:      "m",
+				PlayPause:      "p",
+				Stop:           "o",
+				BpmPlus:        "l",
+				BpmMinus:       "h",
+				ToggleLoop:     "r",
+				ClearSelection: "escape",
+				JumpToBar:      "t",
+			},
 		},
 	}
 }
@@ -165,6 +177,38 @@ func (s *DBStore) loadSettings() error {
 	}
 	if v, ok := settings["syncPaths"]; ok && v != "" {
 		s.Settings.SyncPaths = strings.Split(v, "|")
+	}
+
+	// Load key bindings
+	if v, ok := settings["keyBindings.scrollDown"]; ok && v != "" {
+		s.Settings.KeyBindings.ScrollDown = v
+	}
+	if v, ok := settings["keyBindings.scrollUp"]; ok && v != "" {
+		s.Settings.KeyBindings.ScrollUp = v
+	}
+	if v, ok := settings["keyBindings.metronome"]; ok && v != "" {
+		s.Settings.KeyBindings.Metronome = v
+	}
+	if v, ok := settings["keyBindings.playPause"]; ok && v != "" {
+		s.Settings.KeyBindings.PlayPause = v
+	}
+	if v, ok := settings["keyBindings.stop"]; ok && v != "" {
+		s.Settings.KeyBindings.Stop = v
+	}
+	if v, ok := settings["keyBindings.bpmPlus"]; ok && v != "" {
+		s.Settings.KeyBindings.BpmPlus = v
+	}
+	if v, ok := settings["keyBindings.bpmMinus"]; ok && v != "" {
+		s.Settings.KeyBindings.BpmMinus = v
+	}
+	if v, ok := settings["keyBindings.toggleLoop"]; ok && v != "" {
+		s.Settings.KeyBindings.ToggleLoop = v
+	}
+	if v, ok := settings["keyBindings.clearSelection"]; ok && v != "" {
+		s.Settings.KeyBindings.ClearSelection = v
+	}
+	if v, ok := settings["keyBindings.jumpToBar"]; ok && v != "" {
+		s.Settings.KeyBindings.JumpToBar = v
 	}
 
 	return nil
@@ -474,17 +518,27 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 
 	// Save each setting
 	settingsMap := map[string]string{
-		"theme":             settings.Theme,
-		"background":        settings.Background,
-		"bgType":            settings.BgType,
-		"openMethod":        settings.OpenMethod,
-		"openGpMethod":      settings.OpenGpMethod,
-		"audioDevice":       settings.AudioDevice,
-		"autoSyncEnabled":   fmt.Sprintf("%v", settings.AutoSyncEnabled),
-		"autoSyncFrequency": settings.AutoSyncFrequency,
-		"lastSyncTime":      fmt.Sprintf("%d", settings.LastSyncTime),
-		"syncStrategy":      settings.SyncStrategy,
-		"syncPaths":         strings.Join(settings.SyncPaths, "|"),
+		"theme":                      settings.Theme,
+		"background":                 settings.Background,
+		"bgType":                     settings.BgType,
+		"openMethod":                 settings.OpenMethod,
+		"openGpMethod":               settings.OpenGpMethod,
+		"audioDevice":                settings.AudioDevice,
+		"autoSyncEnabled":            fmt.Sprintf("%v", settings.AutoSyncEnabled),
+		"autoSyncFrequency":          settings.AutoSyncFrequency,
+		"lastSyncTime":               fmt.Sprintf("%d", settings.LastSyncTime),
+		"syncStrategy":               settings.SyncStrategy,
+		"syncPaths":                  strings.Join(settings.SyncPaths, "|"),
+		"keyBindings.scrollDown":     settings.KeyBindings.ScrollDown,
+		"keyBindings.scrollUp":       settings.KeyBindings.ScrollUp,
+		"keyBindings.metronome":      settings.KeyBindings.Metronome,
+		"keyBindings.playPause":      settings.KeyBindings.PlayPause,
+		"keyBindings.stop":           settings.KeyBindings.Stop,
+		"keyBindings.bpmPlus":        settings.KeyBindings.BpmPlus,
+		"keyBindings.bpmMinus":       settings.KeyBindings.BpmMinus,
+		"keyBindings.toggleLoop":     settings.KeyBindings.ToggleLoop,
+		"keyBindings.clearSelection": settings.KeyBindings.ClearSelection,
+		"keyBindings.jumpToBar":      settings.KeyBindings.JumpToBar,
 	}
 
 	for key, value := range settingsMap {

@@ -28,18 +28,32 @@ type Category struct {
 	ParentID string `json:"parentId"` // Empty if root
 }
 
+type KeyBindings struct {
+	ScrollDown     string `json:"scrollDown"`
+	ScrollUp       string `json:"scrollUp"`
+	Metronome      string `json:"metronome"`
+	PlayPause      string `json:"playPause"`
+	Stop           string `json:"stop"`
+	BpmPlus        string `json:"bpmPlus"`
+	BpmMinus       string `json:"bpmMinus"`
+	ToggleLoop     string `json:"toggleLoop"`
+	ClearSelection string `json:"clearSelection"`
+	JumpToBar      string `json:"jumpToBar"`
+}
+
 type Settings struct {
-	Theme             string   `json:"theme"`        // "dark", "light", "system"
-	Background        string   `json:"background"`   // URL or path
-	BgType            string   `json:"bgType"`       // "url", "local"
-	OpenMethod        string   `json:"openMethod"`   // "system", "inner"
-	OpenGpMethod      string   `json:"openGpMethod"` // "system", "inner"
-	AudioDevice       string   `json:"audioDevice"`  // Device ID for audio output
-	SyncPaths         []string `json:"syncPaths"`
-	SyncStrategy      string   `json:"syncStrategy"` // "skip", "overwrite"
-	AutoSyncEnabled   bool     `json:"autoSyncEnabled"`
-	AutoSyncFrequency string   `json:"autoSyncFrequency"` // "startup", "weekly", "monthly", "yearly"
-	LastSyncTime      int64    `json:"lastSyncTime"`      // Unix timestamp
+	Theme             string      `json:"theme"`        // "dark", "light", "system"
+	Background        string      `json:"background"`   // URL or path
+	BgType            string      `json:"bgType"`       // "url", "local"
+	OpenMethod        string      `json:"openMethod"`   // "system", "inner"
+	OpenGpMethod      string      `json:"openGpMethod"` // "system", "inner"
+	AudioDevice       string      `json:"audioDevice"`  // Device ID for audio output
+	SyncPaths         []string    `json:"syncPaths"`
+	SyncStrategy      string      `json:"syncStrategy"` // "skip", "overwrite"
+	AutoSyncEnabled   bool        `json:"autoSyncEnabled"`
+	AutoSyncFrequency string      `json:"autoSyncFrequency"` // "startup", "weekly", "monthly", "yearly"
+	LastSyncTime      int64       `json:"lastSyncTime"`      // Unix timestamp
+	KeyBindings       KeyBindings `json:"keyBindings"`
 }
 
 // Deprecated: Use DBStore instead
@@ -73,6 +87,18 @@ func NewStore(dataPath string) *Store {
 			AutoSyncEnabled:   false,
 			AutoSyncFrequency: "startup",
 			LastSyncTime:      0,
+			KeyBindings: KeyBindings{
+				ScrollDown:     "j",
+				ScrollUp:       "k",
+				Metronome:      "m",
+				PlayPause:      "p",
+				Stop:           "o",
+				BpmPlus:        "l",
+				BpmMinus:       "h",
+				ToggleLoop:     "r",
+				ClearSelection: "escape",
+				JumpToBar:      "t",
+			},
 		},
 	}
 }

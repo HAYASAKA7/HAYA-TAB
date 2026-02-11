@@ -17,7 +17,10 @@ const bindLabels: Record<keyof KeyBindings, string> = {
   playPause: 'Play / Pause',
   stop: 'Stop / Rewind',
   bpmPlus: 'Increase BPM',
-  bpmMinus: 'Decrease BPM'
+  bpmMinus: 'Decrease BPM',
+  toggleLoop: 'Toggle Loop',
+  clearSelection: 'Clear Selection',
+  jumpToBar: 'Jump to Bar'
 }
 
 function close() {
@@ -101,6 +104,8 @@ function formatKey(key: string) {
 .modal-body {
   position: relative;
   min-height: 300px;
+  max-height: 60vh;
+  overflow-y: auto;
   outline: none; /* Make div focusable for keydown listener */
   margin-top: 20px;
 }

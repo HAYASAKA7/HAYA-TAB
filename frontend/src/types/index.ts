@@ -30,6 +30,9 @@ export interface KeyBindings {
   stop: string
   bpmPlus: string
   bpmMinus: string
+  toggleLoop: string
+  clearSelection: string
+  jumpToBar: string
 }
 
 export interface Settings {

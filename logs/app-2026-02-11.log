@@ -50,3 +50,114 @@
 2026/02/11 11:14:21 [ERROR] Failed to download cover: no results found
 2026/02/11 11:14:39 [INFO] Attempting to download cover for: Roselia - Louder
 2026/02/11 11:14:40 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770779660902313700.jpg
+2026/02/11 12:02:03 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 12:02:03 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 12:02:03 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 12:02:03 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 12:02:03 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 12:02:03 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 12:09:06 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 12:09:06 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 12:09:06 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 12:09:06 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 12:09:06 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 12:09:06 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 13:11:21 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 13:11:21 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 13:11:21 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 13:11:21 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 13:11:21 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 13:11:21 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 13:21:46 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 13:21:46 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 13:21:46 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 13:21:46 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 13:21:46 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 13:21:46 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 13:24:39 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 13:24:39 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 13:24:39 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 13:24:39 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 13:24:39 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 13:24:39 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 14:18:55 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 14:18:55 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 14:18:55 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 14:18:55 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 14:18:55 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 14:18:55 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 14:29:14 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 14:29:14 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 14:29:14 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 14:29:14 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 14:29:14 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 14:29:14 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 14:32:15 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 14:32:15 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 14:32:15 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 14:32:15 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 14:32:15 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 14:32:15 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 14:41:37 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 14:41:37 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 14:41:37 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 14:41:37 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 14:41:37 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 14:41:37 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 14:42:58 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 14:42:58 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 14:42:58 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 14:42:58 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 14:42:58 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 14:42:58 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 14:50:03 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 14:50:03 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 14:50:03 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 14:50:03 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 14:50:03 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 14:50:03 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 14:54:13 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 14:54:13 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 14:54:13 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 14:54:13 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 14:54:13 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 14:54:13 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 14:58:51 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 14:58:51 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 14:58:51 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 14:58:51 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 14:58:51 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 14:58:51 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 15:00:15 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 15:00:21 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 15:04:24 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 15:04:24 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 15:04:24 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 15:04:24 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 15:04:24 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 15:04:24 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 15:04:54 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 15:04:54 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 15:04:54 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 15:04:54 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 15:04:54 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 15:04:54 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 15:06:34 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 15:06:34 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 15:06:34 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 15:06:34 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 15:06:34 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 15:06:34 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 15:12:05 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 15:12:05 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 15:12:05 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 15:12:05 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 15:12:05 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 15:12:05 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 15:12:34 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 15:13:17 [INFO] Attempting to download cover for: MyGO!!!!! - 影色舞
+2026/02/11 15:13:18 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770779660907412400.jpg
+2026/02/11 15:13:53 [INFO] Attempting to download cover for: 酸欠少女 - 花の塔
+2026/02/11 15:13:53 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770779660912413400.jpg
+2026/02/11 15:14:30 [INFO] Attempting to download cover for: さユり - 花の塔
+2026/02/11 15:14:30 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770779660912413400.jpg

@@ -23,7 +23,10 @@ export const useSettingsStore = defineStore('settings', () => {
       playPause: 'p',
       stop: 'o',
       bpmPlus: 'l',
-      bpmMinus: 'h'
+      bpmMinus: 'h',
+      toggleLoop: 'r',
+      clearSelection: 'escape',
+      jumpToBar: 't'
     }
   })
 

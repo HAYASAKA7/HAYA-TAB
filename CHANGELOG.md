@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-02-11
+
+### Added
+- **Guitar Pro Viewer Enhancements:**
+  - **Floating Toolbar:** Added a quick-access toolbar for viewer tools.
+  - **Context Menu:** Right-click menu for selection-based actions (Play Selection, Loop).
+  - **Selection & Looping:** Users can now select a range of bars and loop playback.
+  - **Jump to Bar:** Navigate quickly to a specific measure with visual highlighting.
+- **Key Bindings:**
+  - Added configurable key bindings for "Toggle Loop", "Clear Selection", and "Jump to Bar".
+  - Updated the Settings UI to support customizing these new controls.
+- **Store Updates:** Persisted key binding preferences in the database.
+
 ## [1.3.7] - 2026-02-11
 
 ### Improved
