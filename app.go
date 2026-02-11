@@ -8,6 +8,7 @@ import (
 	"haya-tab/pkg/logger"
 	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
+	syncpkg "haya-tab/pkg/sync"
 	"haya-tab/pkg/watcher"
 	"io"
 	"os"
@@ -54,6 +55,16 @@ func getAppDir() string {
 	return filepath.Dir(exePath)
 }
 
+// WailsEventEmitter adapts wails runtime to the EventEmitter interface
+type WailsEventEmitter struct {
+	ctx context.Context
+}
+
+// Emit sends an event to the frontend via wails runtime
+func (e *WailsEventEmitter) Emit(eventName string, data interface{}) {
+	wailsRuntime.EventsEmit(e.ctx, eventName, data)
+}
+
 // App struct
 type App struct {
 	ctx            context.Context
@@ -62,6 +73,7 @@ type App struct {
 	logger         *logger.Logger
 	fileServerPort int
 	coverPool      *coverpool.CoverPool
+	syncService    *syncpkg.SyncService
 }
 
 // NewApp creates a new App application struct
@@ -125,6 +137,11 @@ func (a *App) startup(ctx context.Context) {
 	a.coverPool = coverpool.NewCoverPool(3, metadata.DownloadCover)
 	a.coverPool.Start()
 	a.logger.Info("Cover download pool started with 3 workers")
+
+	// Initialize SyncService
+	emitter := &WailsEventEmitter{ctx: a.ctx}
+	a.syncService = syncpkg.NewSyncService(a.store, a.logger, a.coverPool, emitter, appDir)
+	a.logger.Info("SyncService initialized")
 
 	// Auto Sync Logic
 	go func() {
@@ -267,150 +284,14 @@ func (a *App) SaveSettings(s store.Settings) error {
 	return nil
 }
 
-// TriggerSync scans the sync paths and adds/updates tabs based on strategy
+// TriggerSync delegates to SyncService for file synchronization
 func (a *App) TriggerSync() (string, error) {
-	a.logger.Info("Starting TriggerSync...")
-	settings := a.store.GetSettings()
-	if len(settings.SyncPaths) == 0 {
-		return "No sync paths configured", nil
-	}
-
-	added := 0
-	updated := 0
-	skipped := 0
-	errors := 0
-	totalProcessed := 0
-
-	strategy := settings.SyncStrategy // "skip" or "overwrite"
-
-	wailsRuntime.EventsEmit(a.ctx, "sync-started", nil)
-
-	for _, root := range settings.SyncPaths {
-		a.logger.Info("Scanning path: %s", root)
-		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				a.logger.Error("Error accessing path %s: %v", path, err)
-				return nil // Skip unreadable
-			}
-			if info.IsDir() {
-				return nil
-			}
-
-			// check extension
-			ext := strings.ToLower(filepath.Ext(path))
-			if ext != ".pdf" && ext != ".gp" && ext != ".gp5" && ext != ".gpx" {
-				return nil
-			}
-
-			totalProcessed++
-			// Emit progress for every file processed
-			wailsRuntime.EventsEmit(a.ctx, "sync-progress", map[string]interface{}{
-				"message":  fmt.Sprintf("Processing: %s", filepath.Base(path)),
-				"count":    totalProcessed,
-				"filePath": path,
-			})
-
-			// 1. Check if EXACT path exists using DB
-			existingTab, err := a.store.GetTabByPath(path)
-			if err == nil && existingTab != nil {
-				return nil // Already exists
-			}
-
-			// 2. Parse Metadata to check Title conflict
-			newTab := a.ProcessFile(path) // This creates a Tab struct with parsed info
-
-			// Check Title conflict using DB
-			conflictTab, _ := a.store.GetTabByTitle(newTab.Title)
-
-			if conflictTab != nil {
-				switch strategy {
-				case "skip":
-					skipped++
-					return nil
-				case "overwrite":
-					// Non-destructive overwrite: Keep old file, rename new title
-					// Generate unique title with _copy suffix
-					uniqueTitle := a.generateUniqueTitle(newTab.Title)
-					newTab.Title = uniqueTitle
-
-					// Add as new tab with renamed title
-					if err := a.store.AddTab(newTab); err == nil {
-						added++
-						a.fetchCoverAsync(newTab)
-					} else {
-						errors++
-					}
-					return nil
-				}
-			}
-
-			// No conflict, add as new
-			if err := a.store.AddTab(newTab); err == nil {
-				added++
-				// Async cover fetch for synced tabs
-				a.fetchCoverAsync(newTab)
-			} else {
-				errors++
-			}
-
-			return nil
-		})
-		if err != nil {
-			a.logger.Error("Error walking %s: %v", root, err)
-		}
-	}
-
-	wailsRuntime.EventsEmit(a.ctx, "sync-completed", map[string]interface{}{
-		"added":   added,
-		"updated": updated,
-		"skipped": skipped,
-		"errors":  errors,
-		"total":   totalProcessed,
-	})
-
-	// Update Last Sync Time
-	settings.LastSyncTime = time.Now().Unix()
-	a.store.UpdateSettings(settings)
-
-	return fmt.Sprintf("Sync complete. Added: %d, Updated: %d, Skipped: %d, Errors: %d", added, updated, skipped, errors), nil
+	return a.syncService.TriggerSync()
 }
 
-// fetchCoverAsync downloads album cover art asynchronously for a tab using worker pool
+// fetchCoverAsync delegates to SyncService for async cover download
 func (a *App) fetchCoverAsync(tab store.Tab) {
-	if tab.Artist == "" || (tab.Album == "" && tab.Title == "") {
-		return // Not enough info to search for cover
-	}
-
-	appDir := getAppDir()
-	coverFilename := tab.ID + ".jpg"
-	coverPath := filepath.Join(appDir, "covers", coverFilename)
-
-	// Submit to worker pool instead of spawning goroutine
-	a.coverPool.Submit(coverpool.CoverJob{
-		TabID:     tab.ID,
-		Artist:    tab.Artist,
-		Album:     tab.Album,
-		Title:     tab.Title,
-		Country:   tab.Country,
-		Language:  tab.Language,
-		CoverPath: coverPath,
-		OnComplete: func(tabID, coverPath string, err error) {
-			if err == nil {
-				a.logger.Info("Cover downloaded successfully to: %s", coverPath)
-				// Fetch current tab state from DB and update cover path
-				currentTab, getErr := a.store.GetTab(tabID)
-				if getErr != nil || currentTab == nil {
-					a.logger.Error("Failed to get tab after cover download: %v", getErr)
-					return
-				}
-				currentTab.CoverPath = coverPath
-				a.store.AddTab(*currentTab)
-				wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab) // Notify frontend
-			} else {
-				a.logger.Error("Failed to download cover: %v", err)
-			}
-		},
-	})
+	a.syncService.FetchCoverAsync(tab)
 }
 
 // GetTabs returns the list of tabs (backward compatibility)
@@ -458,52 +339,9 @@ func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuer
 	}
 }
 
-// generateUniqueTitle creates a unique title by appending _copy1, _copy2, etc.
-// This ensures non-destructive sync by never overwriting existing entries
-func (a *App) generateUniqueTitle(baseTitle string) string {
-	copyNum := 1
-	candidate := fmt.Sprintf("%s_copy%d", baseTitle, copyNum)
-
-	for {
-		existing, _ := a.store.GetTabByTitle(candidate)
-		if existing == nil {
-			return candidate
-		}
-		copyNum++
-		candidate = fmt.Sprintf("%s_copy%d", baseTitle, copyNum)
-
-		// Safety limit to prevent infinite loop
-		if copyNum > 1000 {
-			return fmt.Sprintf("%s_copy_%d", baseTitle, time.Now().UnixNano())
-		}
-	}
-}
-
-// ProcessFile takes a file path and returns a pre-filled Tab struct
+// ProcessFile delegates to SyncService for file processing
 func (a *App) ProcessFile(path string) store.Tab {
-	meta, err := metadata.ParseFile(path)
-	if err != nil {
-		a.logger.Error("Error parsing file metadata for %s: %v", path, err)
-		meta = metadata.ParseFilename(path)
-	}
-
-	ext := strings.ToLower(filepath.Ext(path))
-	typeStr := "unknown"
-	switch ext {
-	case ".pdf":
-		typeStr = "pdf"
-	case ".gp", ".gp3", ".gp4", ".gp5", ".gpx":
-		typeStr = "gp"
-	}
-
-	return store.Tab{
-		ID:       fmt.Sprintf("%d", time.Now().UnixNano()), // Simple ID
-		Title:    meta.Title,
-		Artist:   meta.Artist,
-		Album:    meta.Album,
-		FilePath: path,
-		Type:     typeStr,
-	}
+	return a.syncService.ProcessFile(path)
 }
 
 // GetCategories returns the list of categories

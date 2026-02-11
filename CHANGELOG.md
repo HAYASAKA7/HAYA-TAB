@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.4] - 2026-02-11
+
+### Changed
+- **Architecture Refactor:** Extracted sync logic into dedicated `SyncService` (`pkg/sync/sync.go`). The `App` struct now serves purely as a bridge between frontend and backend services.
+- **EventEmitter Interface:** Introduced `EventEmitter` abstraction to decouple sync logic from wails runtime, improving testability.
+
+### Improved
+- **Code Organization:** Reduced `app.go` from 890 to 728 lines by moving sync-related code to its own package.
+- **Separation of Concerns:** `TriggerSync`, `ProcessFile`, `FetchCoverAsync`, and `generateUniqueTitle` now live in `SyncService`.
+- **Maintainability:** Services are now injected via constructor, making dependencies explicit and easier to mock for testing.
+
 ## [1.4.3] - 2026-02-11
 
 ### Added
