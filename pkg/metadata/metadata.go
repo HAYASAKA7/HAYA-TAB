@@ -158,51 +158,14 @@ func removeKeyFromTitle(title string) string {
 	return title
 }
 
-// ParseFile attempts to extract metadata from the file content.
-// Falls back to ParseFilename if content parsing fails or yields minimal info.
+// ParseFile extracts metadata from the filename only.
+// Binary parsing has been removed for stability and performance.
+// The frontend (AlphaTab) handles accurate metadata extraction and writes it back.
 func ParseFile(path string) (Metadata, error) {
-	ext := strings.ToLower(filepath.Ext(path))
-	var m Metadata
-	var err error
-
-	// 1. Try content parsing
-	switch ext {
-	case ".gp3", ".gp4", ".gp5":
-		m, err = parseGPBinary(path)
-	case ".gpx", ".gp":
-		m, err = parseGPX(path)
-	default:
-		// No specific parser, fallback to filename
-		return ParseFilename(path), nil
-	}
-
-	// 2. Fallback logic
-	// If error occurred or critical fields are missing, merge with filename data
-	filenameMeta := ParseFilename(path)
-
-	if err != nil {
-		// Log error if we had logger, but here just return filename data
-		// maybe with error? No, best effort.
-		return filenameMeta, nil // Return filename meta on error
-	}
-
-	// Merge/Fill missing fields
-	if m.Title == "" {
-		m.Title = filenameMeta.Title
-	}
-	if m.Artist == "" {
-		m.Artist = filenameMeta.Artist
-	}
-	if m.Album == "" {
-		m.Album = filenameMeta.Album
-	}
-
-	// If the title from file is just "Untitled" or generic, prefer filename?
-	if strings.ToLower(m.Title) == "untitled" || strings.TrimSpace(m.Title) == "" {
-		m.Title = filenameMeta.Title
-	}
-
-	return m, nil
+	// Filename-first strategy: Always parse from filename for speed and stability.
+	// Complex binary formats (GP3/4/5/GPX) are prone to crashes and encoding issues.
+	// The frontend will provide accurate metadata via reverse write-back mechanism.
+	return ParseFilename(path), nil
 }
 
 // cleanFilename removes common artifacts from filenames

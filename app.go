@@ -689,6 +689,79 @@ func (a *App) UpdateTab(tab store.Tab) error {
 	return nil
 }
 
+// UpdateTabMetadata updates only the metadata fields (title, artist, album) for a tab.
+// This is called by the frontend after AlphaTab parses the file's internal metadata.
+// It implements a "smart update" strategy: only update if the new data is better than existing.
+func (a *App) UpdateTabMetadata(id string, title string, artist string, album string) error {
+	// Get current tab
+	currentTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
+	}
+	if currentTab == nil {
+		return fmt.Errorf("tab not found: %s", id)
+	}
+
+	needsUpdate := false
+
+	// Helper to check if existing value is "placeholder" (empty or "Unknown")
+	isPlaceholder := func(s string) bool {
+		trimmed := strings.TrimSpace(s)
+		return trimmed == "" || strings.EqualFold(trimmed, "Unknown")
+	}
+
+	// Helper to check if new value is meaningful
+	isMeaningful := func(s string) bool {
+		trimmed := strings.TrimSpace(s)
+		if trimmed == "" {
+			return false
+		}
+		// Skip generic placeholders
+		lower := strings.ToLower(trimmed)
+		if lower == "untitled" || lower == "unknown" || lower == "no title" {
+			return false
+		}
+		return true
+	}
+
+	// Update title if current is placeholder and new is meaningful
+	if isPlaceholder(currentTab.Title) && isMeaningful(title) {
+		currentTab.Title = strings.TrimSpace(title)
+		needsUpdate = true
+		a.logger.Info("Updating title for tab %s: %s", id, title)
+	}
+
+	// Update artist if current is placeholder and new is meaningful
+	if isPlaceholder(currentTab.Artist) && isMeaningful(artist) {
+		currentTab.Artist = strings.TrimSpace(artist)
+		needsUpdate = true
+		a.logger.Info("Updating artist for tab %s: %s", id, artist)
+	}
+
+	// Update album if current is placeholder and new is meaningful
+	if isPlaceholder(currentTab.Album) && isMeaningful(album) {
+		currentTab.Album = strings.TrimSpace(album)
+		needsUpdate = true
+		a.logger.Info("Updating album for tab %s: %s", id, album)
+	}
+
+	if needsUpdate {
+		if err := a.store.UpdateTab(*currentTab); err != nil {
+			return fmt.Errorf("failed to update tab metadata: %w", err)
+		}
+
+		// Notify frontend about the update
+		wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab)
+
+		// If artist was updated and we have enough info, try fetching cover again
+		if currentTab.Artist != "" && currentTab.CoverPath == "" {
+			a.fetchCoverAsync(*currentTab)
+		}
+	}
+
+	return nil
+}
+
 // OpenTab opens the file using system default
 func (a *App) OpenTab(id string) error {
 	targetTab, err := a.store.GetTab(id)

@@ -50,3 +50,5 @@ export function SetFileServerPort(arg1:number):Promise<void>;
 export function TriggerSync():Promise<string>;
 
 export function UpdateTab(arg1:store.Tab):Promise<void>;
+
+export function UpdateTabMetadata(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;

@@ -154,6 +154,22 @@ async function loadGpTab() {
       }
 
       isLoaded.value = true
+
+      // Frontend Reverse Write-back: Send parsed metadata to backend
+      // AlphaTab has already parsed the internal title, artist, album from the binary file
+      if (score && props.tabId) {
+        const title = score.title || ''
+        const artist = score.artist || ''
+        const album = score.album || ''
+        
+        // Only call backend if we have ANY meaningful metadata to send
+        if (title || artist || album) {
+          window.go.main.App.UpdateTabMetadata(props.tabId, title, artist, album)
+            .catch((err: any) => {
+              console.warn('Failed to update tab metadata:', err)
+            })
+        }
+      }
     })
 
     api.value.playerStateChanged.on((args: any) => {

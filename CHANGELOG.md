@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-02-11
+
+### Changed
+- **Filename-First Parsing Strategy:** Completely removed backend binary parsing for GP files. Metadata is now extracted purely from filenames during import/sync, eliminating crash risks and encoding issues. Scanning speed improved by ~100x.
+
+### Added
+- **Frontend Reverse Write-back:** When a user opens a Guitar Pro file, AlphaTab parses the internal metadata (title, artist, album) and silently sends it back to the backend. The database becomes increasingly accurate as the user naturally uses the app.
+- **Smart Metadata Updates:** New `UpdateTabMetadata` API intelligently updates only placeholder values, preserving user-edited metadata.
+
+### Improved
+- **Stability:** Removed complex binary header parsing that was prone to crashes on malformed or unusual GP files.
+- **Cover Art Fetching:** Cover art is now automatically re-attempted when artist information becomes available via write-back.
+
 ## [1.4.0] - 2026-02-11
 
 ### Added

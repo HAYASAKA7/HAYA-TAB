@@ -161,3 +161,12 @@
 2026/02/11 15:13:53 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770779660912413400.jpg
 2026/02/11 15:14:30 [INFO] Attempting to download cover for: さユり - 花の塔
 2026/02/11 15:14:30 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770779660912413400.jpg
+2026/02/11 17:16:10 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 17:16:10 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 17:16:10 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 17:16:10 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 17:16:10 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 17:16:10 [INFO] Watching path: D:\Documents\TabTest
+2026/02/11 17:18:35 [INFO] Updating artist for tab 1770801513401264200: 結束バンド
+2026/02/11 17:18:35 [INFO] Attempting to download cover for: 結束バンド - Final Distortion!!
+2026/02/11 17:18:35 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770801513401264200.jpg

@@ -20,6 +20,7 @@ interface Window {
         MoveCategory(id: string, newParentId: string): Promise<void>
         SaveTab(tab: import('./types').Tab, shouldCopy: boolean): Promise<void>
         UpdateTab(tab: import('./types').Tab): Promise<void>
+        UpdateTabMetadata(id: string, title: string, artist: string, album: string): Promise<void>
         DeleteTab(id: string): Promise<void>
         MoveTab(tabId: string, categoryId: string): Promise<void>
         BatchDeleteTabs(ids: string[]): Promise<number>

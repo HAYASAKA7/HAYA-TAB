@@ -97,3 +97,7 @@ export function TriggerSync() {
 export function UpdateTab(arg1) {
   return window['go']['main']['App']['UpdateTab'](arg1);
 }
+
+export function UpdateTabMetadata(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['UpdateTabMetadata'](arg1, arg2, arg3, arg4);
+}
