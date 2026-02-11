@@ -445,13 +445,18 @@ func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuer
 
 // ProcessFile takes a file path and returns a pre-filled Tab struct
 func (a *App) ProcessFile(path string) store.Tab {
-	meta := metadata.ParseFilename(path)
+	meta, err := metadata.ParseFile(path)
+	if err != nil {
+		a.logger.Error("Error parsing file metadata for %s: %v", path, err)
+		meta = metadata.ParseFilename(path)
+	}
+
 	ext := strings.ToLower(filepath.Ext(path))
 	typeStr := "unknown"
 	switch ext {
 	case ".pdf":
 		typeStr = "pdf"
-	case ".gp", ".gp5", ".gpx":
+	case ".gp", ".gp3", ".gp4", ".gp5", ".gpx":
 		typeStr = "gp"
 	}
 

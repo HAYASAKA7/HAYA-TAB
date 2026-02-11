@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.6] - 2026-02-11
+
+### Fixed
+- **Cover Display:** Fixed a bug where downloaded cover art would not appear on the tab card until the application was reloaded. The UI now reactively updates as soon as the cover is available.
+- **Guitar Pro Parsing:** Fixed a critical issue where metadata (Title, Artist, etc.) could not be parsed from legacy Guitar Pro files (GP3, GP4, GP5) due to incorrect string length handling. This ensures cover art can now be correctly fetched for these files.
+- **GPX Parsing:** Improved robustness of `.gpx` (GP7+) file parsing to handle case variations and subdirectories in the archive structure.
+
 ## [1.3.5] - 2026-02-11
 
 ### Changed

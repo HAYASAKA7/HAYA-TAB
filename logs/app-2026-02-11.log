@@ -4,3 +4,35 @@
 2026/02/11 10:15:51 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
 2026/02/11 10:15:51 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
 2026/02/11 10:15:51 [ERROR] Failed to watch path F:\1\TABS: failed to add path F:\1\TABS: GetFileAttributes: The system cannot find the path specified.
+2026/02/11 10:35:28 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 10:35:28 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 10:35:28 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 10:35:28 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 10:35:28 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 10:35:28 [ERROR] Failed to watch path F:\1\TABS: failed to add path F:\1\TABS: GetFileAttributes: The system cannot find the path specified.
+2026/02/11 10:37:33 [INFO] Attempting to download cover for: 結束バンド - あのバンド
+2026/02/11 10:37:33 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770777413153809700.jpg
+2026/02/11 10:38:06 [INFO] Attempting to download cover for: 結束バンド - あのバンド
+2026/02/11 10:38:06 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770777413153809700.jpg
+2026/02/11 10:44:08 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 10:44:08 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 10:44:08 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 10:44:08 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 10:44:08 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 10:44:08 [ERROR] Failed to watch path F:\1\TABS: failed to add path F:\1\TABS: GetFileAttributes: The system cannot find the path specified.
+2026/02/11 10:45:27 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 10:45:27 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 10:45:27 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 10:45:27 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 10:45:27 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 10:45:27 [ERROR] Failed to watch path F:\1\TABS: failed to add path F:\1\TABS: GetFileAttributes: The system cannot find the path specified.
+2026/02/11 10:45:48 [INFO] Attempting to download cover for: 結束バンド - 青春コンプレックス
+2026/02/11 10:45:48 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770777933833594800.jpg
+2026/02/11 10:55:01 [INFO] App starting in directory: D:\Projects\Go\HAYA-TAB
+2026/02/11 10:55:01 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\data
+2026/02/11 10:55:01 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\storage
+2026/02/11 10:55:01 [INFO] Directory ensured: D:\Projects\Go\HAYA-TAB\covers
+2026/02/11 10:55:01 [INFO] Database path: D:\Projects\Go\HAYA-TAB\data\haya-tab.db
+2026/02/11 10:55:01 [ERROR] Failed to watch path F:\1\TABS: failed to add path F:\1\TABS: GetFileAttributes: The system cannot find the path specified.
+2026/02/11 10:58:11 [INFO] Attempting to download cover for: AVE Mujica  - Killkiss
+2026/02/11 10:58:11 [INFO] Cover downloaded successfully to: D:\Projects\Go\HAYA-TAB\covers\1770778558744628700.jpg

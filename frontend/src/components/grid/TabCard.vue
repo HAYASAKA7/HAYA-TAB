@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { Tab } from '@/types'
 import { useTabsStore, useUIStore, useViewersStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
@@ -21,16 +21,27 @@ const { startDrag, endDrag } = useDragDrop()
 const coverUrl = ref('')
 const isSelected = computed(() => tabsStore.isTabSelected(props.tab.id))
 
-onMounted(async () => {
-  if (props.tab.coverPath) {
-    try {
-      const b64 = await window.go.main.App.GetCover(props.tab.coverPath)
-      if (b64) {
-        coverUrl.value = `data:image/jpeg;base64,${b64}`
-      }
-    } catch (e) {
-      console.error('Failed to load cover:', e)
+async function loadCover(path: string) {
+  if (!path) return
+  try {
+    const b64 = await window.go.main.App.GetCover(path)
+    if (b64) {
+      coverUrl.value = `data:image/jpeg;base64,${b64}`
     }
+  } catch (e) {
+    console.error('Failed to load cover:', e)
+  }
+}
+
+watch(() => props.tab.coverPath, (newPath) => {
+  if (newPath) {
+    loadCover(newPath)
+  }
+})
+
+onMounted(() => {
+  if (props.tab.coverPath) {
+    loadCover(props.tab.coverPath)
   }
 })
 
