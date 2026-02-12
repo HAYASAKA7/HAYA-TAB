@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.7] - 2026-02-12
+
+### Improved
+- **UI Refinement:** Unified modal styles for a more consistent and compact look across the application.
+- **Sidebar Polish:** Improved sidebar item spacing, alignment, and hover transitions for a smoother feel.
+- **Key Binding Modal:** Optimized the layout and spacing of the key binding settings for better readability and compactness.
+
 ## [1.4.6] - 2026-02-12
 
 ### Added

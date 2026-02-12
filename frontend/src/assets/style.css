@@ -106,8 +106,8 @@ button, input, select, textarea {
     padding: 8px 0;
 }
 #sidebar.collapsed .sidebar-item {
-    justify-content: center;
-    padding: 12px 0;
+    justify-content: flex-start;
+    padding: 12px 0 12px 15px;
     gap: 0;
 }
 #sidebar.collapsed .sidebar-item .icon {
@@ -125,7 +125,7 @@ button, input, select, textarea {
     flex: 0 !important;
 }
 #sidebar.collapsed .sidebar-item.active {
-    padding-left: 0;
+    padding-left: 11px;
     border-left-width: 4px;
 }
 #sidebar.collapsed .sidebar-divider {
@@ -133,18 +133,26 @@ button, input, select, textarea {
 }
 
 .sidebar-item {
-    padding: 12px 20px;
+    padding: 12px 20px 12px 15px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 12px;
     color: var(--text-muted);
-    transition: all 0.2s;
+    transition: background 0.2s, color 0.2s, border 0.2s, padding 0.25s ease;
     -webkit-user-select: none;
     user-select: none;
     font-size: 0.95rem;
     white-space: nowrap;
     overflow: hidden;
+}
+
+.sidebar-item .icon {
+    flex-shrink: 0;
+    width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .sidebar-item:hover {
@@ -156,7 +164,7 @@ button, input, select, textarea {
     background: var(--hover);
     color: var(--text);
     border-left: 4px solid var(--primary);
-    padding-left: 16px; /* Adjust for border */
+    padding-left: 11px; /* Adjust for border */
 }
 
 .sidebar-divider {
@@ -466,42 +474,92 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 .pdf-frame { flex: 1; border: none; width: 100%; height: 100%; }
 
 /* Modals & Toast (keep existing base styles) */
-#modal-overlay, #category-modal, #move-modal, #batch-move-modal, #confirm-modal, #key-binding-modal {
+.modal-overlay, #modal-overlay, #category-modal, #move-modal, #batch-move-modal, #confirm-modal, #key-binding-modal {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.8);
     display: flex; align-items: center; justify-content: center;
     z-index: 1000;
 }
 
+/* Unified Modal Styles - Compact & Consistent */
+.modal {
+    background: var(--card-bg);
+    padding: 20px 24px;
+    border-radius: 8px;
+    width: auto;
+    min-width: 320px;
+    max-width: min(90vw, 420px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.modal h2 {
+    margin: 0 0 16px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+
 /* Confirm Modal Specific Styles */
 .confirm-modal {
-    max-width: 450px;
+    max-width: min(90vw, 450px);
 }
 
-.confirm-message {
+#confirm-message {
     color: var(--text-muted);
-    line-height: 1.6;
-    margin: 15px 0 25px 0;
+    line-height: 1.5;
+    margin: 0 0 16px 0;
     white-space: pre-line;
+    font-size: 0.9rem;
 }
 
-.confirm-message .warning-text {
+#confirm-message .warning-text {
     color: #e74c3c;
     font-weight: 500;
 }
 
-.confirm-message ul {
-    margin: 10px 0;
+#confirm-message ul {
+    margin: 8px 0;
     padding-left: 20px;
 }
 
-.confirm-message li {
-    margin: 5px 0;
+#confirm-message li {
+    margin: 4px 0;
 }
-.modal { background: var(--card-bg); padding: 30px; border-radius: 8px; width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-.modal h2 { margin-top: 0; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
-.form-group-row { display: flex; gap: 15px; } .form-group-row .form-group { flex: 1; }
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 14px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select {
+    width: 100%;
+    min-width: 240px;
+}
+
+.form-row, .form-group-row {
+    display: flex;
+    gap: 12px;
+}
+
+.form-row .form-group, .form-group-row .form-group {
+    flex: 1;
+    min-width: 0;
+}
 
 #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 2000; }
 .toast {

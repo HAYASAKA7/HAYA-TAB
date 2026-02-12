@@ -98,38 +98,39 @@ function formatKey(key: string) {
 
 <style scoped>
 .modal {
-  width: 500px; /* Slightly wider than default */
-  max-width: 90vw;
+  width: auto;
+  min-width: 380px;
+  max-width: min(90vw, 500px);
 }
 
 .modal-body {
   position: relative;
-  min-height: 300px;
-  max-height: 60vh;
+  max-height: 50vh;
   overflow-y: auto;
-  outline: none; /* Make div focusable for keydown listener */
-  margin-top: 20px;
+  outline: none;
+  margin-top: 12px;
 }
 
 .bindings-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .binding-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
+  padding: 10px 12px;
   background-color: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .binding-label {
   font-weight: 500;
   color: var(--text);
+  font-size: 0.9rem;
 }
 
 .binding-key {
@@ -137,12 +138,12 @@ function formatKey(key: string) {
   color: var(--primary);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 5px 15px;
-  min-width: 80px;
+  padding: 4px 12px;
+  min-width: 70px;
   text-align: center;
   cursor: pointer;
   font-family: monospace;
-  font-size: 1.1em;
+  font-size: 0.95em;
   font-weight: bold;
   transition: all 0.2s;
   text-transform: uppercase;
@@ -155,11 +156,11 @@ function formatKey(key: string) {
 
 .listening-overlay {
   position: absolute;
-  top: -20px;
-  left: -20px;
-  right: -20px;
-  bottom: -20px;
-  background-color: rgba(0, 0, 0, 0.85); /* Darker backdrop within modal */
+  top: -12px;
+  left: -24px;
+  right: -24px;
+  bottom: -16px;
+  background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -170,7 +171,7 @@ function formatKey(key: string) {
 
 .listening-box {
   background-color: var(--card-bg);
-  padding: 30px;
+  padding: 24px;
   border-radius: 8px;
   text-align: center;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
@@ -178,8 +179,8 @@ function formatKey(key: string) {
 }
 
 .listening-box p {
-  margin-bottom: 20px;
-  font-size: 1.1em;
+  margin-bottom: 16px;
+  font-size: 0.95em;
   color: var(--text);
 }
 </style>
