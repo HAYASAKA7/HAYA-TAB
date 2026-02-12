@@ -70,6 +70,7 @@ export namespace store {
 	    toggleLoop: string;
 	    clearSelection: string;
 	    jumpToBar: string;
+	    jumpToStart: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new KeyBindings(source);
@@ -87,6 +88,7 @@ export namespace store {
 	        this.toggleLoop = source["toggleLoop"];
 	        this.clearSelection = source["clearSelection"];
 	        this.jumpToBar = source["jumpToBar"];
+	        this.jumpToStart = source["jumpToStart"];
 	    }
 	}
 	export class Settings {

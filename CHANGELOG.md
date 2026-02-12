@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.5] - 2026-02-12
+
+### Added
+- **"Jump to Start" Shortcut:** New keybinding (Default: `I`) to instantly jump to the first measure.
+
+### Improved
+- **Focus Management:** Score area now auto-focuses after track switching, enabling immediate use of keyboard shortcuts.
+- **Playback Control:** "Play Selection" and "Jump to Bar" actions now precisely position the playback cursor, ensuring playback starts exactly where expected.
+
+### Fixed
+- **Multi-line Selection:** Fixed visual artifacts when selecting measures across multiple lines; highlights are now correctly segmented per line.
+
 ## [1.4.4] - 2026-02-11
 
 ### Changed

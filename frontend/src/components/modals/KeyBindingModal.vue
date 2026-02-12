@@ -20,7 +20,8 @@ const bindLabels: Record<keyof KeyBindings, string> = {
   bpmMinus: 'Decrease BPM',
   toggleLoop: 'Toggle Loop',
   clearSelection: 'Clear Selection',
-  jumpToBar: 'Jump to Bar'
+  jumpToBar: 'Jump to Bar',
+  jumpToStart: 'Jump to Start'
 }
 
 function close() {

@@ -39,6 +39,7 @@ type KeyBindings struct {
 	ToggleLoop     string `json:"toggleLoop"`
 	ClearSelection string `json:"clearSelection"`
 	JumpToBar      string `json:"jumpToBar"`
+	JumpToStart    string `json:"jumpToStart"`
 }
 
 type Settings struct {
@@ -98,6 +99,7 @@ func NewStore(dataPath string) *Store {
 				ToggleLoop:     "r",
 				ClearSelection: "escape",
 				JumpToBar:      "t",
+				JumpToStart:    "i",
 			},
 		},
 	}

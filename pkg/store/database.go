@@ -38,6 +38,7 @@ func NewDBStore(dbPath string) *DBStore {
 				ToggleLoop:     "r",
 				ClearSelection: "escape",
 				JumpToBar:      "t",
+				JumpToStart:    "i",
 			},
 		},
 	}
@@ -265,6 +266,9 @@ func (s *DBStore) loadSettings() error {
 	}
 	if v, ok := settings["keyBindings.jumpToBar"]; ok && v != "" {
 		s.Settings.KeyBindings.JumpToBar = v
+	}
+	if v, ok := settings["keyBindings.jumpToStart"]; ok && v != "" {
+		s.Settings.KeyBindings.JumpToStart = v
 	}
 
 	return nil
@@ -738,6 +742,7 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 		"keyBindings.toggleLoop":     settings.KeyBindings.ToggleLoop,
 		"keyBindings.clearSelection": settings.KeyBindings.ClearSelection,
 		"keyBindings.jumpToBar":      settings.KeyBindings.JumpToBar,
+		"keyBindings.jumpToStart":    settings.KeyBindings.JumpToStart,
 	}
 
 	for key, value := range settingsMap {

@@ -33,6 +33,7 @@ export interface KeyBindings {
   toggleLoop: string
   clearSelection: string
   jumpToBar: string
+  jumpToStart: string
 }
 
 export interface Settings {

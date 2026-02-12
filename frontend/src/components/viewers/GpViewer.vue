@@ -33,7 +33,7 @@ const selectionRange = ref<any>(null)
 const isSelectionActive = ref(false)
 const isDraggingSelection = ref(false)
 const markers = ref<Array<{ name: string; bar: number }>>([])
-const selectionHighlightStyle = ref<any>(null)
+const selectionHighlightStyles = ref<any[]>([])
 
 // Playback state
 const isPlaying = ref(false)
@@ -102,6 +102,7 @@ async function loadGpTab() {
       },
       player: {
         enablePlayer: true,
+        enableCursor: true,
         soundFont: '/alphatab/soundfont/sonivox.sf2',
         scrollElement: scrollElement
       },
@@ -198,7 +199,7 @@ function handleSelectionChange(args: any) {
         menuVisible.value = false
         selectionRange.value = null
         isSelectionActive.value = false
-        selectionHighlightStyle.value = null
+        selectionHighlightStyles.value = []
         return
     }
 
@@ -214,7 +215,7 @@ function handleSelectionChange(args: any) {
         menuVisible.value = false
         selectionRange.value = null
         isSelectionActive.value = false
-        selectionHighlightStyle.value = null
+        selectionHighlightStyles.value = []
         return
     }
 
@@ -224,24 +225,102 @@ function handleSelectionChange(args: any) {
     }
     isSelectionActive.value = true
 
-    // Calculate selection highlight bounds
+    // Calculate selection highlight bounds - handle multi-line selections
     if (args.startBeatBounds && args.endBeatBounds) {
         const startBounds = args.startBeatBounds.visualBounds
         const endBounds = args.endBeatBounds.visualBounds
         
         if (startBounds && endBounds) {
-            // Calculate the bounding box that covers the entire selection
-            const minX = Math.min(startBounds.x, endBounds.x)
-            const maxX = Math.max(startBounds.x + startBounds.w, endBounds.x + endBounds.w)
-            const minY = Math.min(startBounds.y, endBounds.y)
-            const maxY = Math.max(startBounds.y + startBounds.h, endBounds.y + endBounds.h)
+            const styles: any[] = []
             
-            selectionHighlightStyle.value = {
-                left: (minX - 4) + 'px',
-                top: (minY - 4) + 'px',
-                width: (maxX - minX + 8) + 'px',
-                height: (maxY - minY + 8) + 'px'
+            // Check if selection spans multiple lines (Y positions differ significantly)
+            const isSameLine = Math.abs(startBounds.y - endBounds.y) < 20
+            
+            if (isSameLine) {
+                // Single line selection - simple rectangle
+                const minX = Math.min(startBounds.x, endBounds.x)
+                const maxX = Math.max(startBounds.x + startBounds.w, endBounds.x + endBounds.w)
+                styles.push({
+                    left: (minX - 4) + 'px',
+                    top: (startBounds.y - 4) + 'px',
+                    width: (maxX - minX + 8) + 'px',
+                    height: (startBounds.h + 8) + 'px'
+                })
+            } else {
+                // Multi-line selection - need to find all beats in range and group by line
+                const boundsLookup = api.value?.boundsLookup || api.value?.renderer?.boundsLookup
+                const groups = boundsLookup ? (boundsLookup.staveGroups || boundsLookup.staffSystems) : null
+                
+                if (groups) {
+                    // Collect all beat bounds within the selection range
+                    const lineGroups: Map<number, { minX: number; maxX: number; y: number; h: number }> = new Map()
+                    
+                    for (const group of groups) {
+                        if (!group.bars) continue
+                        
+                        for (const masterBarBounds of group.bars) {
+                            if (!masterBarBounds.bars) continue
+                            
+                            for (const barBounds of masterBarBounds.bars) {
+                                if (!barBounds.beats) continue
+                                
+                                for (const beatBounds of barBounds.beats) {
+                                    if (!beatBounds.beat || !beatBounds.visualBounds) continue
+                                    
+                                    const beat = beatBounds.beat
+                                    const beatStart = beat.absolutePlaybackStart
+                                    const beatEnd = beatStart + beat.playbackDuration
+                                    
+                                    // Check if this beat is within selection range
+                                    if (beatEnd > startTick && beatStart < endTick) {
+                                        const vb = beatBounds.visualBounds
+                                        // Group by Y position (line) - round to avoid floating point issues
+                                        const lineY = Math.round(vb.y)
+                                        
+                                        if (lineGroups.has(lineY)) {
+                                            const group = lineGroups.get(lineY)!
+                                            group.minX = Math.min(group.minX, vb.x)
+                                            group.maxX = Math.max(group.maxX, vb.x + vb.w)
+                                        } else {
+                                            lineGroups.set(lineY, {
+                                                minX: vb.x,
+                                                maxX: vb.x + vb.w,
+                                                y: vb.y,
+                                                h: vb.h
+                                            })
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Create highlight style for each line
+                    for (const group of lineGroups.values()) {
+                        styles.push({
+                            left: (group.minX - 4) + 'px',
+                            top: (group.y - 4) + 'px',
+                            width: (group.maxX - group.minX + 8) + 'px',
+                            height: (group.h + 8) + 'px'
+                        })
+                    }
+                } else {
+                    // Fallback to simple bounding box if boundsLookup not available
+                    const minX = Math.min(startBounds.x, endBounds.x)
+                    const maxX = Math.max(startBounds.x + startBounds.w, endBounds.x + endBounds.w)
+                    const minY = Math.min(startBounds.y, endBounds.y)
+                    const maxY = Math.max(startBounds.y + startBounds.h, endBounds.y + endBounds.h)
+                    
+                    styles.push({
+                        left: (minX - 4) + 'px',
+                        top: (minY - 4) + 'px',
+                        width: (maxX - minX + 8) + 'px',
+                        height: (maxY - minY + 8) + 'px'
+                    })
+                }
             }
+            
+            selectionHighlightStyles.value = styles
         }
     }
 
@@ -306,6 +385,11 @@ function onTrackChange() {
   const trackIndex = selectedTrack.value
   if (trackIndex >= 0 && api.value.score.tracks[trackIndex]) {
     api.value.renderTracks([api.value.score.tracks[trackIndex]])
+    
+    // Restore focus to scroll wrapper so keyboard shortcuts work immediately
+    nextTick(() => {
+        scrollWrapperRef.value?.focus()
+    })
   }
 }
 
@@ -375,6 +459,11 @@ function jumpToBar(barNumber: number) {
                 behavior: 'smooth'
             })
         }
+
+        // Set cursor position to the start of the bar
+        if (api.value.score && api.value.score.masterBars && api.value.score.masterBars[barIndex]) {
+            api.value.tickPosition = api.value.score.masterBars[barIndex].start
+        }
         
         // Visual Highlight with pulse animation
         highlightStyle.value = {
@@ -407,7 +496,7 @@ function clearSelection() {
     isSelectionActive.value = false
     isLooping.value = false
     menuVisible.value = false
-    selectionHighlightStyle.value = null
+    selectionHighlightStyles.value = []
     showToast('Selection cleared', 'info')
 }
 
@@ -418,8 +507,11 @@ function playSelection() {
     // Set the playback range to the selection
     api.value.playbackRange = selectionRange.value
     
-    // Start/pause playback
-    api.value.playPause()
+    // Move cursor to start of selection
+    api.value.tickPosition = selectionRange.value.startTick
+    
+    // Start playback
+    api.value.play()
 }
 
 function toggleLoop() {
@@ -520,6 +612,8 @@ function handleKeydown(e: KeyboardEvent) {
     // Open jump-to-bar panel
     e.preventDefault()
     floatingToolbarRef.value?.openSearch()
+  } else if (key === keys.jumpToStart) {
+    jumpToBar(1)
   }
 }
 
@@ -627,12 +721,14 @@ watch(() => props.visible, async (newVal) => {
             @mousedown="handleScrollWrapperMouseDown"
         >
             <div class="gp-render-area"></div>
-            
-            <!-- Selection Highlight Overlay -->
+
+            <!-- Selection Highlight Overlays (multiple for multi-line selections) -->
             <div 
+                v-for="(style, index) in selectionHighlightStyles" 
+                :key="index"
                 class="selection-highlight" 
-                v-if="selectionHighlightStyle && isSelectionActive" 
-                :style="selectionHighlightStyle"
+                v-show="isSelectionActive" 
+                :style="style"
             ></div>
             
             <!-- Jump Highlight Overlay -->
@@ -704,6 +800,41 @@ watch(() => props.visible, async (newVal) => {
 
 .gp-render-area {
   min-height: 100%;
+}
+
+/* AlphaTab built-in cursor styling */
+.gp-render-area :deep(.at-cursor-bar) {
+    /* Fill the bar with a subtle highlight */
+    background: rgba(150, 82, 51, 0.1) !important;
+}
+
+.gp-render-area :deep(.at-cursor-beat) {
+    /* Beat cursor - thick vertical line for visibility */
+    background: linear-gradient(
+        180deg,
+        var(--primary-color, #965233) 0%,
+        color-mix(in srgb, var(--primary-color, #965233), #ff6b3d 50%) 50%,
+        var(--primary-color, #965233) 100%
+    ) !important;
+    width: 12px !important;
+    border-radius: 6px;
+    box-shadow: 
+        0 0 10px rgba(150, 82, 51, 0.8),
+        0 0 20px rgba(150, 82, 51, 0.4);
+    animation: cursorGlow 1s ease-in-out infinite alternate;
+}
+
+@keyframes cursorGlow {
+    0% {
+        box-shadow: 
+            0 0 8px rgba(150, 82, 51, 0.6),
+            0 0 16px rgba(150, 82, 51, 0.3);
+    }
+    100% {
+        box-shadow: 
+            0 0 12px rgba(150, 82, 51, 0.9),
+            0 0 24px rgba(150, 82, 51, 0.5);
+    }
 }
 
 /* Selection highlight for selected sections */

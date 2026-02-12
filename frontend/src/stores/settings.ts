@@ -26,7 +26,8 @@ export const useSettingsStore = defineStore('settings', () => {
       bpmMinus: 'h',
       toggleLoop: 'r',
       clearSelection: 'escape',
-      jumpToBar: 't'
+      jumpToBar: 't',
+      jumpToStart: 'i'
     }
   })
 
