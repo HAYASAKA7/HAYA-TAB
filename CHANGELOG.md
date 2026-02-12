@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.6] - 2026-02-12
+
+### Added
+- **Shift+Drag Selection**: Hold `Shift` while dragging to enter "Section Playback Mode" (shows toolbar). Normal drag is now visual-only.
+- **Section Playback Mode**:
+  - Protects selection from accidental clicks (must use `Esc` or Clear button).
+  - Right-click an active selection to enter this mode.
+- **Menu Positioning**: Selection menu is now clamped to the viewport (won't go off-screen).
+
 ## [1.4.5] - 2026-02-12
 
 ### Added

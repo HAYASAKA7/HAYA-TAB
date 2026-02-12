@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 
 const props = defineProps<{
   visible: boolean
@@ -18,18 +18,62 @@ const emit = defineEmits<{
 }>()
 
 const speedOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5]
+const menuRef = ref<HTMLElement | null>(null)
+const clampedPos = ref({ left: 0, top: 0 })
 
 const displaySpeed = computed(() => {
   return Math.round(props.currentSpeed * 100) + '%'
 })
+
+watch(() => props.visible, async (val) => {
+  if (!val) return
+  await nextTick()
+  clampPosition()
+})
+
+watch(() => [props.x, props.y], () => {
+  if (props.visible) clampPosition()
+})
+
+function clampPosition() {
+  const el = menuRef.value
+  if (!el) return
+
+  const parent = el.offsetParent as HTMLElement | null
+  if (!parent) return
+
+  const menuW = el.offsetWidth
+  const menuH = el.offsetHeight
+  const parentW = parent.clientWidth
+  const scrollLeft = parent.scrollLeft
+  const scrollTop = parent.scrollTop
+
+  // Default: centered above the point (matches transform: translate(-50%, -100%))
+  let left = props.x - menuW / 2
+  let top = props.y - menuH
+
+  // Clamp horizontal: keep within visible scroll area
+  const minLeft = scrollLeft + 8
+  const maxLeft = scrollLeft + parentW - menuW - 8
+  left = Math.max(minLeft, Math.min(left, maxLeft))
+
+  // Clamp vertical: if menu would go above visible area, flip below
+  const minTop = scrollTop + 8
+  if (top < minTop) {
+    top = props.y + 20
+  }
+
+  clampedPos.value = { left, top }
+}
 </script>
 
 <template>
   <Transition name="menu-pop">
-    <div 
-      v-if="visible" 
-      class="gp-selection-menu" 
-      :style="{ left: x + 'px', top: y + 'px' }"
+    <div
+      v-if="visible"
+      ref="menuRef"
+      class="gp-selection-menu"
+      :style="{ left: clampedPos.left + 'px', top: clampedPos.top + 'px' }"
       @mousedown.stop
       @click.stop
     >
@@ -90,7 +134,6 @@ const displaySpeed = computed(() => {
 .gp-selection-menu {
   position: absolute;
   z-index: 1000;
-  transform: translate(-50%, -100%);
   padding-bottom: 12px; /* Space for arrow */
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.25));
 }
@@ -107,22 +150,22 @@ const displaySpeed = computed(() => {
 @keyframes menuPopIn {
   0% {
     opacity: 0;
-    transform: translate(-50%, -80%) scale(0.9);
+    transform: translateY(20%) scale(0.9);
   }
   100% {
     opacity: 1;
-    transform: translate(-50%, -100%) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes menuPopOut {
   0% {
     opacity: 1;
-    transform: translate(-50%, -100%) scale(1);
+    transform: translateY(0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -90%) scale(0.95);
+    transform: translateY(10%) scale(0.95);
   }
 }
 

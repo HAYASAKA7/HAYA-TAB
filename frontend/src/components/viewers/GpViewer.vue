@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted, nextTick, shallowRef } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick, shallowRef, toRaw } from 'vue'
 import { useTabsStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import GpFloatingToolbar from './GpFloatingToolbar.vue'
@@ -32,6 +32,8 @@ const menuPosition = ref({ x: 0, y: 0 })
 const selectionRange = ref<any>(null)
 const isSelectionActive = ref(false)
 const isDraggingSelection = ref(false)
+const isShiftDragging = ref(false)
+const isSectionPlaybackMode = ref(false)
 const markers = ref<Array<{ name: string; bar: number }>>([])
 const selectionHighlightStyles = ref<any[]>([])
 
@@ -192,10 +194,10 @@ async function loadGpTab() {
 }
 
 function handleSelectionChange(args: any) {
-    // console.log('Selection changed:', args)
-    
     // Check if selection is cleared or invalid
     if (!args || !args.startBeat || !args.endBeat) {
+        // In section playback mode, protect the selection from accidental clears
+        if (isSectionPlaybackMode.value) return
         menuVisible.value = false
         selectionRange.value = null
         isSelectionActive.value = false
@@ -207,11 +209,12 @@ function handleSelectionChange(args: any) {
     const endBeat = args.endBeat
 
     // Calculate ticks
-    // absolutePlaybackStart gives the absolute midi tick position
     const startTick = startBeat.absolutePlaybackStart
     const endTick = endBeat.absolutePlaybackStart + endBeat.playbackDuration
 
     if (startTick === endTick) {
+        // In section playback mode, protect the selection from accidental clears
+        if (isSectionPlaybackMode.value) return
         menuVisible.value = false
         selectionRange.value = null
         isSelectionActive.value = false
@@ -324,19 +327,23 @@ function handleSelectionChange(args: any) {
         }
     }
 
-    // Calculate menu position using the end beat's visual bounds
-    if (args.endBeatBounds && args.endBeatBounds.visualBounds) {
-        const bounds = args.endBeatBounds.visualBounds
-        // Position relative to the render area
-        menuPosition.value = {
-            x: bounds.x + bounds.w / 2,
-            y: bounds.y
+    // Shift+drag → section playback mode with toolbar
+    // Normal drag → visual selection only, no toolbar
+    if (isShiftDragging.value) {
+        isSectionPlaybackMode.value = true
+        if (args.endBeatBounds && args.endBeatBounds.visualBounds) {
+            const bounds = args.endBeatBounds.visualBounds
+            menuPosition.value = {
+                x: bounds.x + bounds.w / 2,
+                y: bounds.y
+            }
+            isDraggingSelection.value = true
+            menuVisible.value = true
         }
-        // Mark that selection just completed - menu should stay
-        isDraggingSelection.value = true
-        menuVisible.value = true
     } else {
+        isSectionPlaybackMode.value = false
         menuVisible.value = false
+        isDraggingSelection.value = true
     }
 }
 
@@ -489,12 +496,14 @@ function jumpToBar(barNumber: number) {
 
 function clearSelection() {
     if (!api.value) return
-    
+
     // Clear selection in AlphaTab
+    api.value.isLooping = false
     api.value.playbackRange = null
     selectionRange.value = null
     isSelectionActive.value = false
     isLooping.value = false
+    isSectionPlaybackMode.value = false
     menuVisible.value = false
     selectionHighlightStyles.value = []
     showToast('Selection cleared', 'info')
@@ -503,30 +512,38 @@ function clearSelection() {
 // Menu Actions
 function playSelection() {
     if (!api.value || !selectionRange.value) return
-    
+
+    // Always stop first to ensure clean state
+    api.value.stop()
+
     // Set the playback range to the selection
-    api.value.playbackRange = selectionRange.value
-    
+    api.value.playbackRange = toRaw(selectionRange.value)
+
     // Move cursor to start of selection
     api.value.tickPosition = selectionRange.value.startTick
-    
-    // Start playback
-    api.value.play()
+
+    // Use nextTick to ensure state updates are processed before starting playback
+    nextTick(() => {
+        if (api.value) {
+            api.value.playPause()
+        }
+    })
 }
 
 function toggleLoop() {
     if (!api.value) return
-    
+
     isLooping.value = !isLooping.value
     if (isLooping.value && selectionRange.value) {
-        api.value.playbackRange = selectionRange.value
+        api.value.playbackRange = toRaw(selectionRange.value)
+        api.value.isLooping = true
         showToast('Looping enabled', 'success')
     } else {
+        api.value.isLooping = false
         api.value.playbackRange = null
         isLooping.value = false
         showToast('Looping disabled', 'info')
     }
-    menuVisible.value = false
 }
 
 function setMenuSpeed(speed: number) {
@@ -538,36 +555,56 @@ function closeMenu() {
     menuVisible.value = false
 }
 
-function handleScrollWrapperMouseDown() {
+function handleScrollWrapperMouseDown(e: MouseEvent) {
+    // Track if Shift is held — determines selection mode
+    isShiftDragging.value = e.shiftKey
     // User started a potential drag operation - reset flag
     // The flag will be set true by handleSelectionChange when selection completes
     isDraggingSelection.value = false
 }
 
 function handleScrollWrapperClick() {
-    // If there's an active selection and user clicks outside the menu, 
-    // only close menu if not immediately after a selection drag
+    // After a drag, don't process the click
     if (isDraggingSelection.value) {
-        // This click follows a drag - don't close the menu
         isDraggingSelection.value = false
         return
     }
-    
-    // Single click (not a drag) - close menu if visible
-    if (menuVisible.value) {
-        menuVisible.value = false
+
+    // In section playback mode, protect selection from accidental clicks
+    // Only Esc key or Clear button can dismiss it
+    if (!isSectionPlaybackMode.value && isSelectionActive.value) {
+        // Normal selection mode — click blank area clears it
+        selectionRange.value = null
+        isSelectionActive.value = false
+        selectionHighlightStyles.value = []
     }
-    
+
     // Collapse floating toolbar if expanded
     floatingToolbarRef.value?.collapse()
-    
+
     // Blur any focused element so shortcuts work
     if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur()
     }
-    
+
     // Focus the scroll wrapper for keyboard events
     scrollWrapperRef.value?.focus()
+}
+
+function handleScrollWrapperContextMenu(e: MouseEvent) {
+    // Right-click on an active selection → enter section playback mode
+    if (!isSelectionActive.value || !selectionRange.value || !scrollWrapperRef.value) return
+
+    e.preventDefault()
+    isSectionPlaybackMode.value = true
+
+    // Calculate position relative to scroll wrapper content (same coordinate space as AlphaTab bounds)
+    const rect = scrollWrapperRef.value.getBoundingClientRect()
+    menuPosition.value = {
+        x: e.clientX - rect.left + scrollWrapperRef.value.scrollLeft,
+        y: e.clientY - rect.top + scrollWrapperRef.value.scrollTop
+    }
+    menuVisible.value = true
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -599,9 +636,10 @@ function handleKeydown(e: KeyboardEvent) {
     currentBpm.value -= 10
     onBpmChange()
   } else if (key === keys.clearSelection || key === 'escape') {
-    // Close menu or clear selection
-    if (menuVisible.value) {
+    if (isSectionPlaybackMode.value) {
+      // Single Esc exits section playback mode: close menu, revert to normal selection
       menuVisible.value = false
+      isSectionPlaybackMode.value = false
     } else if (isSelectionActive.value) {
       clearSelection()
     }
@@ -718,7 +756,8 @@ watch(() => props.visible, async (newVal) => {
             ref="scrollWrapperRef" 
             tabindex="-1"
             @click="handleScrollWrapperClick"
-            @mousedown="handleScrollWrapperMouseDown"
+            @mousedown="handleScrollWrapperMouseDown($event)"
+            @contextmenu="handleScrollWrapperContextMenu($event)"
         >
             <div class="gp-render-area"></div>
 
