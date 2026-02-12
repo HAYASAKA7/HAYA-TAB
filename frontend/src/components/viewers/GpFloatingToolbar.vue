@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onUnmounted, watch } from 'vue'
 
 const props = defineProps<{
   measureCount: number
   isSelectionActive: boolean
   markers?: Array<{ name: string; bar: number }>
+  isScrolling?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -17,6 +18,55 @@ const activePanel = ref<'search' | 'markers' | null>(null)
 const searchValue = ref('')
 const markerSearch = ref('')
 const searchInputRef = ref<HTMLInputElement | null>(null)
+
+// Auto-Dodge state
+const isHovered = ref(false)
+const isIdle = ref(false)
+let idleTimer: ReturnType<typeof setTimeout> | null = null
+
+const isDodging = computed(() => isIdle.value && !isHovered.value && !isExpanded.value)
+
+function startIdleTimer() {
+  if (idleTimer) clearTimeout(idleTimer)
+  idleTimer = setTimeout(() => {
+    isIdle.value = true
+  }, 3000)
+}
+
+function cancelIdleTimer() {
+  isIdle.value = false
+  if (idleTimer) clearTimeout(idleTimer)
+}
+
+function onMouseEnter() {
+  isHovered.value = true
+  cancelIdleTimer()
+}
+
+function onMouseLeave() {
+  isHovered.value = false
+  startIdleTimer()
+}
+
+// 3s initial visibility, then hidden
+startIdleTimer()
+
+// Scrolling → immediately hidden (unless hovered or expanded)
+watch(() => props.isScrolling, (val) => {
+  if (val && !isHovered.value && !isExpanded.value) {
+    isIdle.value = true
+    if (idleTimer) clearTimeout(idleTimer)
+  }
+})
+
+// When toolbar collapses → 3s then hidden
+watch(isExpanded, (val) => {
+  if (!val) startIdleTimer()
+})
+
+onUnmounted(() => {
+  if (idleTimer) clearTimeout(idleTimer)
+})
 
 // Expose collapse method to parent
 function collapse() {
@@ -88,7 +138,12 @@ function handleEscape() {
 </script>
 
 <template>
-  <div class="floating-toolbar" :class="{ expanded: isExpanded }">
+  <div
+    class="floating-toolbar"
+    :class="{ expanded: isExpanded, dodging: isDodging }"
+    @mouseenter="onMouseEnter"
+    @mouseleave="onMouseLeave"
+  >
     <!-- Main Bubble -->
     <div class="toolbar-bubble" @click="toggleExpand">
       <span class="icon-tool"></span>
@@ -213,6 +268,11 @@ function handleEscape() {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+  transition: opacity 0.4s ease;
+}
+
+.floating-toolbar.dodging {
+  opacity: 0.3;
 }
 
 /* Main Bubble */

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.8] - 2026-02-12
+
+### Added
+- **Auto-Dodge Toolbar:** The floating toolbar in the Guitar Pro viewer now automatically fades out when scrolling or when idle for 3 seconds, reducing visual clutter.
+- **SoundFont Loading Indicator:** Added a dedicated loading spinner that persists until the SoundFont is fully loaded, providing better feedback during initialization.
+
+### Improved
+- **SoundFont Optimization:** Switched to `sonivox.sf3` for potentially better performance and compatibility.
+- **Viewer Initialization:** Refactored `GpViewer` event registration to occur before score loading, preventing race conditions with fast-loading files.
+
 ## [1.4.7] - 2026-02-12
 
 ### Improved

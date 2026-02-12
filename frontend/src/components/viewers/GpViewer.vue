@@ -23,6 +23,7 @@ const scrollWrapperRef = ref<HTMLElement | null>(null)
 const floatingToolbarRef = ref<InstanceType<typeof GpFloatingToolbar> | null>(null)
 const api = shallowRef<any>(null)
 const isLoaded = ref(false)
+const isSoundFontLoaded = ref(false)
 
 // UI State
 const highlightStyle = ref<any>(null)
@@ -46,6 +47,18 @@ const metronomeEnabled = ref(false)
 const isLooping = ref(false)
 const tracks = ref<any[]>([])
 const selectedTrack = ref(0)
+
+// Scroll tracking for toolbar auto-dodge
+const isScrolling = ref(false)
+let scrollTimer: ReturnType<typeof setTimeout> | null = null
+
+function onScrollWrapperScroll() {
+  isScrolling.value = true
+  if (scrollTimer) clearTimeout(scrollTimer)
+  scrollTimer = setTimeout(() => {
+    isScrolling.value = false
+  }, 300)
+}
 
 watch(() => settingsStore.settings.audioDevice, (newId) => {
   updateAudioOutput(newId)
@@ -105,7 +118,7 @@ async function loadGpTab() {
       player: {
         enablePlayer: true,
         enableCursor: true,
-        soundFont: '/alphatab/soundfont/sonivox.sf2',
+        soundFont: '/alphatab/soundfont/sonivox.sf3',
         scrollElement: scrollElement
       },
       display: {
@@ -114,25 +127,19 @@ async function loadGpTab() {
       }
     })
 
-    // Apply audio device
-    updateAudioOutput(settingsStore.settings.audioDevice)
+    // Register event handlers BEFORE loading the score to avoid race conditions
+    // (especially for small sf3 files that load almost instantly)
 
-    // Load from URL
-    const port = await window.go.main.App.GetFileServerPort()
-    const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
-    api.value.load(url)
-
-    // Event handlers
     api.value.scoreLoaded.on((score: any) => {
       if (score && score.tempo) {
         baseTempo.value = score.tempo
         currentBpm.value = score.tempo
       }
-      
+
       // Get Measure Count
       if (score && score.masterBars) {
         measureCount.value = score.masterBars.length
-        
+
         // Extract markers from masterBars
         markers.value = []
         score.masterBars.forEach((bar: any, index: number) => {
@@ -164,7 +171,7 @@ async function loadGpTab() {
         const title = score.title || ''
         const artist = score.artist || ''
         const album = score.album || ''
-        
+
         // Only call backend if we have ANY meaningful metadata to send
         if (title || artist || album) {
           window.go.main.App.UpdateTabMetadata(props.tabId, title, artist, album)
@@ -179,6 +186,12 @@ async function loadGpTab() {
       isPlaying.value = args.state === 1
     })
 
+    // Use playerReady — fires once the player + soundfont are fully initialised.
+    // More reliable than soundFontLoaded which can race with small sf3 files.
+    api.value.playerReady.on(() => {
+      isSoundFontLoaded.value = true
+    })
+
     // Selection Handling
     // Correct way to listen for selection in AlphaTab API wrapper:
     if (api.value.playbackRangeHighlightChanged) {
@@ -186,6 +199,12 @@ async function loadGpTab() {
             handleSelectionChange(args)
         })
     }
+
+    // Now that all listeners are registered, trigger the actual load
+    updateAudioOutput(settingsStore.settings.audioDevice)
+    const port = await window.go.main.App.GetFileServerPort()
+    const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
+    api.value.load(url)
 
   } catch (e) {
     showToast('Failed to load GP Tab: ' + e, 'error')
@@ -751,13 +770,24 @@ watch(() => props.visible, async (newVal) => {
 
     <!-- Main Content -->
     <div class="gp-main-content">
-        <div 
-            class="gp-scroll-wrapper" 
-            ref="scrollWrapperRef" 
+        <!-- SoundFont Loading Overlay -->
+        <Transition name="fade-mask">
+          <div v-if="!isSoundFontLoaded" class="sf-loading-mask">
+            <div class="sf-loading-content">
+              <div class="sf-spinner"></div>
+              <span v-if="!isLoaded">Loading score...</span>
+              <span v-else>Loading SoundFont...</span>
+            </div>
+          </div>
+        </Transition>
+        <div
+            class="gp-scroll-wrapper"
+            ref="scrollWrapperRef"
             tabindex="-1"
             @click="handleScrollWrapperClick"
             @mousedown="handleScrollWrapperMouseDown($event)"
             @contextmenu="handleScrollWrapperContextMenu($event)"
+            @scroll="onScrollWrapperScroll"
         >
             <div class="gp-render-area"></div>
 
@@ -798,6 +828,7 @@ watch(() => props.visible, async (newVal) => {
             :measureCount="measureCount"
             :isSelectionActive="isSelectionActive"
             :markers="markers"
+            :isScrolling="isScrolling"
             @jump-to-bar="jumpToBar"
             @clear-selection="clearSelection"
         />
@@ -922,7 +953,7 @@ watch(() => props.visible, async (newVal) => {
     0% {
         opacity: 1;
         transform: scale(1);
-        box-shadow: 
+        box-shadow:
             0 0 0 2px rgba(255, 180, 0, 0.8),
             0 0 30px rgba(255, 180, 0, 0.6),
             inset 0 0 30px rgba(255, 255, 255, 0.3);
@@ -930,7 +961,7 @@ watch(() => props.visible, async (newVal) => {
     25% {
         opacity: 0.9;
         transform: scale(1.02);
-        box-shadow: 
+        box-shadow:
             0 0 0 3px rgba(255, 180, 0, 0.6),
             0 0 40px rgba(255, 180, 0, 0.4),
             inset 0 0 20px rgba(255, 255, 255, 0.2);
@@ -942,9 +973,56 @@ watch(() => props.visible, async (newVal) => {
     100% {
         opacity: 0;
         transform: scale(0.98);
-        box-shadow: 
+        box-shadow:
             0 0 0 0 transparent,
             0 0 0 transparent;
     }
+}
+
+/* SoundFont Loading Mask */
+.sf-loading-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+}
+
+.sf-loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-secondary, #aaa);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.sf-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(150, 82, 51, 0.25);
+    border-top-color: var(--primary-color, #965233);
+    border-radius: 50%;
+    animation: sfSpin 0.8s linear infinite;
+}
+
+@keyframes sfSpin {
+    to { transform: rotate(360deg); }
+}
+
+.fade-mask-enter-active {
+    transition: opacity 0.2s ease;
+}
+.fade-mask-leave-active {
+    transition: opacity 0.4s ease;
+}
+.fade-mask-enter-from,
+.fade-mask-leave-to {
+    opacity: 0;
 }
 </style>

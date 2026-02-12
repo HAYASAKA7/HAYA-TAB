@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-1.4.7-green)
+![Version](https://img.shields.io/badge/version-1.4.8-green)
 ![License](https://img.shields.io/badge/license-MIT-yellow)
 
 ## ✨ Features
@@ -61,19 +61,24 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 ## 📁 Project Structure
 
 ```
-├── app.go              # Backend logic (Tab management, File ops)
+├── app.go              # Backend bridge (Wails -> Go)
 ├── main.go             # Application entry point
 ├── frontend/           # UI (Vue 3 + Vite)
 │   ├── src/            # Frontend source code
 │   ├── index.html      # Entry point
 │   └── vite.config.ts  # Build config
 ├── pkg/                # Internal packages
-│   ├── store/          # Database storage
-│   ├── metadata/       # Metadata parsing & cover art
+│   ├── coverpool/      # Worker pool for cover downloads
+│   ├── logger/         # Logging infrastructure
+│   ├── metadata/       # Metadata parsing logic
+│   ├── store/          # SQLite database & migrations
+│   ├── sync/           # File synchronization engine
 │   └── watcher/        # File system watcher
 ├── storage/            # Uploaded tabs (managed files)
 ├── covers/             # Downloaded cover art
-└── data/               # SQLite database
+├── data/               # SQLite database file
+├── logs/               # Application logs
+└── build/              # Wails build assets & config
 ```
 
 ## 🛠️ Tech Stack
