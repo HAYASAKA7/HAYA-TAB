@@ -21,7 +21,10 @@ const bindLabels: Record<keyof KeyBindings, string> = {
   toggleLoop: 'Toggle Loop',
   clearSelection: 'Clear Selection',
   jumpToBar: 'Jump to Bar',
-  jumpToStart: 'Jump to Start'
+  jumpToStart: 'Jump to Start',
+  autoScroll: 'Toggle Auto-Scroll',
+  scrollSpeedUp: 'Increase Scroll Speed',
+  scrollSpeedDown: 'Decrease Scroll Speed'
 }
 
 function close() {

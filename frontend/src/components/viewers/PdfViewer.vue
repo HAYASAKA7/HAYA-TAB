@@ -28,6 +28,12 @@ let audioCtx: AudioContext | null = null
 let nextNoteTime = 0
 let timerID: number | null = null
 
+// --- Auto-Scroll State ---
+const isAutoScrolling = ref(false)
+const scrollSpeed = ref(1)
+let scrollFrameId: number | null = null
+const injectedScrollInput = ref<HTMLInputElement | null>(null)
+
 const LOOKAHEAD = 25.0   // ms between scheduler calls
 const SCHEDULE_AHEAD = 0.1 // seconds to schedule ahead
 
@@ -89,9 +95,56 @@ function toggleMetronome() {
   }
 }
 
+// --- Auto-Scroll Functions ---
+function startAutoScroll() {
+  if (!iframeRef.value) return
+  const doc = iframeRef.value.contentDocument
+  if (!doc) return
+  const viewerContainer = doc.getElementById('viewerContainer')
+  if (!viewerContainer) return
+
+  function scrollStep() {
+    if (!viewerContainer) return
+    const maxScroll = viewerContainer.scrollHeight - viewerContainer.clientHeight
+    if (viewerContainer.scrollTop >= maxScroll) {
+      stopAutoScroll()
+      return
+    }
+    viewerContainer.scrollTop += scrollSpeed.value * 0.5
+    scrollFrameId = requestAnimationFrame(scrollStep)
+  }
+
+  scrollFrameId = requestAnimationFrame(scrollStep)
+  isAutoScrolling.value = true
+}
+
+function stopAutoScroll() {
+  if (scrollFrameId !== null) {
+    cancelAnimationFrame(scrollFrameId)
+    scrollFrameId = null
+  }
+  isAutoScrolling.value = false
+}
+
+function toggleAutoScroll() {
+  if (isAutoScrolling.value) {
+    stopAutoScroll()
+  } else {
+    startAutoScroll()
+  }
+}
+
+function adjustScrollSpeed(delta: number) {
+  scrollSpeed.value = Math.max(1, Math.min(50, scrollSpeed.value + delta))
+}
+
 // --- Metronome SVG icon (matches project icon style) ---
 const METRONOME_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M10.8 3.2L6 18H4v3h16v-3h-2L13.2 3.2c-.39-1.29-2.01-1.29-2.4 0zm2.2 2.6L16.2 18H7.8l3.2-12.2zM12 7c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-1 4.8l-2 5.2 2-2 2 2-2-5.2z"/></svg>`
 const STOP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><rect fill="currentColor" x="3" y="3" width="10" height="10" rx="1"/></svg>`
+
+// --- Auto-Scroll SVG icons ---
+const SCROLL_DOWN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M8 2v10M4 8l4 4 4-4"/></svg>`
+const SCROLL_PAUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><rect fill="currentColor" x="4" y="3" width="3" height="10" rx="1"/><rect fill="currentColor" x="9" y="3" width="3" height="10" rx="1"/></svg>`
 
 function onIframeLoad() {
   if (!iframeRef.value) return
@@ -115,7 +168,7 @@ function onIframeLoad() {
     // Inject styles — use --ht-* variables from custom_viewer.css for theme consistency
     const style = doc.createElement('style')
     style.textContent = `
-      .haya-metronome-group {
+      .haya-group {
         display: flex;
         align-items: center;
         gap: 4px;
@@ -165,7 +218,7 @@ function onIframeLoad() {
         outline: none;
         border-color: var(--ht-primary, #965233);
       }
-      .haya-bpm-label {
+      .haya-label {
         font-size: 11px;
         color: var(--ht-text-muted, #aaa);
         user-select: none;
@@ -173,10 +226,10 @@ function onIframeLoad() {
     `
     doc.head.appendChild(style)
 
-    // Build container
+    // Build metronome container
     const container = doc.createElement('div')
     container.id = 'haya-metronome-container'
-    container.className = 'haya-metronome-group'
+    container.className = 'haya-group'
 
     // Toggle button
     const btn = doc.createElement('button')
@@ -205,7 +258,7 @@ function onIframeLoad() {
 
     // BPM label
     const label = doc.createElement('span')
-    label.className = 'haya-bpm-label'
+    label.className = 'haya-label'
     label.textContent = 'BPM'
 
     container.appendChild(btn)
@@ -213,6 +266,47 @@ function onIframeLoad() {
     container.appendChild(label)
 
     toolbarRight.insertBefore(container, toolbarRight.firstChild)
+
+    // Build auto-scroll container
+    const scrollContainer = doc.createElement('div')
+    scrollContainer.id = 'haya-scroll-container'
+    scrollContainer.className = 'haya-group'
+
+    // Scroll toggle button
+    const scrollBtn = doc.createElement('button')
+    scrollBtn.id = 'haya-scroll-btn'
+    scrollBtn.className = 'haya-btn'
+    scrollBtn.title = `Toggle Auto-Scroll (${settingsStore.settings.keyBindings.autoScroll.toUpperCase()})`
+    scrollBtn.innerHTML = SCROLL_DOWN_SVG
+    scrollBtn.onclick = () => toggleAutoScroll()
+
+    // Speed input
+    const scrollInput = doc.createElement('input')
+    scrollInput.id = 'haya-scroll-speed'
+    scrollInput.className = 'haya-input'
+    scrollInput.type = 'number'
+    scrollInput.min = '1'
+    scrollInput.max = '50'
+    scrollInput.value = String(scrollSpeed.value)
+    scrollInput.title = `Scroll Speed (${settingsStore.settings.keyBindings.scrollSpeedDown} / ${settingsStore.settings.keyBindings.scrollSpeedUp})`
+    scrollInput.onkeydown = (e: KeyboardEvent) => e.stopPropagation()
+    scrollInput.onchange = () => {
+      const v = Math.max(1, Math.min(50, parseInt(scrollInput.value) || 1))
+      scrollSpeed.value = v
+      scrollInput.value = String(v)
+    }
+    injectedScrollInput.value = scrollInput
+
+    // Speed label
+    const scrollLabel = doc.createElement('span')
+    scrollLabel.className = 'haya-label'
+    scrollLabel.textContent = 'SPD'
+
+    scrollContainer.appendChild(scrollBtn)
+    scrollContainer.appendChild(scrollInput)
+    scrollContainer.appendChild(scrollLabel)
+
+    toolbarRight.insertBefore(scrollContainer, toolbarRight.firstChild)
   } catch (e) {
     // Ignore cross-origin or DOM access issues
   }
@@ -226,6 +320,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   stopMetronome()
+  stopAutoScroll()
   if (audioCtx) {
     audioCtx.close()
     audioCtx = null
@@ -298,6 +393,12 @@ function handleKeydown(e: KeyboardEvent) {
     bpm.value = Math.min(300, bpm.value + 10)
   } else if (key === keys.bpmMinus) {
     bpm.value = Math.max(20, bpm.value - 10)
+  } else if (key === keys.autoScroll) {
+    toggleAutoScroll()
+  } else if (e.key === keys.scrollSpeedUp) {
+    adjustScrollSpeed(1)
+  } else if (e.key === keys.scrollSpeedDown) {
+    adjustScrollSpeed(-1)
   }
 }
 
@@ -307,6 +408,7 @@ watch(() => props.visible, (newVal) => {
     window.addEventListener('keydown', handleKeydown)
   } else {
     window.removeEventListener('keydown', handleKeydown)
+    stopAutoScroll()
   }
 
   if (newVal && iframeRef.value) {
@@ -336,6 +438,33 @@ watch(bpm, (val) => {
     const doc = iframeRef.value.contentDocument
     if (!doc) return
     const input = doc.getElementById('haya-metronome-bpm') as HTMLInputElement | null
+    if (input && input.value !== String(val)) {
+      input.value = String(val)
+    }
+  } catch { /* ignore */ }
+})
+
+// Sync auto-scroll state to injected button
+watch(isAutoScrolling, (scrolling) => {
+  if (!iframeRef.value) return
+  try {
+    const doc = iframeRef.value.contentDocument
+    if (!doc) return
+    const btn = doc.getElementById('haya-scroll-btn')
+    if (btn) {
+      btn.innerHTML = scrolling ? SCROLL_PAUSE_SVG : SCROLL_DOWN_SVG
+      btn.classList.toggle('toggled', scrolling)
+    }
+  } catch { /* ignore */ }
+})
+
+// Sync scroll speed to injected input
+watch(scrollSpeed, (val) => {
+  if (!iframeRef.value) return
+  try {
+    const doc = iframeRef.value.contentDocument
+    if (!doc) return
+    const input = doc.getElementById('haya-scroll-speed') as HTMLInputElement | null
     if (input && input.value !== String(val)) {
       input.value = String(val)
     }

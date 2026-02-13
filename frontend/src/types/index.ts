@@ -34,6 +34,9 @@ export interface KeyBindings {
   clearSelection: string
   jumpToBar: string
   jumpToStart: string
+  autoScroll: string
+  scrollSpeedUp: string
+  scrollSpeedDown: string
 }
 
 export interface Settings {

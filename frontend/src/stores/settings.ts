@@ -27,7 +27,10 @@ export const useSettingsStore = defineStore('settings', () => {
       toggleLoop: 'r',
       clearSelection: 'escape',
       jumpToBar: 't',
-      jumpToStart: 'i'
+      jumpToStart: 'i',
+      autoScroll: 'n',
+      scrollSpeedUp: '.',
+      scrollSpeedDown: ','
     }
   })
 

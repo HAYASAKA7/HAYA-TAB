@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.10] - 2026-02-13
+
+### Added
+- **Auto-Scroll Feature:** New auto-scroll functionality for PDF viewer with adjustable speed control
+  - Toggle auto-scroll with configurable key binding (default: `N`)
+  - Adjust scroll speed with configurable key bindings (default: `,` to decrease, `.` to increase)
+  - Native-looking toolbar integration with speed input and visual feedback
+  - Automatically stops when reaching the end of the document
+
+### Improved
+- **Key Bindings:** Added three new configurable key bindings for auto-scroll controls (toggle, speed up, speed down)
+- **Settings Persistence:** Auto-scroll key bindings are now saved to the database and persist across sessions
+
 ## [1.4.9] - 2026-02-12
 
 ### Improved

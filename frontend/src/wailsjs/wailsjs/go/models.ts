@@ -71,6 +71,9 @@ export namespace store {
 	    clearSelection: string;
 	    jumpToBar: string;
 	    jumpToStart: string;
+	    autoScroll: string;
+	    scrollSpeedUp: string;
+	    scrollSpeedDown: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new KeyBindings(source);
@@ -89,6 +92,9 @@ export namespace store {
 	        this.clearSelection = source["clearSelection"];
 	        this.jumpToBar = source["jumpToBar"];
 	        this.jumpToStart = source["jumpToStart"];
+	        this.autoScroll = source["autoScroll"];
+	        this.scrollSpeedUp = source["scrollSpeedUp"];
+	        this.scrollSpeedDown = source["scrollSpeedDown"];
 	    }
 	}
 	export class Settings {

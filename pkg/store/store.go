@@ -29,17 +29,20 @@ type Category struct {
 }
 
 type KeyBindings struct {
-	ScrollDown     string `json:"scrollDown"`
-	ScrollUp       string `json:"scrollUp"`
-	Metronome      string `json:"metronome"`
-	PlayPause      string `json:"playPause"`
-	Stop           string `json:"stop"`
-	BpmPlus        string `json:"bpmPlus"`
-	BpmMinus       string `json:"bpmMinus"`
-	ToggleLoop     string `json:"toggleLoop"`
-	ClearSelection string `json:"clearSelection"`
-	JumpToBar      string `json:"jumpToBar"`
-	JumpToStart    string `json:"jumpToStart"`
+	ScrollDown      string `json:"scrollDown"`
+	ScrollUp        string `json:"scrollUp"`
+	Metronome       string `json:"metronome"`
+	PlayPause       string `json:"playPause"`
+	Stop            string `json:"stop"`
+	BpmPlus         string `json:"bpmPlus"`
+	BpmMinus        string `json:"bpmMinus"`
+	ToggleLoop      string `json:"toggleLoop"`
+	ClearSelection  string `json:"clearSelection"`
+	JumpToBar       string `json:"jumpToBar"`
+	JumpToStart     string `json:"jumpToStart"`
+	AutoScroll      string `json:"autoScroll"`
+	ScrollSpeedUp   string `json:"scrollSpeedUp"`
+	ScrollSpeedDown string `json:"scrollSpeedDown"`
 }
 
 type Settings struct {
@@ -89,17 +92,20 @@ func NewStore(dataPath string) *Store {
 			AutoSyncFrequency: "startup",
 			LastSyncTime:      0,
 			KeyBindings: KeyBindings{
-				ScrollDown:     "j",
-				ScrollUp:       "k",
-				Metronome:      "m",
-				PlayPause:      "p",
-				Stop:           "o",
-				BpmPlus:        "l",
-				BpmMinus:       "h",
-				ToggleLoop:     "r",
-				ClearSelection: "escape",
-				JumpToBar:      "t",
-				JumpToStart:    "i",
+				ScrollDown:      "j",
+				ScrollUp:        "k",
+				Metronome:       "m",
+				PlayPause:       "p",
+				Stop:            "o",
+				BpmPlus:         "l",
+				BpmMinus:        "h",
+				ToggleLoop:      "r",
+				ClearSelection:  "escape",
+				JumpToBar:       "t",
+				JumpToStart:     "i",
+				AutoScroll:      "n",
+				ScrollSpeedUp:   ".",
+				ScrollSpeedDown: ",",
 			},
 		},
 	}

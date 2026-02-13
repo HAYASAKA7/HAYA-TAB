@@ -28,17 +28,20 @@ func NewDBStore(dbPath string) *DBStore {
 			SyncStrategy: "skip",
 			SyncPaths:    []string{},
 			KeyBindings: KeyBindings{
-				ScrollDown:     "j",
-				ScrollUp:       "k",
-				Metronome:      "m",
-				PlayPause:      "p",
-				Stop:           "o",
-				BpmPlus:        "l",
-				BpmMinus:       "h",
-				ToggleLoop:     "r",
-				ClearSelection: "escape",
-				JumpToBar:      "t",
-				JumpToStart:    "i",
+				ScrollDown:      "j",
+				ScrollUp:        "k",
+				Metronome:       "m",
+				PlayPause:       "p",
+				Stop:            "o",
+				BpmPlus:         "l",
+				BpmMinus:        "h",
+				ToggleLoop:      "r",
+				ClearSelection:  "escape",
+				JumpToBar:       "t",
+				JumpToStart:     "i",
+				AutoScroll:      "n",
+				ScrollSpeedUp:   ">",
+				ScrollSpeedDown: "<",
 			},
 		},
 	}
@@ -269,6 +272,15 @@ func (s *DBStore) loadSettings() error {
 	}
 	if v, ok := settings["keyBindings.jumpToStart"]; ok && v != "" {
 		s.Settings.KeyBindings.JumpToStart = v
+	}
+	if v, ok := settings["keyBindings.autoScroll"]; ok && v != "" {
+		s.Settings.KeyBindings.AutoScroll = v
+	}
+	if v, ok := settings["keyBindings.scrollSpeedUp"]; ok && v != "" {
+		s.Settings.KeyBindings.ScrollSpeedUp = v
+	}
+	if v, ok := settings["keyBindings.scrollSpeedDown"]; ok && v != "" {
+		s.Settings.KeyBindings.ScrollSpeedDown = v
 	}
 
 	return nil
@@ -721,28 +733,31 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 
 	// Save each setting
 	settingsMap := map[string]string{
-		"theme":                      settings.Theme,
-		"background":                 settings.Background,
-		"bgType":                     settings.BgType,
-		"openMethod":                 settings.OpenMethod,
-		"openGpMethod":               settings.OpenGpMethod,
-		"audioDevice":                settings.AudioDevice,
-		"autoSyncEnabled":            fmt.Sprintf("%v", settings.AutoSyncEnabled),
-		"autoSyncFrequency":          settings.AutoSyncFrequency,
-		"lastSyncTime":               fmt.Sprintf("%d", settings.LastSyncTime),
-		"syncStrategy":               settings.SyncStrategy,
-		"syncPaths":                  strings.Join(settings.SyncPaths, "|"),
-		"keyBindings.scrollDown":     settings.KeyBindings.ScrollDown,
-		"keyBindings.scrollUp":       settings.KeyBindings.ScrollUp,
-		"keyBindings.metronome":      settings.KeyBindings.Metronome,
-		"keyBindings.playPause":      settings.KeyBindings.PlayPause,
-		"keyBindings.stop":           settings.KeyBindings.Stop,
-		"keyBindings.bpmPlus":        settings.KeyBindings.BpmPlus,
-		"keyBindings.bpmMinus":       settings.KeyBindings.BpmMinus,
-		"keyBindings.toggleLoop":     settings.KeyBindings.ToggleLoop,
-		"keyBindings.clearSelection": settings.KeyBindings.ClearSelection,
-		"keyBindings.jumpToBar":      settings.KeyBindings.JumpToBar,
-		"keyBindings.jumpToStart":    settings.KeyBindings.JumpToStart,
+		"theme":                        settings.Theme,
+		"background":                   settings.Background,
+		"bgType":                       settings.BgType,
+		"openMethod":                   settings.OpenMethod,
+		"openGpMethod":                 settings.OpenGpMethod,
+		"audioDevice":                  settings.AudioDevice,
+		"autoSyncEnabled":              fmt.Sprintf("%v", settings.AutoSyncEnabled),
+		"autoSyncFrequency":            settings.AutoSyncFrequency,
+		"lastSyncTime":                 fmt.Sprintf("%d", settings.LastSyncTime),
+		"syncStrategy":                 settings.SyncStrategy,
+		"syncPaths":                    strings.Join(settings.SyncPaths, "|"),
+		"keyBindings.scrollDown":       settings.KeyBindings.ScrollDown,
+		"keyBindings.scrollUp":         settings.KeyBindings.ScrollUp,
+		"keyBindings.metronome":        settings.KeyBindings.Metronome,
+		"keyBindings.playPause":        settings.KeyBindings.PlayPause,
+		"keyBindings.stop":             settings.KeyBindings.Stop,
+		"keyBindings.bpmPlus":          settings.KeyBindings.BpmPlus,
+		"keyBindings.bpmMinus":         settings.KeyBindings.BpmMinus,
+		"keyBindings.toggleLoop":       settings.KeyBindings.ToggleLoop,
+		"keyBindings.clearSelection":   settings.KeyBindings.ClearSelection,
+		"keyBindings.jumpToBar":        settings.KeyBindings.JumpToBar,
+		"keyBindings.jumpToStart":      settings.KeyBindings.JumpToStart,
+		"keyBindings.autoScroll":       settings.KeyBindings.AutoScroll,
+		"keyBindings.scrollSpeedUp":    settings.KeyBindings.ScrollSpeedUp,
+		"keyBindings.scrollSpeedDown":  settings.KeyBindings.ScrollSpeedDown,
 	}
 
 	for key, value := range settingsMap {
