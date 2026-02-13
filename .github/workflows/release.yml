@@ -20,11 +20,6 @@ jobs:
             platform: darwin
             arch: universal  # 同时支持 Intel 和 Apple Silicon
 
-          # Linux
-          - os: ubuntu-latest
-            platform: linux
-            arch: amd64
-
     runs-on: ${{ matrix.os }}
 
     steps:
