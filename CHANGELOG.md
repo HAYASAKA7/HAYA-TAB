@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.9] - 2026-02-12
+
+### Improved
+- **File Watcher:** Optimized internal debounce logic for file system events to improve stability and performance.
+
 ## [1.4.8] - 2026-02-12
 
 ### Added

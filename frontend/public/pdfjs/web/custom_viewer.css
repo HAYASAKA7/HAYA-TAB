@@ -22,9 +22,25 @@
     --doorhanger-bg-color: var(--ht-card-bg);
     --doorhanger-border-color: var(--ht-border);
     --overlay-container-bg-color: rgba(0, 0, 0, 0.5); /* Modal overlay */
-    
+
     /* Scrollbars */
     scrollbar-color: var(--ht-border) var(--ht-bg);
+}
+
+/* Dark Theme Class — re-assert variables with higher specificity
+   to beat PDF.js _forceCssTheme() extracted :root rules */
+body.theme-dark {
+    --body-bg-color: var(--ht-bg);
+    --sidebar-narrow-bg-color: var(--ht-sidebar-bg);
+    --sidebar-toolbar-bg-color: var(--ht-sidebar-bg);
+    --toolbar-bg-color: var(--ht-card-bg);
+    --toolbar-icon-bg-color: var(--ht-text);
+    --toolbar-icon-hover-bg-color: var(--ht-hover);
+    --toolbar-border-color: var(--ht-border);
+    --toolbar-box-shadow: none;
+    --sidebar-bg-color: var(--ht-sidebar-bg);
+    --doorhanger-bg-color: var(--ht-card-bg);
+    --doorhanger-border-color: var(--ht-border);
 }
 
 /* Light Theme Class */
