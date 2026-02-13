@@ -60,10 +60,16 @@ jobs:
         run: npm install
         working-directory: frontend
 
-      # 构建应用
+      # 构建应用 (Linux 需要 webkit2_41 标签)
       - name: Build application
         run: |
-          wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            export GOFLAGS="-tags=webkit2_41"
+            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+          else
+            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+          fi
+        shell: bash
 
       # Windows: 打包为 zip
       - name: Package Windows build
