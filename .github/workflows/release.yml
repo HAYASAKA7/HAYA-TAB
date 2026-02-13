@@ -1,0 +1,140 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送 v* 标签时触发（例如 v1.4.10）
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # Windows
+          - os: windows-latest
+            platform: windows
+            arch: amd64
+
+          # macOS
+          - os: macos-latest
+            platform: darwin
+            arch: universal  # 同时支持 Intel 和 Apple Silicon
+
+          # Linux
+          - os: ubuntu-latest
+            platform: linux
+            arch: amd64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # Linux 特定依赖
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      # 安装 Wails CLI
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      # 安装前端依赖
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: frontend
+
+      # 构建应用
+      - name: Build application
+        run: |
+          wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+
+      # Windows: 打包为 zip
+      - name: Package Windows build
+        if: matrix.platform == 'windows'
+        run: |
+          cd build/bin
+          7z a ../../HAYA-TAB-windows-amd64.zip HAYA-TAB.exe
+        shell: bash
+
+      # macOS: 创建 DMG
+      - name: Package macOS build
+        if: matrix.platform == 'darwin'
+        run: |
+          cd build/bin
+          # 创建临时目录
+          mkdir -p dmg
+          cp -r HAYA-TAB.app dmg/
+          # 创建 DMG
+          hdiutil create -volname "HAYA-TAB" -srcfolder dmg -ov -format UDZO ../../HAYA-TAB-macos-universal.dmg
+          rm -rf dmg
+
+      # Linux: 打包为 tar.gz
+      - name: Package Linux build
+        if: matrix.platform == 'linux'
+        run: |
+          cd build/bin
+          tar -czf ../../HAYA-TAB-linux-amd64.tar.gz HAYA-TAB
+
+      # 上传构建产物
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAYA-TAB-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            HAYA-TAB-*.zip
+            HAYA-TAB-*.dmg
+            HAYA-TAB-*.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 下载所有构建产物
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      # 移动文件到根目录
+      - name: Prepare release files
+        run: |
+          find artifacts -type f \( -name "*.zip" -o -name "*.dmg" -o -name "*.tar.gz" \) -exec mv {} . \;
+          ls -lh
+
+      # 创建 GitHub Release
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            HAYA-TAB-windows-amd64.zip
+            HAYA-TAB-macos-universal.dmg
+            HAYA-TAB-linux-amd64.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
