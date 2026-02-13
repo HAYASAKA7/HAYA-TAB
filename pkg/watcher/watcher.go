@@ -32,7 +32,7 @@ type FileWatcher struct {
 func NewFileWatcher(onChange func()) *FileWatcher {
 	return &FileWatcher{
 		onChange:   onChange,
-		debounceMs: 1000, // 1 second debounce
+		debounceMs: 500, // 0.5 second debounce
 		stopChan:   make(chan struct{}),
 	}
 }
