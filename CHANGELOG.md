@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.17] - 2026-02-21
+
+### Fixed
+- **Edit Tab Modal:** Updated the metadata editing interface to use a single-column layout, resolving overlap issues and improving readability.
+- **Modal Scrolling:** Added a vertical scrollbar to modal windows when content exceeds the viewport height.
+
 ## [1.4.10] - 2026-02-13
 
 ### Added

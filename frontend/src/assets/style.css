@@ -489,6 +489,8 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
     width: auto;
     min-width: 320px;
     max-width: min(90vw, 420px);
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
 }
 

@@ -123,52 +123,48 @@ async function handleSave() {
           />
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="edit-type">Type</label>
-            <select id="edit-type" v-model="formData.type">
-              <option value="pdf">PDF</option>
-              <option value="gp">Guitar Pro</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="edit-tag">Tag</label>
-            <input
-              id="edit-tag"
-              type="text"
-              v-model="formData.tag"
-              placeholder="e.g. Lead Guitar"
-            />
-          </div>
+        <div class="form-group">
+          <label for="edit-type">Type</label>
+          <select id="edit-type" v-model="formData.type">
+            <option value="pdf">PDF</option>
+            <option value="gp">Guitar Pro</option>
+          </select>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="edit-country">Country</label>
-            <select id="edit-country" v-model="formData.country">
-              <option value="US">US</option>
-              <option value="JP">Japan</option>
-              <option value="GB">UK</option>
-              <option value="DE">Germany</option>
-              <option value="FR">France</option>
-              <option value="KR">Korea</option>
-              <option value="CN">China</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label for="edit-tag">Tag</label>
+          <input
+            id="edit-tag"
+            type="text"
+            v-model="formData.tag"
+            placeholder="e.g. Lead Guitar"
+          />
+        </div>
 
-          <div class="form-group">
-            <label for="edit-lang">Language</label>
-            <select id="edit-lang" v-model="formData.language">
-              <option value="en_us">English (US)</option>
-              <option value="ja_jp">Japanese</option>
-              <option value="en_gb">English (UK)</option>
-              <option value="de_de">German</option>
-              <option value="fr_fr">French</option>
-              <option value="ko_kr">Korean</option>
-              <option value="zh_cn">Chinese</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label for="edit-country">Country</label>
+          <select id="edit-country" v-model="formData.country">
+            <option value="US">US</option>
+            <option value="JP">Japan</option>
+            <option value="GB">UK</option>
+            <option value="DE">Germany</option>
+            <option value="FR">France</option>
+            <option value="KR">Korea</option>
+            <option value="CN">China</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-lang">Language</label>
+          <select id="edit-lang" v-model="formData.language">
+            <option value="en_us">English (US)</option>
+            <option value="ja_jp">Japanese</option>
+            <option value="en_gb">English (UK)</option>
+            <option value="de_de">German</option>
+            <option value="fr_fr">French</option>
+            <option value="ko_kr">Korean</option>
+            <option value="zh_cn">Chinese</option>
+          </select>
         </div>
 
         <div class="modal-actions">
