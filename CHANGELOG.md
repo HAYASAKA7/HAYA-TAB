@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-02-22
+
+### Fixed
+- **Singles View Logic:** The "Singles" view now correctly displays *all* tabs in the library, regardless of whether they are in a category. Previously, it only showed uncategorized tabs, acting more like an "Unsorted" folder. This change aligns the view with its intended purpose as a complete "All Songs" list, while Categories function as playlists/tags.
+
 ## [1.4.17] - 2026-02-21
 
 ### Fixed

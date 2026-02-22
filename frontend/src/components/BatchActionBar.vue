@@ -12,7 +12,7 @@ const isVisible = computed(() => tabsStore.isBatchSelectMode && selectedCount.va
 
 async function handleDelete() {
   const selectedTabs = tabsStore.selectedTabs
-  const managedCount = selectedTabs.filter(t => t.isManaged).length
+  const managedCount = selectedTabs.filter((t: any) => t.isManaged).length
   const linkedCount = selectedTabs.length - managedCount
 
   let message = `You are about to remove <strong>${selectedCount.value}</strong> tab(s).`

@@ -9,17 +9,27 @@ const { showToast } = useToast()
 
 const categoryId = ref('')
 const categoryName = ref('')
+const coverPath = ref('')
 
 // Watch for modal data changes
 watch(() => uiStore.categoryModalData, (data) => {
   if (data) {
     categoryId.value = data.id || ''
     categoryName.value = data.name || ''
+    coverPath.value = data.coverPath || ''
   } else {
     categoryId.value = ''
     categoryName.value = ''
+    coverPath.value = ''
   }
 }, { immediate: true })
+
+async function selectCover() {
+  const path = await window.go.main.App.SelectImage()
+  if (path) {
+    coverPath.value = path
+  }
+}
 
 async function handleSave() {
   if (!categoryName.value.trim()) return
@@ -32,7 +42,8 @@ async function handleSave() {
       name: categoryName.value.trim(),
       parentId: categoryId.value
         ? existingCategory?.parentId || ''
-        : tabsStore.currentCategoryId
+        : tabsStore.currentCategoryId,
+      coverPath: coverPath.value
     })
 
     uiStore.hideCategoryModal()
@@ -50,7 +61,7 @@ async function handleSave() {
     @click.self="uiStore.hideCategoryModal"
   >
     <div class="modal">
-      <h2>{{ categoryId ? 'Rename Category' : 'New Category' }}</h2>
+      <h2>{{ categoryId ? 'Edit Category' : 'New Category' }}</h2>
 
       <form @submit.prevent="handleSave">
         <div class="form-group">
@@ -62,6 +73,15 @@ async function handleSave() {
             required
             autofocus
           />
+        </div>
+
+        <div class="form-group">
+          <label>Cover Image</label>
+          <div class="cover-input">
+            <input type="text" v-model="coverPath" placeholder="Default (First Tab)" readonly />
+            <button type="button" class="btn" @click="selectCover">Select</button>
+            <button type="button" class="btn" @click="coverPath = ''" v-if="coverPath">Clear</button>
+          </div>
         </div>
 
         <div class="modal-actions">
@@ -76,3 +96,13 @@ async function handleSave() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.cover-input {
+  display: flex;
+  gap: 0.5rem;
+}
+.cover-input input {
+  flex: 1;
+}
+</style>

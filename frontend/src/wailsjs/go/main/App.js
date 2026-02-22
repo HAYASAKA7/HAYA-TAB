@@ -30,6 +30,10 @@ export function GetCategories() {
   return window['go']['main']['App']['GetCategories']();
 }
 
+export function GetRecentCategories(arg1) {
+  return window['go']['main']['App']['GetRecentCategories'](arg1);
+}
+
 export function GetCover(arg1) {
   return window['go']['main']['App']['GetCover'](arg1);
 }
@@ -50,8 +54,12 @@ export function GetTabs() {
   return window['go']['main']['App']['GetTabs']();
 }
 
-export function GetTabsPaginated(arg1, arg2, arg3, arg4, arg5, arg6) {
-  return window['go']['main']['App']['GetTabsPaginated'](arg1, arg2, arg3, arg4, arg5, arg6);
+export function GetTabsPaginated(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
+  return window['go']['main']['App']['GetTabsPaginated'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+}
+
+export function MarkAsOpened(arg1) {
+  return window['go']['main']['App']['MarkAsOpened'](arg1);
 }
 
 export function MoveCategory(arg1, arg2) {

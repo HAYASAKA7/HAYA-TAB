@@ -11,6 +11,10 @@ function goHome() {
   uiStore.switchView('home')
 }
 
+function goLibrary() {
+  uiStore.switchView('library')
+}
+
 function goSettings() {
   uiStore.switchView('settings')
 }
@@ -33,6 +37,15 @@ function toggleSidebar() {
     >
       <span class="icon"><span class="icon-home"></span></span>
       <span class="sidebar-label">Home</span>
+    </div>
+    <div
+      id="nav-library"
+      class="sidebar-item"
+      :class="{ active: uiStore.currentView === 'library' }"
+      @click="goLibrary"
+    >
+      <span class="icon"><span class="icon-library"></span></span>
+      <span class="sidebar-label">Library</span>
     </div>
     <div
       id="nav-settings"

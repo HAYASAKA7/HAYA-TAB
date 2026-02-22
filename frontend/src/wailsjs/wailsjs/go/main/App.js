@@ -6,6 +6,14 @@ export function AddCategory(arg1) {
   return window['go']['main']['App']['AddCategory'](arg1);
 }
 
+export function AddTabToCategory(arg1, arg2) {
+  return window['go']['main']['App']['AddTabToCategory'](arg1, arg2);
+}
+
+export function BatchAddTabsToCategory(arg1, arg2) {
+  return window['go']['main']['App']['BatchAddTabsToCategory'](arg1, arg2);
+}
+
 export function BatchDeleteTabs(arg1) {
   return window['go']['main']['App']['BatchDeleteTabs'](arg1);
 }
@@ -38,6 +46,14 @@ export function GetFileServerPort() {
   return window['go']['main']['App']['GetFileServerPort']();
 }
 
+export function GetRecentCategories(arg1) {
+  return window['go']['main']['App']['GetRecentCategories'](arg1);
+}
+
+export function GetRecentTabs(arg1) {
+  return window['go']['main']['App']['GetRecentTabs'](arg1);
+}
+
 export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }
@@ -46,8 +62,12 @@ export function GetTabs() {
   return window['go']['main']['App']['GetTabs']();
 }
 
-export function GetTabsPaginated(arg1, arg2, arg3, arg4, arg5, arg6) {
-  return window['go']['main']['App']['GetTabsPaginated'](arg1, arg2, arg3, arg4, arg5, arg6);
+export function GetTabsPaginated(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
+  return window['go']['main']['App']['GetTabsPaginated'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+}
+
+export function MarkAsOpened(arg1) {
+  return window['go']['main']['App']['MarkAsOpened'](arg1);
 }
 
 export function MoveCategory(arg1, arg2) {
@@ -64,6 +84,10 @@ export function OpenTab(arg1) {
 
 export function ProcessFile(arg1) {
   return window['go']['main']['App']['ProcessFile'](arg1);
+}
+
+export function RemoveTabFromCategory(arg1, arg2) {
+  return window['go']['main']['App']['RemoveTabFromCategory'](arg1, arg2);
 }
 
 export function SaveSettings(arg1) {
@@ -96,6 +120,10 @@ export function TriggerSync() {
 
 export function UpdateTab(arg1) {
   return window['go']['main']['App']['UpdateTab'](arg1);
+}
+
+export function UpdateTabCategories(arg1, arg2) {
+  return window['go']['main']['App']['UpdateTabCategories'](arg1, arg2);
 }
 
 export function UpdateTabMetadata(arg1, arg2, arg3, arg4) {

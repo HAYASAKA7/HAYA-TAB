@@ -8,10 +8,12 @@ export interface Tab {
   type: 'pdf' | 'gp' | 'unknown'
   isManaged: boolean
   coverPath: string
-  categoryId: string
+  categoryIds: string[]
   country: string
   language: string
   tag: string
+  addedAt: number
+  lastOpened: number
 }
 
 // Category represents a virtual folder for organizing tabs
@@ -19,6 +21,8 @@ export interface Category {
   id: string
   name: string
   parentId: string
+  coverPath: string
+  effectiveCoverPath?: string
 }
 
 // Settings represents application settings
@@ -94,4 +98,4 @@ export interface DragItem {
 }
 
 // ViewType represents the current view
-export type ViewType = 'home' | 'settings' | `pdf-${string}` | `gp-${string}`
+export type ViewType = 'home' | 'library' | 'settings' | `pdf-${string}` | `gp-${string}`

@@ -23,7 +23,7 @@ const formData = ref<Partial<Tab>>({
   tag: '',
   isManaged: false,
   coverPath: '',
-  categoryId: ''
+  categoryIds: [] as string[]
 })
 
 const shouldCopy = ref(false)
@@ -43,7 +43,7 @@ watch(() => uiStore.editModalData, (data) => {
       tag: data.tag || '',
       isManaged: data.isManaged || false,
       coverPath: data.coverPath || '',
-      categoryId: data.categoryId || tabsStore.currentCategoryId
+      categoryIds: data.categoryIds || (data.categoryId ? [data.categoryId] : []) || (tabsStore.currentCategoryId ? [tabsStore.currentCategoryId] : [])
     }
     shouldCopy.value = false
   }
@@ -61,10 +61,12 @@ async function handleSave() {
     type: (formData.value.type as 'pdf' | 'gp' | 'unknown') || 'pdf',
     isManaged: existing?.isManaged || false,
     coverPath: existing?.coverPath || '',
-    categoryId: existing?.categoryId || tabsStore.currentCategoryId,
+    categoryIds: existing?.categoryIds || (tabsStore.currentCategoryId ? [tabsStore.currentCategoryId] : []),
     country: formData.value.country || 'US',
     language: formData.value.language || 'en_us',
-    tag: formData.value.tag || ''
+    tag: formData.value.tag || '',
+    addedAt: existing?.addedAt || 0,
+    lastOpened: existing?.lastOpened || 0
   }
 
   try {

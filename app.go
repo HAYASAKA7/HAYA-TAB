@@ -305,7 +305,7 @@ func (a *App) GetTabs() []store.Tab {
 }
 
 // GetTabsPaginated returns a paginated list of tabs with optional search
-func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool) TabsResponse {
+func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) TabsResponse {
 	if page < 1 {
 		page = 1
 	}
@@ -318,7 +318,7 @@ func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuer
 	}
 	searchQuery = strings.ToLower(strings.TrimSpace(searchQuery))
 
-	tabs, total, err := a.store.GetTabsPaginated(categoryId, page, pageSize, searchQuery, filterBy, isGlobal)
+	tabs, total, err := a.store.GetTabsPaginated(categoryId, page, pageSize, searchQuery, filterBy, isGlobal, sortBy, sortDesc)
 	if err != nil {
 		a.logger.Error("Error getting paginated tabs: %v", err)
 		return TabsResponse{
@@ -352,6 +352,26 @@ func (a *App) GetCategories() []store.Category {
 		return []store.Category{}
 	}
 	return categories
+}
+
+// GetRecentCategories returns the list of recently accessed categories
+func (a *App) GetRecentCategories(limit int) []store.Category {
+	categories, err := a.store.GetRecentCategories(limit)
+	if err != nil {
+		a.logger.Error("Error getting recent categories: %v", err)
+		return []store.Category{}
+	}
+	return categories
+}
+
+// GetRecentTabs returns the list of recently accessed tabs
+func (a *App) GetRecentTabs(limit int) []store.Tab {
+	tabs, err := a.store.GetRecentTabs(limit)
+	if err != nil {
+		a.logger.Error("Error getting recent tabs: %v", err)
+		return []store.Tab{}
+	}
+	return tabs
 }
 
 // AddCategory adds a new category
@@ -420,20 +440,115 @@ func (a *App) BatchDeleteTabs(ids []string) (int, error) {
 	return deleted, nil
 }
 
-// BatchMoveTabs moves multiple tabs to a category at once
+// BatchMoveTabs moves multiple tabs to a category at once (replaces existing categories)
 func (a *App) BatchMoveTabs(ids []string, categoryID string) (int, error) {
 	moved := 0
-	for _, id := range ids {
-		if err := a.store.MoveTab(id, categoryID); err == nil {
+	baseTime := time.Now().Unix()
+	for i, id := range ids {
+		// Increment added time slightly to preserve order
+		// For backward compatibility, "Move" implies setting the single category
+		cats := []string{}
+		if categoryID != "" {
+			cats = append(cats, categoryID)
+		}
+		if err := a.store.SetTabCategories(id, cats, baseTime+int64(i)); err == nil {
 			moved++
 		}
 	}
 	return moved, nil
 }
 
-// MoveTab updates the category of a tab
+// BatchAddTabsToCategory adds multiple tabs to a category
+func (a *App) BatchAddTabsToCategory(ids []string, categoryID string) (int, error) {
+	added := 0
+	baseTime := time.Now().Unix()
+	for i, id := range ids {
+		// Get existing tab to check for duplicates
+		tab, err := a.store.GetTab(id)
+		if err != nil || tab == nil {
+			continue
+		}
+
+		// Check if already in category
+		exists := false
+		for _, c := range tab.CategoryIDs {
+			if c == categoryID {
+				exists = true
+				break
+			}
+		}
+		if exists {
+			continue
+		}
+
+		newCats := append(tab.CategoryIDs, categoryID)
+		if err := a.store.SetTabCategories(id, newCats, baseTime+int64(i)); err == nil {
+			added++
+		}
+	}
+	return added, nil
+}
+
+// MoveTab updates the category of a tab (replaces existing categories with this one)
 func (a *App) MoveTab(tabID, categoryID string) error {
-	return a.store.MoveTab(tabID, categoryID)
+	cats := []string{}
+	if categoryID != "" {
+		cats = append(cats, categoryID)
+	}
+	return a.store.SetTabCategories(tabID, cats, time.Now().Unix())
+}
+
+// UpdateTabCategories updates the categories for a tab
+func (a *App) UpdateTabCategories(tabID string, categoryIDs []string) error {
+	return a.store.SetTabCategories(tabID, categoryIDs, time.Now().Unix())
+}
+
+// AddTabToCategory adds a tab to a category without removing it from others
+func (a *App) AddTabToCategory(tabID, categoryID string) error {
+	tab, err := a.store.GetTab(tabID)
+	if err != nil {
+		return err
+	}
+	if tab == nil {
+		return fmt.Errorf("tab not found")
+	}
+
+	// Check if already in category
+	for _, c := range tab.CategoryIDs {
+		if c == categoryID {
+			return nil // Already in category
+		}
+	}
+
+	newCats := append(tab.CategoryIDs, categoryID)
+	return a.store.SetTabCategories(tabID, newCats, time.Now().Unix())
+}
+
+// RemoveTabFromCategory removes a tab from a category
+func (a *App) RemoveTabFromCategory(tabID, categoryID string) error {
+	tab, err := a.store.GetTab(tabID)
+	if err != nil {
+		return err
+	}
+	if tab == nil {
+		return fmt.Errorf("tab not found")
+	}
+
+	newCats := []string{}
+	found := false
+	for _, c := range tab.CategoryIDs {
+		if c == categoryID {
+			found = true
+			continue
+		}
+		newCats = append(newCats, c)
+	}
+
+	if !found {
+		return nil
+	}
+
+	return a.store.SetTabCategories(tabID, newCats, time.Now().Unix())
 }
 
 // MoveCategory moves a category into another category
@@ -534,6 +649,10 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) error {
 		tab.IsManaged = true
 	} else {
 		tab.IsManaged = false
+	}
+
+	if tab.AddedAt == 0 {
+		tab.AddedAt = time.Now().Unix()
 	}
 
 	// Save initial version first
@@ -670,6 +789,10 @@ func (a *App) OpenTab(id string) error {
 		return fmt.Errorf("tab not found")
 	}
 
+	// Update LastOpened
+	targetTab.LastOpened = time.Now().Unix()
+	a.store.UpdateTab(*targetTab)
+
 	var cmd *exec.Cmd
 	path := targetTab.FilePath
 
@@ -682,6 +805,20 @@ func (a *App) OpenTab(id string) error {
 		cmd = exec.Command("xdg-open", path)
 	}
 	return cmd.Start()
+}
+
+// MarkAsOpened updates the LastOpened timestamp for a tab without opening it
+func (a *App) MarkAsOpened(id string) error {
+	targetTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
+	}
+	if targetTab == nil {
+		return fmt.Errorf("tab not found")
+	}
+
+	targetTab.LastOpened = time.Now().Unix()
+	return a.store.UpdateTab(*targetTab)
 }
 
 // GetCover returns the base64 encoded image

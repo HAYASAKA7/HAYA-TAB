@@ -19,8 +19,8 @@ const sortedCategories = computed(() => {
 
 async function handleSave() {
   try {
-    const moved = await tabsStore.batchMoveTabs(selectedCategoryId.value)
-    showToast(`Moved ${moved} tab(s)`)
+    const added = await tabsStore.batchAddTabsToCategory(selectedCategoryId.value)
+    showToast(`Added ${added} tab(s)`)
     uiStore.hideBatchMoveModal()
   } catch (err) {
     showToast(String(err), 'error')
@@ -36,7 +36,7 @@ async function handleSave() {
     @click.self="uiStore.hideBatchMoveModal"
   >
     <div class="modal">
-      <h2>Move Selected Tabs</h2>
+      <h2>Add Selected to Category</h2>
 
       <form @submit.prevent="handleSave">
         <div class="form-group">
@@ -58,7 +58,7 @@ async function handleSave() {
             Cancel
           </button>
           <button type="submit" class="btn primary">
-            Move
+            Add
           </button>
         </div>
       </form>

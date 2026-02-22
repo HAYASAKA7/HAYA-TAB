@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import type { Tab } from '@/types'
+import type { Tab, ContextMenuItem } from '@/types'
 import { useTabsStore, useUIStore, useViewersStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
@@ -70,7 +70,14 @@ async function openTab() {
   }
 }
 
-function openInternalTab() {
+async function openInternalTab() {
+  try {
+    // Notify backend to update timestamp
+    await (window.go.main.App as any).MarkAsOpened(props.tab.id)
+  } catch (err) {
+    console.warn('Failed to mark tab as opened:', err)
+  }
+  
   viewersStore.openTab(props.tab)
   const prefix = props.tab.type === 'pdf' ? 'pdf' : 'gp'
   uiStore.switchView(`${prefix}-${props.tab.id}`)
@@ -82,15 +89,30 @@ function handleContextMenu(e: MouseEvent) {
 
   if (tabsStore.isBatchSelectMode) return
 
-  contextMenu.show(e.pageX, e.pageY, [
+  const items: ContextMenuItem[] = [
     { label: 'Open with System', action: () => window.go.main.App.OpenTab(props.tab.id) },
     { label: 'Open with Inner Viewer', action: () => openInternalTab() },
     { label: 'Edit Metadata', action: () => uiStore.showEditModal(props.tab) },
-    { label: 'Move to Category...', action: () => uiStore.showMoveModal(props.tab.id) },
+    { label: 'Add to Category...', action: () => uiStore.showMoveModal(props.tab.id) }
+  ]
+
+  if (tabsStore.currentCategoryId) {
+    items.push({ 
+      label: 'Remove from Category', 
+      action: async () => {
+        await tabsStore.removeTabFromCategory(props.tab.id, tabsStore.currentCategoryId)
+        showToast('Removed from category')
+      }
+    })
+  }
+
+  items.push(
     { label: 'Export TAB', action: () => exportTab() },
     { type: 'separator' },
     { label: props.tab.isManaged ? 'Delete TAB' : 'Unlink TAB', action: () => confirmDelete() }
-  ])
+  )
+
+  contextMenu.show(e.pageX, e.pageY, items)
 }
 
 async function exportTab() {

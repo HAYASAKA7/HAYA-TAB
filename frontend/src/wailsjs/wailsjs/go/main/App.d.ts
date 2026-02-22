@@ -5,6 +5,10 @@ import {main} from '../models';
 
 export function AddCategory(arg1:store.Category):Promise<void>;
 
+export function AddTabToCategory(arg1:string,arg2:string):Promise<void>;
+
+export function BatchAddTabsToCategory(arg1:Array<string>,arg2:string):Promise<number>;
+
 export function BatchDeleteTabs(arg1:Array<string>):Promise<number>;
 
 export function BatchMoveTabs(arg1:Array<string>,arg2:string):Promise<number>;
@@ -21,11 +25,17 @@ export function GetCover(arg1:string):Promise<string>;
 
 export function GetFileServerPort():Promise<number>;
 
+export function GetRecentCategories(arg1:number):Promise<Array<store.Category>>;
+
+export function GetRecentTabs(arg1:number):Promise<Array<store.Tab>>;
+
 export function GetSettings():Promise<store.Settings>;
 
 export function GetTabs():Promise<Array<store.Tab>>;
 
-export function GetTabsPaginated(arg1:string,arg2:number,arg3:number,arg4:string,arg5:Array<string>,arg6:boolean):Promise<main.TabsResponse>;
+export function GetTabsPaginated(arg1:string,arg2:number,arg3:number,arg4:string,arg5:Array<string>,arg6:boolean,arg7:string,arg8:boolean):Promise<main.TabsResponse>;
+
+export function MarkAsOpened(arg1:string):Promise<void>;
 
 export function MoveCategory(arg1:string,arg2:string):Promise<void>;
 
@@ -34,6 +44,8 @@ export function MoveTab(arg1:string,arg2:string):Promise<void>;
 export function OpenTab(arg1:string):Promise<void>;
 
 export function ProcessFile(arg1:string):Promise<store.Tab>;
+
+export function RemoveTabFromCategory(arg1:string,arg2:string):Promise<void>;
 
 export function SaveSettings(arg1:store.Settings):Promise<void>;
 
@@ -50,5 +62,7 @@ export function SetFileServerPort(arg1:number):Promise<void>;
 export function TriggerSync():Promise<string>;
 
 export function UpdateTab(arg1:store.Tab):Promise<void>;
+
+export function UpdateTabCategories(arg1:string,arg2:Array<string>):Promise<void>;
 
 export function UpdateTabMetadata(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;

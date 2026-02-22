@@ -15,17 +15,21 @@ type Tab struct {
 	FilePath   string `json:"filePath"` // Absolute path or relative to app
 	Type       string `json:"type"`     // "pdf" or "gp"
 	IsManaged  bool   `json:"isManaged"`
-	CoverPath  string `json:"coverPath"`
-	CategoryID string `json:"categoryId"` // Virtual folder ID
-	Country    string `json:"country"`    // e.g. "US", "JP"
+	CoverPath  string   `json:"coverPath"`
+	CategoryIDs []string `json:"categoryIds"` // List of Category IDs
+	Country    string   `json:"country"`    // e.g. "US", "JP"
 	Language   string `json:"language"`   // e.g. "ja_jp"
 	Tag        string `json:"tag"`        // e.g. "Lead Guitar", "First Version"
+	AddedAt    int64  `json:"addedAt"`    // Unix timestamp
+	LastOpened int64  `json:"lastOpened"` // Unix timestamp
 }
 
 type Category struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	ParentID string `json:"parentId"` // Empty if root
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	ParentID           string `json:"parentId"`           // Empty if root
+	CoverPath          string `json:"coverPath"`          // Custom cover path (raw)
+	EffectiveCoverPath string `json:"effectiveCoverPath"` // Derived or custom
 }
 
 type KeyBindings struct {
@@ -218,12 +222,16 @@ func (s *Store) DeleteCategory(id string) error {
 	}
 	s.Categories = newCats
 
-	// Optional: Move children tabs to root or parent?
-	// For simplicity, let's move tabs in this category to root ("")
+	// For simplicity, let's remove this category from tabs
 	for i := range s.Tabs {
-		if s.Tabs[i].CategoryID == id {
-			s.Tabs[i].CategoryID = ""
+		// Filter out the deleted category from CategoryIDs
+		newIDs := []string{}
+		for _, cid := range s.Tabs[i].CategoryIDs {
+			if cid != id {
+				newIDs = append(newIDs, cid)
+			}
 		}
+		s.Tabs[i].CategoryIDs = newIDs
 	}
 	// Note: We are not recursively deleting sub-categories here for simplicity,
 	// but strictly speaking we should.

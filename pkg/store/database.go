@@ -80,6 +80,9 @@ func (s *DBStore) Initialize() error {
 	if _, err := s.db.Exec("PRAGMA temp_store=MEMORY"); err != nil {
 		return fmt.Errorf("failed to set temp store: %w", err)
 	}
+	if _, err := s.db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		return fmt.Errorf("failed to enable foreign keys: %w", err)
+	}
 
 	// Create tables
 	if err := s.createTables(); err != nil {
@@ -113,13 +116,25 @@ func (s *DBStore) createTables() error {
 		category_id TEXT DEFAULT '',
 		country TEXT DEFAULT '',
 		language TEXT DEFAULT '',
-		tag TEXT DEFAULT ''
+		tag TEXT DEFAULT '',
+		added_at INTEGER DEFAULT 0,
+		last_opened INTEGER DEFAULT 0
 	);
 
 	CREATE TABLE IF NOT EXISTS categories (
 		id TEXT PRIMARY KEY,
 		name TEXT NOT NULL,
-		parent_id TEXT DEFAULT ''
+		parent_id TEXT DEFAULT '',
+		cover_path TEXT DEFAULT ''
+	);
+
+	CREATE TABLE IF NOT EXISTS tab_categories (
+		tab_id TEXT,
+		category_id TEXT,
+		added_at INTEGER DEFAULT 0,
+		PRIMARY KEY (tab_id, category_id),
+		FOREIGN KEY(tab_id) REFERENCES tabs(id) ON DELETE CASCADE,
+		FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE CASCADE
 	);
 
 	CREATE TABLE IF NOT EXISTS settings (
@@ -129,6 +144,8 @@ func (s *DBStore) createTables() error {
 
 	CREATE INDEX IF NOT EXISTS idx_tabs_category ON tabs(category_id);
 	CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
+	CREATE INDEX IF NOT EXISTS idx_tab_categories_tab ON tab_categories(tab_id);
+	CREATE INDEX IF NOT EXISTS idx_tab_categories_cat ON tab_categories(category_id);
 	`
 
 	if _, err := s.db.Exec(schema); err != nil {
@@ -178,10 +195,49 @@ func (s *DBStore) runMigrations() error {
 		}
 	}
 
+	// Add added_at column
+	_, err = s.db.Exec("ALTER TABLE tabs ADD COLUMN added_at INTEGER DEFAULT 0")
+	if err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			// It's okay
+		}
+	}
+
+	// Add last_opened column
+	_, err = s.db.Exec("ALTER TABLE tabs ADD COLUMN last_opened INTEGER DEFAULT 0")
+	if err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			// It's okay
+		}
+	}
+
+	// Add cover_path column to categories
+	_, err = s.db.Exec("ALTER TABLE categories ADD COLUMN cover_path TEXT DEFAULT ''")
+	if err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			// It's okay
+		}
+	}
+
 	// Rebuild FTS index if needed (for existing databases upgrading to FTS5)
 	// This populates the FTS table with any existing tab data
 	if _, err := s.db.Exec("INSERT INTO tabs_fts(tabs_fts) VALUES('rebuild')"); err != nil {
 		// Ignore errors - table might not exist or already be populated
+	}
+
+	// Create tab_categories if not exists (handled in createTables, but good for safety if adding later)
+	// Migrate existing category_id to tab_categories
+	_, err = s.db.Exec(`
+		INSERT INTO tab_categories (tab_id, category_id, added_at)
+		SELECT id, category_id, added_at FROM tabs
+		WHERE category_id != '' AND category_id IS NOT NULL
+		AND NOT EXISTS (
+			SELECT 1 FROM tab_categories tc WHERE tc.tab_id = tabs.id AND tc.category_id = tabs.category_id
+		)
+	`)
+	if err != nil {
+		// Log error or handle gracefully
+		fmt.Printf("Migration warning: failed to migrate categories: %v\n", err)
 	}
 
 	return nil
@@ -301,7 +357,7 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 	defer s.mu.Unlock()
 
 	rows, err := s.db.Query(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
 		FROM tabs
 	`)
 	if err != nil {
@@ -310,37 +366,62 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 	defer rows.Close()
 
 	tabs := []Tab{}
+	tabMap := make(map[string]*Tab) // Pointer map for easy update
+
 	for rows.Next() {
 		var t Tab
 		var isManaged int
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag); err != nil {
+		var legacyCatID sql.NullString // Handle legacy or null category_id
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
 			return nil, err
 		}
 		t.IsManaged = isManaged == 1
+		t.CategoryIDs = []string{} // Initialize
 		tabs = append(tabs, t)
+		tabMap[t.ID] = &tabs[len(tabs)-1]
 	}
+
+	// Fetch all categories
+	catRows, err := s.db.Query("SELECT tab_id, category_id FROM tab_categories")
+	if err != nil {
+		// Just return tabs without categories if this fails, or log?
+		// For now return error
+		return nil, err
+	}
+	defer catRows.Close()
+
+	for catRows.Next() {
+		var tID, cID string
+		if err := catRows.Scan(&tID, &cID); err == nil {
+			if tab, ok := tabMap[tID]; ok {
+				tab.CategoryIDs = append(tab.CategoryIDs, cID)
+			}
+		}
+	}
+
 	return tabs, nil
 }
 
-func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool) ([]Tab, int, error) {
+func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) ([]Tab, int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// Use FTS5 for search if query is provided
 	if searchQuery != "" && len(filterBy) > 0 {
-		return s.getTabsPaginatedFTS(categoryId, page, pageSize, searchQuery, filterBy, isGlobal)
+		return s.getTabsPaginatedFTS(categoryId, page, pageSize, searchQuery, filterBy, isGlobal, sortBy, sortDesc)
 	}
 
 	// Standard query without search
 	var whereClauses []string
 	var args []interface{}
+	var joins []string
 
 	// Category Filter
 	if !isGlobal {
-		if categoryId == "" {
-			whereClauses = append(whereClauses, "(category_id = '' OR category_id IS NULL)")
-		} else {
-			whereClauses = append(whereClauses, "category_id = ?")
+		if categoryId != "" {
+			// Specific Category
+			joins = append(joins, "JOIN tab_categories tc ON tabs.id = tc.tab_id")
+			whereClauses = append(whereClauses, "tc.category_id = ?")
 			args = append(args, categoryId)
 		}
 	}
@@ -349,9 +430,10 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 	if len(whereClauses) > 0 {
 		whereSQL = "WHERE " + strings.Join(whereClauses, " AND ")
 	}
+	joinSQL := strings.Join(joins, " ")
 
 	// Count Total
-	countQuery := "SELECT COUNT(*) FROM tabs " + whereSQL
+	countQuery := fmt.Sprintf("SELECT COUNT(DISTINCT tabs.id) FROM tabs %s %s", joinSQL, whereSQL)
 	var total int
 	if err := s.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
@@ -361,13 +443,31 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 	offset := (page - 1) * pageSize
 	limit := pageSize
 
+	orderBy := "tabs.title ASC"
+	direction := "ASC"
+	if sortDesc {
+		direction = "DESC"
+	}
+
+	switch sortBy {
+	case "added_at":
+		orderBy = "tabs.added_at " + direction
+	case "last_opened":
+		orderBy = "tabs.last_opened " + direction
+	case "title":
+		orderBy = "tabs.title " + direction
+	default:
+		orderBy = "tabs.title " + direction
+	}
+
 	query := fmt.Sprintf(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
+		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, tabs.is_managed, tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), tabs.added_at, tabs.last_opened 
 		FROM tabs 
+		%s
 		%s 
-		ORDER BY title ASC 
+		ORDER BY %s 
 		LIMIT ? OFFSET ?
-	`, whereSQL)
+	`, joinSQL, whereSQL, orderBy)
 
 	queryArgs := append(args, limit, offset)
 
@@ -378,21 +478,50 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 	defer rows.Close()
 
 	tabs := []Tab{}
+	tabIDs := []interface{}{}
+	tabMap := make(map[string]*Tab)
+
 	for rows.Next() {
 		var t Tab
 		var isManaged int
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag); err != nil {
+		var legacyCatID sql.NullString
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
 			return nil, 0, err
 		}
 		t.IsManaged = isManaged == 1
+		t.CategoryIDs = []string{}
 		tabs = append(tabs, t)
+		tabIDs = append(tabIDs, t.ID)
+		tabMap[t.ID] = &tabs[len(tabs)-1]
+	}
+
+	if len(tabs) > 0 {
+		// Fetch categories for these tabs
+		placeholders := strings.Repeat("?,", len(tabIDs))
+		placeholders = placeholders[:len(placeholders)-1]
+		catQuery := fmt.Sprintf("SELECT tab_id, category_id FROM tab_categories WHERE tab_id IN (%s)", placeholders)
+		
+		catRows, err := s.db.Query(catQuery, tabIDs...)
+		if err != nil {
+			return nil, 0, err
+		}
+		defer catRows.Close()
+
+		for catRows.Next() {
+			var tID, cID string
+			if err := catRows.Scan(&tID, &cID); err == nil {
+				if tab, ok := tabMap[tID]; ok {
+					tab.CategoryIDs = append(tab.CategoryIDs, cID)
+				}
+			}
+		}
 	}
 
 	return tabs, total, nil
 }
 
 // getTabsPaginatedFTS uses FTS5 for fast full-text search
-func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool) ([]Tab, int, error) {
+func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) ([]Tab, int, error) {
 	// Build FTS5 match query with column filters
 	// FTS5 supports column filters like: title:query OR artist:query
 	var ftsTerms []string
@@ -413,45 +542,63 @@ func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, sea
 
 	// Build category filter
 	var catWhere string
+	var catJoin string
 	var catArgs []interface{}
+	
 	if !isGlobal {
-		if categoryId == "" {
-			catWhere = " AND (tabs.category_id = '' OR tabs.category_id IS NULL)"
-		} else {
-			catWhere = " AND tabs.category_id = ?"
+		if categoryId != "" {
+			catJoin = " JOIN tab_categories tc ON tabs.id = tc.tab_id"
+			catWhere = " AND tc.category_id = ?"
 			catArgs = append(catArgs, categoryId)
 		}
 	}
 
 	// Count total with FTS5 join
 	countQuery := fmt.Sprintf(`
-		SELECT COUNT(*) 
+		SELECT COUNT(DISTINCT tabs.id) 
 		FROM tabs 
 		INNER JOIN tabs_fts ON tabs.rowid = tabs_fts.rowid
+		%s
 		WHERE tabs_fts MATCH ?%s
-	`, catWhere)
+	`, catJoin, catWhere)
 
 	countArgs := append([]interface{}{ftsQuery}, catArgs...)
 	var total int
 	if err := s.db.QueryRow(countQuery, countArgs...).Scan(&total); err != nil {
 		// Fallback to LIKE query if FTS fails (e.g., special characters)
-		return s.getTabsPaginatedLike(categoryId, page, pageSize, searchQuery, filterBy, isGlobal)
+		return s.getTabsPaginatedLike(categoryId, page, pageSize, searchQuery, filterBy, isGlobal, sortBy, sortDesc)
 	}
 
 	// Get paginated results
 	offset := (page - 1) * pageSize
 	limit := pageSize
 
+	orderBy := "bm25(tabs_fts), tabs.title ASC"
+	direction := "ASC"
+	if sortDesc {
+		direction = "DESC"
+	}
+
+	switch sortBy {
+	case "added_at":
+		orderBy = "tabs.added_at " + direction
+	case "last_opened":
+		orderBy = "tabs.last_opened " + direction
+	case "title":
+		orderBy = "tabs.title " + direction
+	}
+
 	query := fmt.Sprintf(`
 		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, 
 			   tabs.is_managed, tabs.cover_path, tabs.category_id, tabs.country, tabs.language, 
-			   COALESCE(tabs.tag, '') 
+			   COALESCE(tabs.tag, ''), tabs.added_at, tabs.last_opened 
 		FROM tabs 
 		INNER JOIN tabs_fts ON tabs.rowid = tabs_fts.rowid
+		%s
 		WHERE tabs_fts MATCH ?%s
-		ORDER BY bm25(tabs_fts), tabs.title ASC 
+		ORDER BY %s 
 		LIMIT ? OFFSET ?
-	`, catWhere)
+	`, catJoin, catWhere, orderBy)
 
 	queryArgs := append([]interface{}{ftsQuery}, catArgs...)
 	queryArgs = append(queryArgs, limit, offset)
@@ -459,35 +606,64 @@ func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, sea
 	rows, err := s.db.Query(query, queryArgs...)
 	if err != nil {
 		// Fallback to LIKE query if FTS fails
-		return s.getTabsPaginatedLike(categoryId, page, pageSize, searchQuery, filterBy, isGlobal)
+		return s.getTabsPaginatedLike(categoryId, page, pageSize, searchQuery, filterBy, isGlobal, sortBy, sortDesc)
 	}
 	defer rows.Close()
 
 	tabs := []Tab{}
+	tabIDs := []interface{}{}
+	tabMap := make(map[string]*Tab)
+
 	for rows.Next() {
 		var t Tab
 		var isManaged int
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag); err != nil {
+		var legacyCatID sql.NullString
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
 			return nil, 0, err
 		}
 		t.IsManaged = isManaged == 1
+		t.CategoryIDs = []string{}
 		tabs = append(tabs, t)
+		tabIDs = append(tabIDs, t.ID)
+		tabMap[t.ID] = &tabs[len(tabs)-1]
+	}
+
+	if len(tabs) > 0 {
+		// Fetch categories for these tabs
+		placeholders := strings.Repeat("?,", len(tabIDs))
+		placeholders = placeholders[:len(placeholders)-1]
+		catQuery := fmt.Sprintf("SELECT tab_id, category_id FROM tab_categories WHERE tab_id IN (%s)", placeholders)
+		
+		catRows, err := s.db.Query(catQuery, tabIDs...)
+		if err != nil {
+			return nil, 0, err
+		}
+		defer catRows.Close()
+
+		for catRows.Next() {
+			var tID, cID string
+			if err := catRows.Scan(&tID, &cID); err == nil {
+				if tab, ok := tabMap[tID]; ok {
+					tab.CategoryIDs = append(tab.CategoryIDs, cID)
+				}
+			}
+		}
 	}
 
 	return tabs, total, nil
 }
 
 // getTabsPaginatedLike is the fallback using LIKE (for special cases or when FTS fails)
-func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool) ([]Tab, int, error) {
+func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) ([]Tab, int, error) {
 	var whereClauses []string
 	var args []interface{}
+	var joins []string
 
 	// Category Filter
 	if !isGlobal {
-		if categoryId == "" {
-			whereClauses = append(whereClauses, "(category_id = '' OR category_id IS NULL)")
-		} else {
-			whereClauses = append(whereClauses, "category_id = ?")
+		if categoryId != "" {
+			joins = append(joins, "JOIN tab_categories tc ON tabs.id = tc.tab_id")
+			whereClauses = append(whereClauses, "tc.category_id = ?")
 			args = append(args, categoryId)
 		}
 	}
@@ -510,9 +686,10 @@ func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, se
 	if len(whereClauses) > 0 {
 		whereSQL = "WHERE " + strings.Join(whereClauses, " AND ")
 	}
+	joinSQL := strings.Join(joins, " ")
 
 	// Count Total
-	countQuery := "SELECT COUNT(*) FROM tabs " + whereSQL
+	countQuery := fmt.Sprintf("SELECT COUNT(DISTINCT tabs.id) FROM tabs %s %s", joinSQL, whereSQL)
 	var total int
 	if err := s.db.QueryRow(countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
@@ -522,13 +699,29 @@ func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, se
 	offset := (page - 1) * pageSize
 	limit := pageSize
 
+	orderBy := "title ASC"
+	direction := "ASC"
+	if sortDesc {
+		direction = "DESC"
+	}
+
+	switch sortBy {
+	case "added_at":
+		orderBy = "added_at " + direction
+	case "last_opened":
+		orderBy = "last_opened " + direction
+	case "title":
+		orderBy = "title " + direction
+	}
+
 	query := fmt.Sprintf(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
+		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, tabs.is_managed, tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), tabs.added_at, tabs.last_opened 
 		FROM tabs 
+		%s
 		%s 
-		ORDER BY title ASC 
+		ORDER BY %s 
 		LIMIT ? OFFSET ?
-	`, whereSQL)
+	`, joinSQL, whereSQL, orderBy)
 
 	queryArgs := append(args, limit, offset)
 
@@ -539,14 +732,43 @@ func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, se
 	defer rows.Close()
 
 	tabs := []Tab{}
+	tabIDs := []interface{}{}
+	tabMap := make(map[string]*Tab)
+
 	for rows.Next() {
 		var t Tab
 		var isManaged int
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag); err != nil {
+		var legacyCatID sql.NullString
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
 			return nil, 0, err
 		}
 		t.IsManaged = isManaged == 1
+		t.CategoryIDs = []string{}
 		tabs = append(tabs, t)
+		tabIDs = append(tabIDs, t.ID)
+		tabMap[t.ID] = &tabs[len(tabs)-1]
+	}
+
+	if len(tabs) > 0 {
+		// Fetch categories for these tabs
+		placeholders := strings.Repeat("?,", len(tabIDs))
+		placeholders = placeholders[:len(placeholders)-1]
+		catQuery := fmt.Sprintf("SELECT tab_id, category_id FROM tab_categories WHERE tab_id IN (%s)", placeholders)
+		
+		catRows, err := s.db.Query(catQuery, tabIDs...)
+		if err != nil {
+			return nil, 0, err
+		}
+		defer catRows.Close()
+
+		for catRows.Next() {
+			var tID, cID string
+			if err := catRows.Scan(&tID, &cID); err == nil {
+				if tab, ok := tabMap[tID]; ok {
+					tab.CategoryIDs = append(tab.CategoryIDs, cID)
+				}
+			}
+		}
 	}
 
 	return tabs, total, nil
@@ -558,10 +780,11 @@ func (s *DBStore) GetTab(id string) (*Tab, error) {
 
 	var t Tab
 	var isManaged int
+	var legacyCatID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
 		FROM tabs WHERE id = ?
-	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag)
+	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -569,6 +792,20 @@ func (s *DBStore) GetTab(id string) (*Tab, error) {
 		return nil, err
 	}
 	t.IsManaged = isManaged == 1
+	t.CategoryIDs = []string{}
+
+	// Fetch categories
+	rows, err := s.db.Query("SELECT category_id FROM tab_categories WHERE tab_id = ?", id)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var cID string
+			if err := rows.Scan(&cID); err == nil {
+				t.CategoryIDs = append(t.CategoryIDs, cID)
+			}
+		}
+	}
+
 	return &t, nil
 }
 
@@ -576,16 +813,54 @@ func (s *DBStore) AddTab(tab Tab) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Start transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
 	isManaged := 0
 	if tab.IsManaged {
 		isManaged = 1
 	}
 
-	_, err := s.db.Exec(`
-		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, tag)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.Type, isManaged, tab.CoverPath, tab.CategoryID, tab.Country, tab.Language, tab.Tag)
-	return err
+	// For backward compatibility or if we decide to keep a "primary" category, we could use the first one.
+	// For now, let's just use empty string for category_id in tabs table
+	primaryCatID := ""
+	if len(tab.CategoryIDs) > 0 {
+		primaryCatID = tab.CategoryIDs[0]
+	}
+
+	_, err = tx.Exec(`
+		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, tag, added_at, last_opened)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.Type, isManaged, tab.CoverPath, primaryCatID, tab.Country, tab.Language, tab.Tag, tab.AddedAt, tab.LastOpened)
+	if err != nil {
+		return err
+	}
+
+	// Update categories: Delete old ones and insert new ones
+	_, err = tx.Exec("DELETE FROM tab_categories WHERE tab_id = ?", tab.ID)
+	if err != nil {
+		return err
+	}
+
+	if len(tab.CategoryIDs) > 0 {
+		stmt, err := tx.Prepare("INSERT INTO tab_categories (tab_id, category_id, added_at) VALUES (?, ?, ?)")
+		if err != nil {
+			return err
+		}
+		defer stmt.Close()
+
+		for _, catID := range tab.CategoryIDs {
+			if _, err := stmt.Exec(tab.ID, catID, tab.AddedAt); err != nil {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (s *DBStore) UpdateTab(tab Tab) error {
@@ -600,12 +875,44 @@ func (s *DBStore) DeleteTab(id string) error {
 	return err
 }
 
-func (s *DBStore) MoveTab(id, categoryID string) error {
+func (s *DBStore) SetTabCategories(id string, categoryIDs []string, addedAt int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	_, err := s.db.Exec("UPDATE tabs SET category_id = ? WHERE id = ?", categoryID, id)
-	return err
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Update legacy category_id (primary category)
+	primaryCatID := ""
+	if len(categoryIDs) > 0 {
+		primaryCatID = categoryIDs[0]
+	}
+	if _, err := tx.Exec("UPDATE tabs SET category_id = ? WHERE id = ?", primaryCatID, id); err != nil {
+		return err
+	}
+
+	// Delete existing associations
+	if _, err := tx.Exec("DELETE FROM tab_categories WHERE tab_id = ?", id); err != nil {
+		return err
+	}
+
+	// Insert new associations
+	stmt, err := tx.Prepare("INSERT INTO tab_categories (tab_id, category_id, added_at) VALUES (?, ?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, cID := range categoryIDs {
+		if _, err := stmt.Exec(id, cID, addedAt); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
@@ -614,10 +921,11 @@ func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
 
 	var t Tab
 	var isManaged int
+	var legacyCatID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
 		FROM tabs WHERE file_path = ?
-	`, filePath).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag)
+	`, filePath).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -625,6 +933,20 @@ func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
 		return nil, err
 	}
 	t.IsManaged = isManaged == 1
+	t.CategoryIDs = []string{}
+
+	// Fetch categories
+	rows, err := s.db.Query("SELECT category_id FROM tab_categories WHERE tab_id = ?", t.ID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var cID string
+			if err := rows.Scan(&cID); err == nil {
+				t.CategoryIDs = append(t.CategoryIDs, cID)
+			}
+		}
+	}
+
 	return &t, nil
 }
 
@@ -634,10 +956,11 @@ func (s *DBStore) GetTabByTitle(title string) (*Tab, error) {
 
 	var t Tab
 	var isManaged int
+	var legacyCatID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, '') 
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
 		FROM tabs WHERE title = ?
-	`, title).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &t.CategoryID, &t.Country, &t.Language, &t.Tag)
+	`, title).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -645,6 +968,20 @@ func (s *DBStore) GetTabByTitle(title string) (*Tab, error) {
 		return nil, err
 	}
 	t.IsManaged = isManaged == 1
+	t.CategoryIDs = []string{}
+
+	// Fetch categories
+	rows, err := s.db.Query("SELECT category_id FROM tab_categories WHERE tab_id = ?", t.ID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var cID string
+			if err := rows.Scan(&cID); err == nil {
+				t.CategoryIDs = append(t.CategoryIDs, cID)
+			}
+		}
+	}
+
 	return &t, nil
 }
 
@@ -654,7 +991,11 @@ func (s *DBStore) GetCategories() ([]Category, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	rows, err := s.db.Query("SELECT id, name, parent_id FROM categories")
+	rows, err := s.db.Query(`
+		SELECT c.id, c.name, c.parent_id, c.cover_path,
+		COALESCE(NULLIF(c.cover_path, ''), (SELECT cover_path FROM tabs WHERE category_id = c.id ORDER BY added_at ASC LIMIT 1), '') as effective_cover_path
+		FROM categories c
+	`)
 	if err != nil {
 		return []Category{}, err
 	}
@@ -663,7 +1004,7 @@ func (s *DBStore) GetCategories() ([]Category, error) {
 	categories := []Category{}
 	for rows.Next() {
 		var c Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.ParentID); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.ParentID, &c.CoverPath, &c.EffectiveCoverPath); err != nil {
 			return nil, err
 		}
 		categories = append(categories, c)
@@ -671,14 +1012,114 @@ func (s *DBStore) GetCategories() ([]Category, error) {
 	return categories, nil
 }
 
+func (s *DBStore) GetRecentCategories(limit int) ([]Category, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if limit <= 0 {
+		limit = 10
+	}
+
+	rows, err := s.db.Query(`
+		SELECT c.id, c.name, c.parent_id, c.cover_path,
+		COALESCE(NULLIF(c.cover_path, ''), (SELECT cover_path FROM tabs WHERE category_id = c.id ORDER BY added_at ASC LIMIT 1), '') as effective_cover_path,
+		MAX(t.last_opened) as max_opened
+		FROM categories c
+		JOIN tabs t ON c.id = t.category_id
+		GROUP BY c.id
+		ORDER BY max_opened DESC
+		LIMIT ?
+	`, limit)
+	if err != nil {
+		return []Category{}, err
+	}
+	defer rows.Close()
+
+	categories := []Category{}
+	for rows.Next() {
+		var c Category
+		var maxOpened int64
+		if err := rows.Scan(&c.ID, &c.Name, &c.ParentID, &c.CoverPath, &c.EffectiveCoverPath, &maxOpened); err != nil {
+			return nil, err
+		}
+		categories = append(categories, c)
+	}
+	return categories, nil
+}
+
+func (s *DBStore) GetRecentTabs(limit int) ([]Tab, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if limit <= 0 {
+		limit = 20
+	}
+
+	rows, err := s.db.Query(`
+		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
+		FROM tabs 
+		WHERE last_opened > 0
+		ORDER BY last_opened DESC 
+		LIMIT ?
+	`, limit)
+	if err != nil {
+		return []Tab{}, err
+	}
+	defer rows.Close()
+
+	tabs := []Tab{}
+	tabMap := make(map[string]*Tab)
+	
+	for rows.Next() {
+		var t Tab
+		var isManaged int
+		var legacyCatID sql.NullString
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
+			return nil, err
+		}
+		t.IsManaged = isManaged == 1
+		t.CategoryIDs = []string{}
+		tabs = append(tabs, t)
+		tabMap[t.ID] = &tabs[len(tabs)-1]
+	}
+
+	if len(tabs) > 0 {
+		// Fetch categories for these tabs
+		// Using a simpler approach: fetch all for these IDs
+		// Since it's recent tabs (small limit), we can iterate or use IN clause
+		// IN clause is better
+		placeholders := strings.Repeat("?,", len(tabs))
+		placeholders = placeholders[:len(placeholders)-1]
+		ids := make([]interface{}, len(tabs))
+		for i, t := range tabs {
+			ids[i] = t.ID
+		}
+
+		catRows, err := s.db.Query(fmt.Sprintf("SELECT tab_id, category_id FROM tab_categories WHERE tab_id IN (%s)", placeholders), ids...)
+		if err == nil {
+			defer catRows.Close()
+			for catRows.Next() {
+				var tID, cID string
+				if err := catRows.Scan(&tID, &cID); err == nil {
+					if tab, ok := tabMap[tID]; ok {
+						tab.CategoryIDs = append(tab.CategoryIDs, cID)
+					}
+				}
+			}
+		}
+	}
+
+	return tabs, nil
+}
+
 func (s *DBStore) AddCategory(cat Category) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	_, err := s.db.Exec(`
-		INSERT OR REPLACE INTO categories (id, name, parent_id)
-		VALUES (?, ?, ?)
-	`, cat.ID, cat.Name, cat.ParentID)
+		INSERT OR REPLACE INTO categories (id, name, parent_id, cover_path)
+		VALUES (?, ?, ?, ?)
+	`, cat.ID, cat.Name, cat.ParentID, cat.CoverPath)
 	return err
 }
 
@@ -693,19 +1134,21 @@ func (s *DBStore) DeleteCategory(id string) error {
 	}
 	defer tx.Rollback()
 
-	// Move tabs in this category to root
-	if _, err := tx.Exec("UPDATE tabs SET category_id = '' WHERE category_id = ?", id); err != nil {
-		return err
-	}
-
-	// Move sub-categories to root
+	// Move sub-categories to root (or delete them recursively? Current behavior is move to root)
 	if _, err := tx.Exec("UPDATE categories SET parent_id = '' WHERE parent_id = ?", id); err != nil {
 		return err
 	}
 
-	// Delete the category
+	// Delete the category.
+	// Since we enabled foreign keys and set ON DELETE CASCADE on tab_categories(category_id),
+	// this will automatically remove associations in tab_categories.
 	if _, err := tx.Exec("DELETE FROM categories WHERE id = ?", id); err != nil {
 		return err
+	}
+
+	// Optional: Clear legacy category_id in tabs if it matches (for consistency)
+	if _, err := tx.Exec("UPDATE tabs SET category_id = '' WHERE category_id = ?", id); err != nil {
+		// Ignore error, non-critical
 	}
 
 	return tx.Commit()

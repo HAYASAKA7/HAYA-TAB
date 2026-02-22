@@ -11,8 +11,10 @@ interface Window {
     main: {
       App: {
         GetTabs(): Promise<import('./types').Tab[]>
-        GetTabsPaginated(categoryId: string, page: number, pageSize: number, searchQuery: string, filterBy: string[], isGlobal: boolean): Promise<import('./types').TabsResponse>
+        GetTabsPaginated(categoryId: string, page: number, pageSize: number, searchQuery: string, filterBy: string[], isGlobal: boolean, sortBy: string, sortDesc: boolean): Promise<import('./types').TabsResponse>
         GetCategories(): Promise<import('./types').Category[]>
+        GetRecentCategories(limit: number): Promise<import('./types').Category[]>
+        GetRecentTabs(limit: number): Promise<import('./types').Tab[]>
         GetSettings(): Promise<import('./types').Settings>
         SaveSettings(settings: import('./types').Settings): Promise<void>
         AddCategory(category: import('./types').Category): Promise<void>
@@ -23,9 +25,14 @@ interface Window {
         UpdateTabMetadata(id: string, title: string, artist: string, album: string): Promise<void>
         DeleteTab(id: string): Promise<void>
         MoveTab(tabId: string, categoryId: string): Promise<void>
+        AddTabToCategory(tabId: string, categoryId: string): Promise<void>
+        RemoveTabFromCategory(tabId: string, categoryId: string): Promise<void>
+        UpdateTabCategories(tabId: string, categoryIds: string[]): Promise<void>
         BatchDeleteTabs(ids: string[]): Promise<number>
         BatchMoveTabs(ids: string[], categoryId: string): Promise<number>
+        BatchAddTabsToCategory(ids: string[], categoryId: string): Promise<number>
         OpenTab(id: string): Promise<void>
+        MarkAsOpened(id: string): Promise<void>
         ExportTab(id: string, destFolder: string): Promise<void>
         ProcessFile(path: string): Promise<import('./types').Tab>
         SelectFiles(): Promise<string[]>

@@ -3,7 +3,8 @@ import { onMounted } from 'vue'
 import { useTabsStore, useSettingsStore, useUIStore, useViewersStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
-import TabGrid from '@/components/grid/TabGrid.vue'
+import HomeView from '@/views/HomeView.vue'
+import LibraryView from '@/views/LibraryView.vue'
 import SettingsView from '@/components/SettingsView.vue'
 import PdfViewer from '@/components/viewers/PdfViewer.vue'
 import GpViewer from '@/components/viewers/GpViewer.vue'
@@ -50,6 +51,9 @@ function isViewActive(viewType: string): boolean {
   if (viewType === 'home') {
     return uiStore.currentView === 'home'
   }
+  if (viewType === 'library') {
+    return uiStore.currentView === 'library'
+  }
   if (viewType === 'settings') {
     return uiStore.currentView === 'settings'
   }
@@ -74,7 +78,16 @@ function isViewActive(viewType: string): boolean {
         class="view"
         :class="{ hidden: !isViewActive('home') }"
       >
-        <TabGrid />
+        <HomeView />
+      </div>
+
+      <!-- Library View -->
+      <div
+        id="view-library"
+        class="view"
+        :class="{ hidden: !isViewActive('library') }"
+      >
+        <LibraryView />
       </div>
 
       <!-- Settings View -->

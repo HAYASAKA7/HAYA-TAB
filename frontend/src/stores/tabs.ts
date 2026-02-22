@@ -6,6 +6,8 @@ export const useTabsStore = defineStore('tabs', () => {
   // State
   const tabs = ref<Tab[]>([])
   const categories = ref<Category[]>([])
+  const recentCategories = ref<Category[]>([])
+  const recentTabs = ref<Tab[]>([])
   const currentCategoryId = ref('')
   const loading = ref(false)
   const pagination = ref({
@@ -19,6 +21,8 @@ export const useTabsStore = defineStore('tabs', () => {
   const searchQuery = ref('')
   const searchFilters = ref<string[]>(['title'])
   const searchScope = ref<'global' | 'local'>('local')
+  const sortBy = ref('title')
+  const sortDesc = ref(false)
 
   // Batch selection state
   const isBatchSelectMode = ref(false)
@@ -68,7 +72,9 @@ export const useTabsStore = defineStore('tabs', () => {
         pagination.value.pageSize,
         searchQuery.value,
         searchFilters.value,
-        searchScope.value === 'global'
+        searchScope.value === 'global',
+        sortBy.value,
+        sortDesc.value
       )
       tabs.value = response.tabs
       pagination.value.total = response.total
@@ -93,7 +99,9 @@ export const useTabsStore = defineStore('tabs', () => {
         pagination.value.pageSize,
         searchQuery.value,
         searchFilters.value,
-        searchScope.value === 'global'
+        searchScope.value === 'global',
+        sortBy.value,
+        sortDesc.value
       )
       tabs.value = [...tabs.value, ...response.tabs]
       pagination.value.hasMore = response.hasMore
@@ -127,12 +135,44 @@ export const useTabsStore = defineStore('tabs', () => {
     }
   }
 
+  function setSort(by: string, desc: boolean) {
+    sortBy.value = by
+    sortDesc.value = desc
+    pagination.value.page = 1
+    fetchTabsPaginated()
+  }
+
   async function fetchCategories() {
     try {
       categories.value = await window.go.main.App.GetCategories() || []
     } catch (err) {
       console.error('Error fetching categories:', err)
       categories.value = []
+    }
+  }
+
+  async function fetchRecentCategories(limit: number) {
+    loading.value = true
+    try {
+      recentCategories.value = await window.go.main.App.GetRecentCategories(limit) || []
+    } catch (err) {
+      console.error('Error fetching recent categories:', err)
+      recentCategories.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchRecentTabs(limit: number) {
+    loading.value = true
+    try {
+      // @ts-ignore
+      recentTabs.value = await window.go.main.App.GetRecentTabs(limit) || []
+    } catch (err) {
+      console.error('Error fetching recent tabs:', err)
+      recentTabs.value = []
+    } finally {
+      loading.value = false
     }
   }
 
@@ -160,6 +200,16 @@ export const useTabsStore = defineStore('tabs', () => {
     await refreshData()
   }
 
+  async function addTabToCategory(id: string, categoryId: string) {
+    await window.go.main.App.AddTabToCategory(id, categoryId)
+    await refreshData()
+  }
+
+  async function removeTabFromCategory(id: string, categoryId: string) {
+    await window.go.main.App.RemoveTabFromCategory(id, categoryId)
+    await refreshData()
+  }
+
   async function batchDeleteTabs() {
     if (selectedTabIds.value.size === 0) return 0
     const ids = Array.from(selectedTabIds.value)
@@ -176,6 +226,16 @@ export const useTabsStore = defineStore('tabs', () => {
     exitBatchSelectMode()
     await refreshData()
     return moved
+  }
+
+  async function batchAddTabsToCategory(categoryId: string) {
+    if (selectedTabIds.value.size === 0) return 0
+    const ids = Array.from(selectedTabIds.value)
+    // @ts-ignore
+    const added = await window.go.main.App.BatchAddTabsToCategory(ids, categoryId)
+    exitBatchSelectMode()
+    await refreshData()
+    return added
   }
 
   async function addCategory(category: Category) {
@@ -263,6 +323,8 @@ export const useTabsStore = defineStore('tabs', () => {
     // State
     tabs,
     categories,
+    recentCategories,
+    recentTabs,
     currentCategoryId,
     loading,
     pagination,
@@ -271,6 +333,8 @@ export const useTabsStore = defineStore('tabs', () => {
     searchQuery,
     searchFilters,
     searchScope,
+    sortBy,
+    sortDesc,
 
     // Getters
     currentTabs,
@@ -285,14 +349,20 @@ export const useTabsStore = defineStore('tabs', () => {
     setSearchQuery,
     setSearchFilters,
     setSearchScope,
+    setSort,
     fetchCategories,
+    fetchRecentCategories,
+    fetchRecentTabs,
     refreshData,
     addTab,
     updateTab,
     deleteTab,
     moveTab,
+    addTabToCategory,
+    removeTabFromCategory,
     batchDeleteTabs,
     batchMoveTabs,
+    batchAddTabsToCategory,
     addCategory,
     deleteCategory,
     moveCategory,

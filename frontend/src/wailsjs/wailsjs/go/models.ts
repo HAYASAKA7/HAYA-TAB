@@ -47,6 +47,8 @@ export namespace store {
 	    id: string;
 	    name: string;
 	    parentId: string;
+	    coverPath: string;
+	    effectiveCoverPath: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Category(source);
@@ -57,6 +59,8 @@ export namespace store {
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.parentId = source["parentId"];
+	        this.coverPath = source["coverPath"];
+	        this.effectiveCoverPath = source["effectiveCoverPath"];
 	    }
 	}
 	export class KeyBindings {
@@ -158,10 +162,12 @@ export namespace store {
 	    type: string;
 	    isManaged: boolean;
 	    coverPath: string;
-	    categoryId: string;
+	    categoryIds: string[];
 	    country: string;
 	    language: string;
 	    tag: string;
+	    addedAt: number;
+	    lastOpened: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Tab(source);
@@ -177,10 +183,12 @@ export namespace store {
 	        this.type = source["type"];
 	        this.isManaged = source["isManaged"];
 	        this.coverPath = source["coverPath"];
-	        this.categoryId = source["categoryId"];
+	        this.categoryIds = source["categoryIds"];
 	        this.country = source["country"];
 	        this.language = source["language"];
 	        this.tag = source["tag"];
+	        this.addedAt = source["addedAt"];
+	        this.lastOpened = source["lastOpened"];
 	    }
 	}
 
