@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore, useViewersStore } from '@/stores'
 import SidebarTabItem from './SidebarTabItem.vue'
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const viewersStore = useViewersStore()
@@ -36,7 +38,7 @@ function toggleSidebar() {
       @click="goHome"
     >
       <span class="icon"><span class="icon-home"></span></span>
-      <span class="sidebar-label">Home</span>
+      <span class="sidebar-label">{{ t('nav.home') }}</span>
     </div>
     <div
       id="nav-library"
@@ -45,7 +47,7 @@ function toggleSidebar() {
       @click="goLibrary"
     >
       <span class="icon"><span class="icon-library"></span></span>
-      <span class="sidebar-label">Library</span>
+      <span class="sidebar-label">{{ t('nav.library') }}</span>
     </div>
     <div
       id="nav-settings"
@@ -54,7 +56,7 @@ function toggleSidebar() {
       @click="goSettings"
     >
       <span class="icon"><span class="icon-settings"></span></span>
-      <span class="sidebar-label">Settings</span>
+      <span class="sidebar-label">{{ t('nav.settings') }}</span>
     </div>
     <div class="sidebar-divider"></div>
     <div id="opened-tabs-list">

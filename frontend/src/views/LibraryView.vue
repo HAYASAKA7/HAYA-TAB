@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
@@ -9,6 +10,7 @@ import CategoryCard from '@/components/grid/CategoryCard.vue'
 import BackCard from '@/components/grid/BackCard.vue'
 import SearchBar from '@/components/common/SearchBar.vue'
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const contextMenu = useContextMenu()
@@ -55,7 +57,7 @@ watch(() => tabsStore.currentCategoryId, async (newId) => {
 
 const groupedTabs = computed(() => {
   const groups: Record<string, typeof tabsStore.tabs> = {}
-  
+
   // Sort tabs alphabetically first
   const sorted = [...tabsStore.tabs].sort((a, b) => a.title.localeCompare(b.title))
 
@@ -63,19 +65,19 @@ const groupedTabs = computed(() => {
     const letter = (tab.title[0] || '#').toUpperCase()
     // Group special chars under '#'
     const key = /[A-Z]/.test(letter) ? letter : '#'
-    
+
     if (!groups[key]) {
       groups[key] = []
     }
     groups[key].push(tab)
   }
-  
+
   // Return sorted keys
   const orderedGroups: Record<string, typeof tabsStore.tabs> = {}
   Object.keys(groups).sort().forEach(key => {
     orderedGroups[key] = groups[key]
   })
-  
+
   return orderedGroups
 })
 
@@ -95,20 +97,20 @@ function handleBlankContextMenu(e: MouseEvent) {
   if ((e.target as HTMLElement).closest('.tab-card')) return
 
   e.preventDefault()
-  
+
   const items: ContextMenuItem[] = []
 
   // Add Upload/Link only if singles mode
   if (viewMode.value === 'singles') {
     items.push(
-        { label: 'Upload TAB', action: () => { addTab(true) } },
-        { label: 'Link Local TAB', action: () => { addTab(false) } }
+        { label: t('library.uploadTab'), action: () => { addTab(true) } },
+        { label: t('library.linkTab'), action: () => { addTab(false) } }
     )
   }
-  
+
   // Add New Category only if in root categories view
   if (viewMode.value === 'categories' && !tabsStore.currentCategoryId) {
-    items.push({ label: 'New Category', action: () => { uiStore.showCategoryModal() } })
+    items.push({ label: t('library.newCategory'), action: () => { uiStore.showCategoryModal() } })
   }
 
   if (items.length > 0) {
@@ -145,9 +147,9 @@ async function addTab(isUpload: boolean) {
 
     // Show toast
     if (skipped > 0) {
-      showToast(`Added ${added} tab(s), ${skipped} skipped (duplicates)`, 'warning')
+      showToast(t('toast.addedWithSkip', { added, skipped }), 'warning')
     } else if (added > 0) {
-      showToast(`Added ${added} tab(s)`)
+      showToast(t('toast.added', { count: added }))
     }
   }
 }
@@ -156,21 +158,21 @@ async function addTab(isUpload: boolean) {
 <template>
   <div class="library-view">
     <header class="view-header sticky">
-      <h1>Library</h1>
+      <h1>{{ t('library.title') }}</h1>
       <div class="toggle-group">
-        <button 
-          class="toggle-btn" 
-          :class="{ active: viewMode === 'singles' }" 
+        <button
+          class="toggle-btn"
+          :class="{ active: viewMode === 'singles' }"
           @click="switchMode('singles')"
         >
-          Singles
+          {{ t('library.singles') }}
         </button>
-        <button 
-          class="toggle-btn" 
-          :class="{ active: viewMode === 'categories' }" 
+        <button
+          class="toggle-btn"
+          :class="{ active: viewMode === 'categories' }"
           @click="switchMode('categories')"
         >
-          Categories
+          {{ t('library.categories') }}
         </button>
       </div>
       <div class="actions">
@@ -178,34 +180,34 @@ async function addTab(isUpload: boolean) {
           class="btn icon-btn"
           :class="{ active: tabsStore.isBatchSelectMode }"
           @click="tabsStore.toggleBatchSelectMode"
-          title="Select Mode"
+          :title="t('library.selectMode')"
         >
           <span v-if="tabsStore.isBatchSelectMode" class="icon-close"></span>
           <span v-else class="icon-checkbox"></span>
         </button>
-        <button 
-          v-if="viewMode === 'categories' && !tabsStore.currentCategoryId" 
-          class="btn" 
-          @click="uiStore.showCategoryModal()" 
-          title="New Category"
+        <button
+          v-if="viewMode === 'categories' && !tabsStore.currentCategoryId"
+          class="btn"
+          @click="uiStore.showCategoryModal()"
+          :title="t('library.newCategory')"
         >
-          New Cat
+          {{ t('library.newCat') }}
         </button>
-        <button 
-          v-if="viewMode === 'singles'" 
-          class="btn" 
-          @click="addTab(false)" 
-          title="Link Local Tab"
+        <button
+          v-if="viewMode === 'singles'"
+          class="btn"
+          @click="addTab(false)"
+          :title="t('library.linkTab')"
         >
-          Link
+          {{ t('library.link') }}
         </button>
-        <button 
-          v-if="viewMode === 'singles'" 
-          class="btn primary" 
-          @click="addTab(true)" 
-          title="Upload Tab"
+        <button
+          v-if="viewMode === 'singles'"
+          class="btn primary"
+          @click="addTab(true)"
+          :title="t('library.uploadTab')"
         >
-          Upload
+          {{ t('library.upload') }}
         </button>
       </div>
     </header>
@@ -217,9 +219,9 @@ async function addTab(isUpload: boolean) {
     <div class="view-content" @contextmenu="handleBlankContextMenu">
       <!-- Singles View -->
       <div v-if="viewMode === 'singles'" class="singles-container">
-        <div v-if="tabsStore.loading" class="loading-state">Loading...</div>
-        <div v-else-if="tabsStore.tabs.length === 0" class="empty-state">No tabs found.</div>
-        
+        <div v-if="tabsStore.loading" class="loading-state">{{ t('library.loading') }}</div>
+        <div v-else-if="tabsStore.tabs.length === 0" class="empty-state">{{ t('library.noTabs') }}</div>
+
         <div v-else v-for="(group, letter) in groupedTabs" :key="letter" class="letter-group">
           <div class="group-header">{{ letter }}</div>
           <div class="tab-grid">
@@ -241,12 +243,12 @@ async function addTab(isUpload: boolean) {
 
         <!-- Categories List -->
         <div v-else class="category-list">
-            <div v-if="tabsStore.currentCategories.length === 0" class="empty-state">No categories found.</div>
+            <div v-if="tabsStore.currentCategories.length === 0" class="empty-state">{{ t('library.noCategories') }}</div>
             <div class="tab-grid">
-            <CategoryCard 
-                v-for="cat in tabsStore.currentCategories" 
-                :key="cat.id" 
-                :category="cat" 
+            <CategoryCard
+                v-for="cat in tabsStore.currentCategories"
+                :key="cat.id"
+                :category="cat"
             />
             </div>
         </div>

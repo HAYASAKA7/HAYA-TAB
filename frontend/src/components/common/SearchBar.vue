@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
@@ -10,6 +11,7 @@ const props = defineProps({
   }
 })
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const { searchQuery, searchFilters, searchScope } = storeToRefs(tabsStore)
 const isExpanded = ref(false)
@@ -26,12 +28,12 @@ watch(localQuery, (newVal) => {
   }, 300)
 })
 
-const availableFilters = [
-  { label: 'Song Name', value: 'title' },
-  { label: 'Artist', value: 'artist' },
-  { label: 'Album', value: 'album' },
-  { label: 'Tag', value: 'tag' }
-]
+const availableFilters = computed(() => [
+  { label: t('search.songName'), value: 'title' },
+  { label: t('search.artist'), value: 'artist' },
+  { label: t('search.album'), value: 'album' },
+  { label: t('search.tag'), value: 'tag' }
+])
 
 // Single select for Type
 const currentFilterType = computed({
@@ -64,9 +66,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div 
+  <div
     ref="searchBarRef"
-    class="search-component" 
+    class="search-component"
     :class="{ expanded: isExpanded }"
   >
     <div class="search-input-container" @click="expand">
@@ -82,27 +84,27 @@ onUnmounted(() => {
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
       </div>
-      <input 
-        type="text" 
-        v-model="localQuery" 
-        placeholder="Search..." 
+      <input
+        type="text"
+        v-model="localQuery"
+        :placeholder="t('search.placeholder')"
         @focus="expand"
       />
       <div v-show="isExpanded && showFilters" class="current-scope-indicator" title="Search Scope">
-        {{ searchScope === 'local' ? 'Category' : 'Global' }}
+        {{ searchScope === 'local' ? t('search.scopeCategory') : t('search.scopeGlobal') }}
       </div>
     </div>
 
     <div v-if="showFilters" class="search-filters-edge" :class="{ visible: isExpanded }">
       <div class="filter-group">
-        <span class="label">Type:</span>
-        <label 
-          v-for="filter in availableFilters" 
-          :key="filter.value" 
+        <span class="label">{{ t('search.type') }}</span>
+        <label
+          v-for="filter in availableFilters"
+          :key="filter.value"
           class="radio-label"
         >
-          <input 
-            type="radio" 
+          <input
+            type="radio"
             name="type"
             :value="filter.value"
             v-model="currentFilterType"

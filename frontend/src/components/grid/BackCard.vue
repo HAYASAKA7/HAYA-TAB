@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore } from '@/stores'
 import { useDragDrop } from '@/composables/useDragDrop'
 import { useToast } from '@/composables/useToast'
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const { draggedItem, endDrag } = useDragDrop()
 const { showToast } = useToast()
@@ -44,7 +46,7 @@ async function handleDrop(e: DragEvent) {
   // Handle batch drag
   if (tabsStore.isBatchSelectMode && tabsStore.selectedTabIds.size > 0) {
     const moved = await tabsStore.batchMoveTabs(parentId.value)
-    showToast(`Moved ${moved} tab(s)`)
+    showToast(t('contextMenu.movedTabs', { count: moved }))
     return
   }
 
@@ -56,9 +58,9 @@ async function handleDrop(e: DragEvent) {
     } else {
       await tabsStore.moveCategory(draggedItem.value.id, parentId.value)
     }
-    showToast('Moved successfully')
+    showToast(t('contextMenu.movedSuccessfully'))
   } catch (err) {
-    showToast('Move failed: ' + err, 'error')
+    showToast(t('contextMenu.moveFailed') + ': ' + err, 'error')
   }
 
   endDrag()
@@ -78,7 +80,7 @@ async function handleDrop(e: DragEvent) {
       <span class="icon-back icon-xl"></span>
     </div>
     <div class="info">
-      <div class="title">.. (Back)</div>
+      <div class="title">{{ t('nav.back') }}</div>
     </div>
   </div>
 </template>

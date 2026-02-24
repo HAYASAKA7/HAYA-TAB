@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.4] - 2026-02-24
+
+### Added
+- **Internationalization (i18n):** Full multi-language support (English, Chinese, Japanese, etc.).
+- **Language Settings:** Users can now switch interface language in the Settings menu.
+
+### Improved
+- **UI Localization:** Migrated hardcoded strings to localization keys across the application components (Modals, Settings, Context Menus).
+- **Store Updates:** Updated `Settings` store and database models to persist user language preference.
+
 ## [1.5.3] - 2026-02-24
 
 ### Improved

@@ -48,6 +48,7 @@ type KeyBindings struct {
 // Settings represents application configuration
 type Settings struct {
 	Theme             string      `json:"theme"`        // "dark", "light", "system"
+	Language          string      `json:"language"`     // "en", "zh-CN", "zh-TW", "ja"
 	Background        string      `json:"background"`   // URL or path
 	BgType            string      `json:"bgType"`       // "url", "local"
 	OpenMethod        string      `json:"openMethod"`   // "system", "inner"

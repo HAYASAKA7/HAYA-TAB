@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useSettingsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
+import { SUPPORTED_LOCALES } from '@/i18n'
 
+const { t } = useI18n()
 const settingsStore = useSettingsStore()
 const uiStore = useUIStore()
 const { showToast } = useToast()
@@ -32,7 +35,7 @@ async function fetchAudioDevices() {
 
     // First try without requesting permission
     let devices = await navigator.mediaDevices.enumerateDevices()
-    
+
     // Check if we have audio output devices and if they have labels
     // If labels are empty, we might need permission
     const hasAudioOutput = devices.some(d => d.kind === 'audiooutput')
@@ -46,7 +49,7 @@ async function fetchAudioDevices() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         // Stop the stream immediately, we only needed permission
         stream.getTracks().forEach(t => t.stop())
-        
+
         // Refresh valid devices list
         devices = await navigator.mediaDevices.enumerateDevices()
       } catch (permErr) {
@@ -58,16 +61,16 @@ async function fetchAudioDevices() {
     audioDevices.value = devices.filter(d => d.kind === 'audiooutput')
   } catch (e) {
     console.error('Error fetching audio devices', e)
-    showToast('Failed to list audio devices: ' + e, 'error')
+    showToast(t('toast.failedAudioDevices') + ': ' + e, 'error')
   }
 }
 
 async function handleSave() {
   try {
     await settingsStore.saveSettings()
-    showToast('Settings saved')
+    showToast(t('settings.settingsSaved'))
   } catch (err) {
-    showToast('Error saving settings: ' + err, 'error')
+    showToast(t('settings.errorSaving') + ': ' + err, 'error')
   }
 }
 
@@ -88,7 +91,7 @@ async function handleBrowseBg() {
 async function handleSync() {
   if (isSyncing.value) return
   isSyncing.value = true
-  syncStatus.value = 'Starting sync...'
+  syncStatus.value = t('settings.startingSync')
   syncFilename.value = ''
   syncCount.value = 0
 
@@ -106,15 +109,15 @@ async function handleSync() {
   try {
     const msg = await settingsStore.triggerSync()
     showToast(msg)
-    syncStatus.value = 'Sync completed'
+    syncStatus.value = t('settings.syncCompleted')
   } catch (err) {
-    showToast('Sync error: ' + err, 'error')
-    syncStatus.value = 'Sync failed'
+    showToast(t('toast.syncError') + ': ' + err, 'error')
+    syncStatus.value = t('settings.syncFailed')
   } finally {
     EventsOff('sync-progress')
     isSyncing.value = false
     setTimeout(() => {
-      if (syncStatus.value === 'Sync completed') {
+      if (syncStatus.value === t('settings.syncCompleted')) {
         syncStatus.value = ''
         syncCount.value = 0
       }
@@ -124,24 +127,32 @@ async function handleSync() {
 </script>
 
 <template>
-  <header><h1>Settings</h1></header>
+  <header><h1>{{ t('settings.title') }}</h1></header>
   <div class="settings-container">
     <section class="settings-section">
-      <h3><span class="icon-palette"></span> Appearance</h3>
+      <h3><span class="icon-palette"></span> {{ t('settings.appearance') }}</h3>
       <div class="form-group">
-        <label>Theme</label>
-        <select id="set-theme" v-model="settingsStore.settings.theme">
-          <option value="system">System Default</option>
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
+        <label>{{ t('settings.language') }}</label>
+        <select v-model="settingsStore.settings.language">
+          <option v-for="locale in SUPPORTED_LOCALES" :key="locale.value" :value="locale.value">
+            {{ locale.label }}
+          </option>
         </select>
       </div>
       <div class="form-group">
-        <label>Background Image</label>
+        <label>{{ t('settings.theme') }}</label>
+        <select id="set-theme" v-model="settingsStore.settings.theme">
+          <option value="system">{{ t('settings.themeSystem') }}</option>
+          <option value="dark">{{ t('settings.themeDark') }}</option>
+          <option value="light">{{ t('settings.themeLight') }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>{{ t('settings.backgroundImage') }}</label>
         <select id="set-bg-type" v-model="settingsStore.settings.bgType">
-          <option value="">None</option>
-          <option value="url">Online URL</option>
-          <option value="local">Local File</option>
+          <option value="">{{ t('settings.bgNone') }}</option>
+          <option value="url">{{ t('settings.bgUrl') }}</option>
+          <option value="local">{{ t('settings.bgLocal') }}</option>
         </select>
       </div>
       <div
@@ -153,7 +164,7 @@ async function handleSync() {
           type="text"
           id="set-bg-val"
           v-model="settingsStore.settings.background"
-          placeholder="Enter URL or Path"
+          :placeholder="t('settings.bgPlaceholder')"
         />
         <button
           v-if="settingsStore.settings.bgType === 'local'"
@@ -161,15 +172,15 @@ async function handleSync() {
           id="btn-browse-bg"
           @click="handleBrowseBg"
         >
-          Browse...
+          {{ t('settings.browse') }}
         </button>
       </div>
     </section>
 
     <section class="settings-section">
-      <h3><span class="icon-document"></span> Viewers</h3>
+      <h3><span class="icon-document"></span> {{ t('settings.viewers') }}</h3>
       <div class="form-group">
-        <label>Open PDF Method</label>
+        <label>{{ t('settings.openPdfMethod') }}</label>
         <div class="radio-group">
           <label>
             <input
@@ -178,7 +189,7 @@ async function handleSync() {
               value="system"
               v-model="settingsStore.settings.openMethod"
             />
-            System Default App
+            {{ t('settings.systemApp') }}
           </label>
           <label>
             <input
@@ -187,12 +198,12 @@ async function handleSync() {
               value="inner"
               v-model="settingsStore.settings.openMethod"
             />
-            Built-in Viewer (Tabs)
+            {{ t('settings.builtInViewer') }}
           </label>
         </div>
       </div>
       <div class="form-group">
-        <label>Open Guitar Pro Method</label>
+        <label>{{ t('settings.openGpMethod') }}</label>
         <div class="radio-group">
           <label>
             <input
@@ -201,7 +212,7 @@ async function handleSync() {
               value="system"
               v-model="settingsStore.settings.openGpMethod"
             />
-            System Default App
+            {{ t('settings.systemApp') }}
           </label>
           <label>
             <input
@@ -210,64 +221,64 @@ async function handleSync() {
               value="inner"
               v-model="settingsStore.settings.openGpMethod"
             />
-            Built-in Viewer (AlphaTab)
+            {{ t('settings.builtInAlphaTab') }}
           </label>
         </div>
       </div>
     </section>
 
     <section class="settings-section" v-if="isAudioOutputSupported">
-      <h3><span class="icon-volume"></span> Audio</h3>
+      <h3><span class="icon-volume"></span> {{ t('settings.audio') }}</h3>
       <div class="form-group">
-        <label>Output Device</label>
+        <label>{{ t('settings.outputDevice') }}</label>
         <select v-model="settingsStore.settings.audioDevice">
-          <option value="default">Default</option>
+          <option value="default">{{ t('settings.default') }}</option>
           <option
             v-for="device in audioDevices"
             :key="device.deviceId"
             :value="device.deviceId"
           >
-            {{ device.label || 'Unknown Device (' + device.deviceId.slice(0, 8) + '...)' }}
+            {{ device.label || t('settings.unknownDevice') + ' (' + device.deviceId.slice(0, 8) + '...)' }}
           </option>
         </select>
-        <p class="hint">Applied to Guitar Pro playback</p>
+        <p class="hint">{{ t('settings.audioHint') }}</p>
       </div>
     </section>
 
     <section class="settings-section">
-      <h3><span class="icon-keyboard"></span> Shortcuts</h3>
+      <h3><span class="icon-keyboard"></span> {{ t('settings.shortcuts') }}</h3>
       <div class="form-group">
-        <label>Key Bindings</label>
-        <button class="btn" @click="uiStore.showKeyBindingsModal">Configure Key Bindings</button>
+        <label>{{ t('settings.keyBindings') }}</label>
+        <button class="btn" @click="uiStore.showKeyBindingsModal">{{ t('settings.configureKeyBindings') }}</button>
       </div>
     </section>
 
     <section class="settings-section">
-      <h3><span class="icon-sync"></span> Auto Sync</h3>
+      <h3><span class="icon-sync"></span> {{ t('settings.autoSync') }}</h3>
       <div class="form-group">
         <label>
           <input type="checkbox" v-model="settingsStore.settings.autoSyncEnabled">
-          Enable Auto Sync
+          {{ t('settings.enableAutoSync') }}
         </label>
       </div>
       <div class="form-group" v-if="settingsStore.settings.autoSyncEnabled">
-        <label>Sync Frequency</label>
+        <label>{{ t('settings.syncFrequency') }}</label>
         <select v-model="settingsStore.settings.autoSyncFrequency">
-          <option value="startup">Every Startup</option>
-          <option value="weekly">First Startup of Week</option>
-          <option value="monthly">First Startup of Month</option>
-          <option value="yearly">First Startup of Year</option>
+          <option value="startup">{{ t('settings.freqStartup') }}</option>
+          <option value="weekly">{{ t('settings.freqWeekly') }}</option>
+          <option value="monthly">{{ t('settings.freqMonthly') }}</option>
+          <option value="yearly">{{ t('settings.freqYearly') }}</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Sync Strategy (for duplicates)</label>
+        <label>{{ t('settings.syncStrategy') }}</label>
         <select id="set-sync-strategy" v-model="settingsStore.settings.syncStrategy">
-          <option value="skip">Skip (Keep existing)</option>
-          <option value="overwrite">Add as Copy (Rename new files)</option>
+          <option value="skip">{{ t('settings.strategySkip') }}</option>
+          <option value="overwrite">{{ t('settings.strategyOverwrite') }}</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Monitored Folders</label>
+        <label>{{ t('settings.monitoredFolders') }}</label>
         <ul id="sync-path-list">
           <li v-for="(path, index) in settingsStore.settings.syncPaths" :key="index">
             <span>{{ path }}</span>
@@ -276,12 +287,12 @@ async function handleSync() {
             </span>
           </li>
         </ul>
-        <button class="btn small" @click="handleAddSyncPath">+ Add Folder</button>
+        <button class="btn small" @click="handleAddSyncPath">{{ t('settings.addFolder') }}</button>
       </div>
       <div class="sync-actions">
         <button class="btn primary" @click="handleSync" :disabled="isSyncing">
           <span v-if="isSyncing" class="sync-spinner"></span>
-          {{ isSyncing ? 'Syncing...' : 'Sync Now' }}
+          {{ isSyncing ? t('settings.syncing') : t('settings.syncNow') }}
         </button>
         <div v-if="isSyncing || syncStatus" class="sync-progress-container">
           <div v-if="isSyncing" class="sync-progress-bar">
@@ -289,14 +300,14 @@ async function handleSync() {
           </div>
           <div class="sync-progress-info">
             <span class="sync-status">{{ syncStatus }}</span>
-            <span v-if="syncCount > 0" class="sync-count">({{ syncCount }} files processed)</span>
+            <span v-if="syncCount > 0" class="sync-count">({{ syncCount }} {{ t('settings.filesProcessed') }})</span>
           </div>
         </div>
       </div>
     </section>
 
     <div class="settings-footer">
-      <button class="btn primary" @click="handleSave">Save Changes</button>
+      <button class="btn primary" @click="handleSave">{{ t('settings.saveChanges') }}</button>
     </div>
   </div>
 </template>

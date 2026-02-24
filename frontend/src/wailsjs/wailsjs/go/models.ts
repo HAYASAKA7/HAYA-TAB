@@ -103,6 +103,7 @@ export namespace store {
 	}
 	export class Settings {
 	    theme: string;
+	    language: string;
 	    background: string;
 	    bgType: string;
 	    openMethod: string;
@@ -122,6 +123,7 @@ export namespace store {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.theme = source["theme"];
+	        this.language = source["language"];
 	        this.background = source["background"];
 	        this.bgType = source["bgType"];
 	        this.openMethod = source["openMethod"];

@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 
+const { t } = useI18n()
 const uiStore = useUIStore()
 
 function handleConfirm() {
@@ -27,7 +29,7 @@ function handleConfirm() {
           class="btn"
           @click="uiStore.hideConfirmModal"
         >
-          Cancel
+          {{ t('confirm.cancel') }}
         </button>
         <button
           id="confirm-ok-btn"

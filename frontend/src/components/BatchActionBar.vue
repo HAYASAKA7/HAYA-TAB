@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const { showToast } = useToast()
@@ -12,25 +14,25 @@ const isVisible = computed(() => tabsStore.isBatchSelectMode && selectedCount.va
 
 async function handleDelete() {
   const selectedTabs = tabsStore.selectedTabs
-  const managedCount = selectedTabs.filter((t: any) => t.isManaged).length
+  const managedCount = selectedTabs.filter((tab: any) => tab.isManaged).length
   const linkedCount = selectedTabs.length - managedCount
 
-  let message = `You are about to remove <strong>${selectedCount.value}</strong> tab(s).`
+  let message = `${t('batch.removeConfirm')} <strong>${selectedCount.value}</strong> ${t('batch.tabs')}.`
 
   if (managedCount > 0 && linkedCount > 0) {
     message += `<ul>
-      <li><strong>${managedCount}</strong> uploaded tab(s) will be <span class="warning-text">deleted permanently</span></li>
-      <li><strong>${linkedCount}</strong> linked tab(s) will be unlinked (files remain on disk)</li>
+      <li><strong>${managedCount}</strong> ${t('batch.uploadedWillDelete')}</li>
+      <li><strong>${linkedCount}</strong> ${t('batch.linkedWillUnlink')}</li>
     </ul>`
   } else if (managedCount > 0) {
-    message += `<br><br>These <strong>${managedCount}</strong> uploaded tab(s) will be <span class="warning-text">deleted permanently</span>.`
+    message += `<br><br><strong>${managedCount}</strong> ${t('batch.uploadedWillDelete')}.`
   } else {
-    message += `<br><br>These <strong>${linkedCount}</strong> linked tab(s) will be unlinked (files remain on disk).`
+    message += `<br><br><strong>${linkedCount}</strong> ${t('batch.linkedWillUnlink')}.`
   }
 
-  uiStore.showConfirmModal('Remove Tabs', message, 'Remove', true, async () => {
+  uiStore.showConfirmModal(t('batch.removeTabs'), message, t('confirm.remove'), true, async () => {
     const deleted = await tabsStore.batchDeleteTabs()
-    showToast(`Removed ${deleted} tab(s)`)
+    showToast(t('batch.removed', { count: deleted }))
   })
 }
 
@@ -45,15 +47,15 @@ function handleMove() {
     :class="{ hidden: !isVisible }"
   >
     <div class="batch-info">
-      <span id="batch-selected-count">{{ selectedCount }}</span> selected
-      <button class="btn small" @click="tabsStore.selectAllTabs">Select All</button>
+      <span id="batch-selected-count">{{ selectedCount }}</span> {{ t('batch.selected') }}
+      <button class="btn small" @click="tabsStore.selectAllTabs">{{ t('batch.selectAll') }}</button>
     </div>
     <div class="batch-actions">
       <button class="btn" @click="handleMove">
-        <span class="icon-folder"></span> Move to...
+        <span class="icon-folder"></span> {{ t('batch.moveTo') }}
       </button>
       <button class="btn danger" @click="handleDelete">
-        <span class="icon-trash"></span> Remove
+        <span class="icon-trash"></span> {{ t('batch.remove') }}
       </button>
     </div>
   </div>

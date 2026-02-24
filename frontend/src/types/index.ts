@@ -45,6 +45,7 @@ export interface KeyBindings {
 
 export interface Settings {
   theme: 'dark' | 'light' | 'system'
+  language: 'en' | 'zh-CN' | 'zh-TW' | 'ja'
   background: string
   bgType: 'url' | 'local' | ''
   openMethod: 'system' | 'inner'

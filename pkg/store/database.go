@@ -23,6 +23,7 @@ func NewDBStore(dbPath string) *DBStore {
 		dbPath: dbPath,
 		Settings: Settings{
 			Theme:        "system",
+			Language:     "en",
 			OpenMethod:   "inner",
 			OpenGpMethod: "inner",
 			SyncStrategy: "skip",
@@ -261,6 +262,9 @@ func (s *DBStore) loadSettings() error {
 
 	if v, ok := settings["theme"]; ok {
 		s.Settings.Theme = v
+	}
+	if v, ok := settings["language"]; ok {
+		s.Settings.Language = v
 	}
 	if v, ok := settings["background"]; ok {
 		s.Settings.Background = v
@@ -1177,6 +1181,7 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 	// Save each setting
 	settingsMap := map[string]string{
 		"theme":                       settings.Theme,
+		"language":                    settings.Language,
 		"background":                  settings.Background,
 		"bgType":                      settings.BgType,
 		"openMethod":                  settings.OpenMethod,

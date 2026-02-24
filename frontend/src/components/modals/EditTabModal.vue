@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import type { Tab } from '@/types'
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const { showToast } = useToast()
@@ -75,7 +77,7 @@ async function handleSave() {
     } else {
       await tabsStore.addTab(tab, shouldCopy.value)
     }
-    showToast('Saved.')
+    showToast(t('toast.saved'))
     uiStore.hideEditModal()
   } catch (err) {
     showToast(String(err), 'error')
@@ -91,14 +93,14 @@ async function handleSave() {
     @click.self="uiStore.hideEditModal"
   >
     <div class="modal">
-      <h2>{{ isEditMode ? 'Edit Tab Metadata' : 'Add New Tab' }}</h2>
+      <h2>{{ isEditMode ? t('tab.editMetadata') : t('tab.addNewTab') }}</h2>
 
       <form id="edit-form" @submit.prevent="handleSave">
         <input type="hidden" v-model="formData.filePath" />
         <input type="hidden" v-model="shouldCopy" />
 
         <div class="form-group">
-          <label for="edit-title">Title</label>
+          <label for="edit-title">{{ t('tab.title') }}</label>
           <input
             id="edit-title"
             type="text"
@@ -108,7 +110,7 @@ async function handleSave() {
         </div>
 
         <div class="form-group">
-          <label for="edit-artist">Artist</label>
+          <label for="edit-artist">{{ t('tab.artist') }}</label>
           <input
             id="edit-artist"
             type="text"
@@ -117,7 +119,7 @@ async function handleSave() {
         </div>
 
         <div class="form-group">
-          <label for="edit-album">Album</label>
+          <label for="edit-album">{{ t('tab.album') }}</label>
           <input
             id="edit-album"
             type="text"
@@ -126,55 +128,55 @@ async function handleSave() {
         </div>
 
         <div class="form-group">
-          <label for="edit-type">Type</label>
+          <label for="edit-type">{{ t('tab.type') }}</label>
           <select id="edit-type" v-model="formData.type">
-            <option value="pdf">PDF</option>
-            <option value="gp">Guitar Pro</option>
+            <option value="pdf">{{ t('tab.pdf') }}</option>
+            <option value="gp">{{ t('tab.guitarPro') }}</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label for="edit-tag">Tag</label>
+          <label for="edit-tag">{{ t('tab.tag') }}</label>
           <input
             id="edit-tag"
             type="text"
             v-model="formData.tag"
-            placeholder="e.g. Lead Guitar"
+            :placeholder="t('tab.tagPlaceholder')"
           />
         </div>
 
         <div class="form-group">
-          <label for="edit-country">Country</label>
+          <label for="edit-country">{{ t('tab.country') }}</label>
           <select id="edit-country" v-model="formData.country">
-            <option value="US">US</option>
-            <option value="JP">Japan</option>
-            <option value="GB">UK</option>
-            <option value="DE">Germany</option>
-            <option value="FR">France</option>
-            <option value="KR">Korea</option>
-            <option value="CN">China</option>
+            <option value="US">{{ t('countries.US') }}</option>
+            <option value="JP">{{ t('countries.JP') }}</option>
+            <option value="GB">{{ t('countries.GB') }}</option>
+            <option value="DE">{{ t('countries.DE') }}</option>
+            <option value="FR">{{ t('countries.FR') }}</option>
+            <option value="KR">{{ t('countries.KR') }}</option>
+            <option value="CN">{{ t('countries.CN') }}</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label for="edit-lang">Language</label>
+          <label for="edit-lang">{{ t('tab.language') }}</label>
           <select id="edit-lang" v-model="formData.language">
-            <option value="en_us">English (US)</option>
-            <option value="ja_jp">Japanese</option>
-            <option value="en_gb">English (UK)</option>
-            <option value="de_de">German</option>
-            <option value="fr_fr">French</option>
-            <option value="ko_kr">Korean</option>
-            <option value="zh_cn">Chinese</option>
+            <option value="en_us">{{ t('languages.en_us') }}</option>
+            <option value="ja_jp">{{ t('languages.ja_jp') }}</option>
+            <option value="en_gb">{{ t('languages.en_gb') }}</option>
+            <option value="de_de">{{ t('languages.de_de') }}</option>
+            <option value="fr_fr">{{ t('languages.fr_fr') }}</option>
+            <option value="ko_kr">{{ t('languages.ko_kr') }}</option>
+            <option value="zh_cn">{{ t('languages.zh_cn') }}</option>
           </select>
         </div>
 
         <div class="modal-actions">
           <button type="button" class="btn" @click="uiStore.hideEditModal">
-            Cancel
+            {{ t('confirm.cancel') }}
           </button>
           <button type="submit" class="btn primary">
-            Save
+            {{ t('confirm.save') }}
           </button>
         </div>
       </form>

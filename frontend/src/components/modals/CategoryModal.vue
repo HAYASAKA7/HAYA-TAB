@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const { showToast } = useToast()
@@ -61,11 +63,11 @@ async function handleSave() {
     @click.self="uiStore.hideCategoryModal"
   >
     <div class="modal">
-      <h2>{{ categoryId ? 'Edit Category' : 'New Category' }}</h2>
+      <h2>{{ categoryId ? t('category.editCategory') : t('category.newCategory') }}</h2>
 
       <form @submit.prevent="handleSave">
         <div class="form-group">
-          <label for="cat-name">Name</label>
+          <label for="cat-name">{{ t('category.name') }}</label>
           <input
             id="cat-name"
             type="text"
@@ -76,20 +78,20 @@ async function handleSave() {
         </div>
 
         <div class="form-group">
-          <label>Cover Image</label>
+          <label>{{ t('category.coverImage') }}</label>
           <div class="cover-input">
-            <input type="text" v-model="coverPath" placeholder="Default (First Tab)" readonly />
-            <button type="button" class="btn" @click="selectCover">Select</button>
-            <button type="button" class="btn" @click="coverPath = ''" v-if="coverPath">Clear</button>
+            <input type="text" v-model="coverPath" :placeholder="t('category.defaultCover')" readonly />
+            <button type="button" class="btn" @click="selectCover">{{ t('category.select') }}</button>
+            <button type="button" class="btn" @click="coverPath = ''" v-if="coverPath">{{ t('category.clear') }}</button>
           </div>
         </div>
 
         <div class="modal-actions">
           <button type="button" class="btn" @click="uiStore.hideCategoryModal">
-            Cancel
+            {{ t('confirm.cancel') }}
           </button>
           <button type="submit" class="btn primary">
-            Save
+            {{ t('confirm.save') }}
           </button>
         </div>
       </form>

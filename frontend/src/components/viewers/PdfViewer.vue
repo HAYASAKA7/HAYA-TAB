@@ -345,12 +345,19 @@ async function loadPdf() {
       pdfTheme = 1
     }
 
-    // Determine Locale
-    let appLang = document.documentElement.lang || navigator.language || 'en-US'
-    if (appLang === 'en') appLang = 'en-US'
+    // Determine Locale from app settings
+    const appLang = settingsStore.settings.language || 'en'
+    // Map app language codes to PDF.js locale codes
+    const localeMap: Record<string, string> = {
+      'en': 'en-US',
+      'zh-CN': 'zh-CN',
+      'zh-TW': 'zh-TW',
+      'ja': 'ja'
+    }
+    const pdfLocale = localeMap[appLang] || 'en-US'
 
     // Construct URL with Hash Params
-    viewerUrl.value = `pdfjs/web/viewer.html?file=${encodeURIComponent(url)}#locale=${appLang}&viewerCssTheme=${pdfTheme}`
+    viewerUrl.value = `pdfjs/web/viewer.html?file=${encodeURIComponent(url)}#locale=${pdfLocale}&viewerCssTheme=${pdfTheme}`
   } catch (e) {
     console.error('Failed to load PDF:', e)
   }

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUIStore, useSettingsStore } from '@/stores'
 import type { KeyBindings } from '@/types'
 
+const { t } = useI18n()
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
 
@@ -10,22 +12,22 @@ const isOpen = computed(() => uiStore.keyBindingsModalVisible)
 
 const editingKey = ref<string | null>(null)
 
-const bindLabels: Record<keyof KeyBindings, string> = {
-  scrollDown: 'Scroll Down',
-  scrollUp: 'Scroll Up',
-  metronome: 'Toggle Metronome',
-  playPause: 'Play / Pause',
-  stop: 'Stop / Rewind',
-  bpmPlus: 'Increase BPM',
-  bpmMinus: 'Decrease BPM',
-  toggleLoop: 'Toggle Loop',
-  clearSelection: 'Clear Selection',
-  jumpToBar: 'Jump to Bar',
-  jumpToStart: 'Jump to Start',
-  autoScroll: 'Toggle Auto-Scroll',
-  scrollSpeedUp: 'Increase Scroll Speed',
-  scrollSpeedDown: 'Decrease Scroll Speed'
-}
+const bindingKeys: (keyof KeyBindings)[] = [
+  'scrollDown',
+  'scrollUp',
+  'metronome',
+  'playPause',
+  'stop',
+  'bpmPlus',
+  'bpmMinus',
+  'toggleLoop',
+  'clearSelection',
+  'jumpToBar',
+  'jumpToStart',
+  'autoScroll',
+  'scrollSpeedUp',
+  'scrollSpeedDown'
+]
 
 function close() {
   uiStore.hideKeyBindingsModal()
@@ -43,13 +45,13 @@ function handleKeyDown(e: KeyboardEvent) {
   e.stopPropagation()
 
   const newKey = e.key.toLowerCase() // Normalize to lowercase for simplicity
-  
+
   // Validation: Check if key is already used? Maybe optional.
   // For now just allow binding.
 
   const keyField = editingKey.value as keyof KeyBindings
   settingsStore.settings.keyBindings[keyField] = newKey
-  
+
   settingsStore.saveSettings()
   editingKey.value = null
 }
@@ -64,25 +66,25 @@ function formatKey(key: string) {
 <template>
   <div v-if="isOpen" id="key-binding-modal" class="modal-overlay" @click.self="close">
     <div class="modal" @keydown.stop>
-      <h2>Key Bindings</h2>
-      
+      <h2>{{ t('keyBindings.title') }}</h2>
+
       <div class="modal-body" tabindex="0" @keydown="handleKeyDown">
         <div v-if="editingKey" class="listening-overlay">
           <div class="listening-box">
-            <p>Press a key for <strong>{{ bindLabels[editingKey as keyof KeyBindings] }}</strong></p>
-            <button class="btn" @click.stop="editingKey = null">Cancel</button>
+            <p>{{ t('keyBindings.pressKey') }} <strong>{{ t(`keyBindings.${editingKey}`) }}</strong></p>
+            <button class="btn" @click.stop="editingKey = null">{{ t('confirm.cancel') }}</button>
           </div>
         </div>
 
         <div class="bindings-list">
-          <div 
-            v-for="(label, field) in bindLabels" 
-            :key="field" 
+          <div
+            v-for="field in bindingKeys"
+            :key="field"
             class="binding-item"
           >
-            <span class="binding-label">{{ label }}</span>
-            <button 
-              class="binding-key" 
+            <span class="binding-label">{{ t(`keyBindings.${field}`) }}</span>
+            <button
+              class="binding-key"
               @click="startEditing(String(field))"
               title="Click to change"
             >
@@ -91,9 +93,9 @@ function formatKey(key: string) {
           </div>
         </div>
       </div>
-      
+
       <div class="modal-actions">
-        <button class="btn primary" @click="close">Done</button>
+        <button class="btn primary" @click="close">{{ t('keyBindings.done') }}</button>
       </div>
     </div>
   </div>

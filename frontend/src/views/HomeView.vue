@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
 import TabCard from '@/components/grid/TabCard.vue'
 import CategoryCard from '@/components/grid/CategoryCard.vue'
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const contextMenu = useContextMenu()
@@ -43,8 +45,8 @@ function handleBlankContextMenu(e: MouseEvent) {
 
   e.preventDefault()
   contextMenu.show(e.pageX, e.pageY, [
-    { label: 'Upload TAB', action: () => addTab(true) },
-    { label: 'Link Local TAB', action: () => addTab(false) }
+    { label: t('library.uploadTab'), action: () => addTab(true) },
+    { label: t('library.linkTab'), action: () => addTab(false) }
   ])
 }
 
@@ -71,9 +73,9 @@ async function addTab(isUpload: boolean) {
 
     // Show toast
     if (skipped > 0) {
-      showToast(`Added ${added} tab(s), ${skipped} skipped (duplicates)`, 'warning')
+      showToast(t('toast.addedWithSkip', { added, skipped }), 'warning')
     } else if (added > 0) {
-      showToast(`Added ${added} tab(s)`)
+      showToast(t('toast.added', { count: added }))
     }
   }
 }
@@ -82,21 +84,21 @@ async function addTab(isUpload: boolean) {
 <template>
   <div class="home-view">
     <header class="view-header sticky">
-      <h1>Home</h1>
+      <h1>{{ t('home.title') }}</h1>
       <div class="toggle-group">
-        <button 
-          class="toggle-btn" 
-          :class="{ active: viewMode === 'recent' }" 
+        <button
+          class="toggle-btn"
+          :class="{ active: viewMode === 'recent' }"
           @click="switchMode('recent')"
         >
-          Recent
+          {{ t('home.recent') }}
         </button>
-        <button 
-          class="toggle-btn" 
-          :class="{ active: viewMode === 'categories' }" 
+        <button
+          class="toggle-btn"
+          :class="{ active: viewMode === 'categories' }"
           @click="switchMode('categories')"
         >
-          Recent Categories
+          {{ t('home.recentCategories') }}
         </button>
       </div>
     </header>
@@ -104,9 +106,9 @@ async function addTab(isUpload: boolean) {
     <div class="view-content" @contextmenu="handleBlankContextMenu">
       <!-- Recent Tabs -->
       <div v-if="viewMode === 'recent'" class="recent-tabs">
-        <div v-if="tabsStore.loading" class="loading-state">Loading...</div>
-        <div v-else-if="tabsStore.recentTabs.length === 0" class="empty-state">No recent tabs found.</div>
-        
+        <div v-if="tabsStore.loading" class="loading-state">{{ t('library.loading') }}</div>
+        <div v-else-if="tabsStore.recentTabs.length === 0" class="empty-state">{{ t('home.noRecentTabs') }}</div>
+
         <div v-else class="tab-grid">
           <TabCard v-for="tab in tabsStore.recentTabs" :key="tab.id" :tab="tab" />
         </div>
@@ -114,14 +116,14 @@ async function addTab(isUpload: boolean) {
 
       <!-- Recent Categories -->
       <div v-else class="recent-categories">
-        <div v-if="tabsStore.loading" class="loading-state">Loading...</div>
-        <div v-else-if="tabsStore.recentCategories.length === 0" class="empty-state">No recent categories found.</div>
-        
+        <div v-if="tabsStore.loading" class="loading-state">{{ t('library.loading') }}</div>
+        <div v-else-if="tabsStore.recentCategories.length === 0" class="empty-state">{{ t('home.noRecentCategories') }}</div>
+
         <div v-else class="tab-grid">
-           <CategoryCard 
-             v-for="cat in tabsStore.recentCategories" 
-             :key="cat.id" 
-             :category="cat" 
+           <CategoryCard
+             v-for="cat in tabsStore.recentCategories"
+             :key="cat.id"
+             :category="cat"
            />
         </div>
       </div>

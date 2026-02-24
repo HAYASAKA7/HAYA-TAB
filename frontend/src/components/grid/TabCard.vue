@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Tab, ContextMenuItem } from '@/types'
 import { useTabsStore, useUIStore, useViewersStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
@@ -10,6 +11,7 @@ const props = defineProps<{
   tab: Tab
 }>()
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const viewersStore = useViewersStore()
@@ -60,7 +62,7 @@ async function openTab() {
       await window.go.main.App.OpenTab(props.tab.id)
     } catch (err) {
       console.error(err)
-      showToast('Failed to open tab', 'error')
+      showToast(t('contextMenu.failedToOpen'), 'error')
     }
   }
 }
@@ -72,7 +74,7 @@ async function openInternalTab() {
   } catch (err) {
     console.warn('Failed to mark tab as opened:', err)
   }
-  
+
   viewersStore.openTab(props.tab)
   const prefix = props.tab.type === 'pdf' ? 'pdf' : 'gp'
   uiStore.switchView(`${prefix}-${props.tab.id}`)
@@ -85,26 +87,26 @@ function handleContextMenu(e: MouseEvent) {
   if (tabsStore.isBatchSelectMode) return
 
   const items: ContextMenuItem[] = [
-    { label: 'Open with System', action: () => window.go.main.App.OpenTab(props.tab.id) },
-    { label: 'Open with Inner Viewer', action: () => openInternalTab() },
-    { label: 'Edit Metadata', action: () => uiStore.showEditModal(props.tab) },
-    { label: 'Add to Category...', action: () => uiStore.showMoveModal(props.tab.id) }
+    { label: t('contextMenu.openWithSystem'), action: () => window.go.main.App.OpenTab(props.tab.id) },
+    { label: t('contextMenu.openWithInner'), action: () => openInternalTab() },
+    { label: t('contextMenu.editMetadata'), action: () => uiStore.showEditModal(props.tab) },
+    { label: t('contextMenu.addToCategory'), action: () => uiStore.showMoveModal(props.tab.id) }
   ]
 
   if (tabsStore.currentCategoryId) {
-    items.push({ 
-      label: 'Remove from Category', 
+    items.push({
+      label: t('contextMenu.removeFromCategory'),
       action: async () => {
         await tabsStore.removeTabFromCategory(props.tab.id, tabsStore.currentCategoryId)
-        showToast('Removed from category')
+        showToast(t('contextMenu.removedFromCategory'))
       }
     })
   }
 
   items.push(
-    { label: 'Export TAB', action: () => exportTab() },
+    { label: t('contextMenu.exportTab'), action: () => exportTab() },
     { type: 'separator' },
-    { label: props.tab.isManaged ? 'Delete TAB' : 'Unlink TAB', action: () => confirmDelete() }
+    { label: props.tab.isManaged ? t('contextMenu.deleteTab') : t('contextMenu.unlinkTab'), action: () => confirmDelete() }
   )
 
   contextMenu.show(e.pageX, e.pageY, items)
@@ -114,16 +116,16 @@ async function exportTab() {
   const dest = await window.go.main.App.SelectFolder()
   if (dest) {
     await window.go.main.App.ExportTab(props.tab.id, dest)
-    showToast('Exported')
+    showToast(t('contextMenu.exported'))
   }
 }
 
 function confirmDelete() {
-  const title = props.tab.isManaged ? 'Delete Tab' : 'Unlink Tab'
+  const title = props.tab.isManaged ? t('contextMenu.deleteTab') : t('contextMenu.unlinkTab')
   const message = props.tab.isManaged
-    ? `Are you sure you want to delete "<strong>${props.tab.title}</strong>"?<br><br><span class="warning-text">This will permanently delete the file.</span>`
-    : `Are you sure you want to unlink "<strong>${props.tab.title}</strong>"?<br><br>The file will remain on disk.`
-  const btnText = props.tab.isManaged ? 'Delete' : 'Unlink'
+    ? `${t('contextMenu.confirmDeleteTab', { title: props.tab.title })}<br><br><span class="warning-text">${t('contextMenu.confirmDeleteTabWarning')}</span>`
+    : `${t('contextMenu.confirmUnlinkTab', { title: props.tab.title })}<br><br>${t('contextMenu.confirmUnlinkTabInfo')}`
+  const btnText = props.tab.isManaged ? t('confirm.delete') : t('contextMenu.unlinkTab')
 
   uiStore.showConfirmModal(title, message, btnText, true, async () => {
     await tabsStore.deleteTab(props.tab.id)

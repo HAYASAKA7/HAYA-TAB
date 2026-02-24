@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Category } from '@/types'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
@@ -10,6 +11,7 @@ const props = defineProps<{
   category: Category
 }>()
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const contextMenu = useContextMenu()
@@ -51,17 +53,17 @@ function handleContextMenu(e: MouseEvent) {
   e.stopPropagation()
 
   contextMenu.show(e.pageX, e.pageY, [
-    { label: 'Open', action: () => tabsStore.navigateToCategory(props.category.id) },
-    { label: 'Rename', action: () => uiStore.showCategoryModal(props.category) },
-    { label: 'Delete Category', action: () => confirmDelete() }
+    { label: t('contextMenu.open'), action: () => tabsStore.navigateToCategory(props.category.id) },
+    { label: t('contextMenu.rename'), action: () => uiStore.showCategoryModal(props.category) },
+    { label: t('contextMenu.deleteCategory'), action: () => confirmDelete() }
   ])
 }
 
 function confirmDelete() {
   uiStore.showConfirmModal(
-    'Delete Category',
-    `Are you sure you want to delete the category "<strong>${props.category.name}</strong>"?<br><br>Tabs in this category will be moved to root.`,
-    'Delete',
+    t('contextMenu.deleteCategory'),
+    `${t('contextMenu.confirmDeleteCategory', { name: props.category.name })}<br><br>${t('contextMenu.confirmDeleteCategoryInfo')}`,
+    t('confirm.delete'),
     true,
     async () => {
       await tabsStore.deleteCategory(props.category.id)
@@ -105,7 +107,7 @@ async function handleDrop(e: DragEvent) {
   // Handle batch drag
   if (tabsStore.isBatchSelectMode && tabsStore.selectedTabIds.size > 0) {
     const moved = await tabsStore.batchMoveTabs(props.category.id)
-    showToast(`Moved ${moved} tab(s)`)
+    showToast(t('contextMenu.movedTabs', { count: moved }))
     return
   }
 
@@ -118,9 +120,9 @@ async function handleDrop(e: DragEvent) {
     } else {
       await tabsStore.moveCategory(draggedItem.value.id, props.category.id)
     }
-    showToast('Moved successfully')
+    showToast(t('contextMenu.movedSuccessfully'))
   } catch (err) {
-    showToast('Move failed: ' + err, 'error')
+    showToast(t('contextMenu.moveFailed') + ': ' + err, 'error')
   }
 
   endDrag()

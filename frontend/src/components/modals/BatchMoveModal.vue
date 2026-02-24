@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 
+const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const { showToast } = useToast()
@@ -20,7 +22,7 @@ const sortedCategories = computed(() => {
 async function handleSave() {
   try {
     const added = await tabsStore.batchAddTabsToCategory(selectedCategoryId.value)
-    showToast(`Added ${added} tab(s)`)
+    showToast(t('batch.addedTabs', { count: added }))
     uiStore.hideBatchMoveModal()
   } catch (err) {
     showToast(String(err), 'error')
@@ -36,13 +38,13 @@ async function handleSave() {
     @click.self="uiStore.hideBatchMoveModal"
   >
     <div class="modal">
-      <h2>Add Selected to Category</h2>
+      <h2>{{ t('batch.addSelectedToCategory') }}</h2>
 
       <form @submit.prevent="handleSave">
         <div class="form-group">
-          <label for="batch-move-select">Select Category</label>
+          <label for="batch-move-select">{{ t('batch.selectCategory') }}</label>
           <select id="batch-move-select" v-model="selectedCategoryId">
-            <option value="">(Root)</option>
+            <option value="">{{ t('batch.root') }}</option>
             <option
               v-for="cat in sortedCategories"
               :key="cat.id"
@@ -55,10 +57,10 @@ async function handleSave() {
 
         <div class="modal-actions">
           <button type="button" class="btn" @click="uiStore.hideBatchMoveModal">
-            Cancel
+            {{ t('confirm.cancel') }}
           </button>
           <button type="submit" class="btn primary">
-            Add
+            {{ t('batch.add') }}
           </button>
         </div>
       </form>

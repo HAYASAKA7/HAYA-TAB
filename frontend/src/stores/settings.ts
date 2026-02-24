@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Settings } from '@/types'
+import { setLocale, type Locale } from '@/i18n'
 
 export const useSettingsStore = defineStore('settings', () => {
   // State
   const settings = ref<Settings>({
     theme: 'system',
+    language: 'en',
     background: '',
     bgType: '',
     openMethod: 'inner',
@@ -45,6 +47,7 @@ export const useSettingsStore = defineStore('settings', () => {
         settings.value = {
           ...settings.value,
           ...loaded,
+          language: loaded.language || 'en',
           audioDevice: loaded.audioDevice || 'default',
           syncPaths: loaded.syncPaths || [],
           keyBindings: {
@@ -54,6 +57,7 @@ export const useSettingsStore = defineStore('settings', () => {
         }
       }
       applyTheme()
+      applyLanguage()
       await applyBackground()
     } catch (err) {
       console.error('Error loading settings:', err)
@@ -67,6 +71,7 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       await window.go.main.App.SaveSettings(settings.value)
       applyTheme()
+      applyLanguage()
       await applyBackground()
     } catch (err) {
       console.error('Error saving settings:', err)
@@ -90,6 +95,10 @@ export const useSettingsStore = defineStore('settings', () => {
         document.body.removeAttribute('data-theme')
       }
     }
+  }
+
+  function applyLanguage() {
+    setLocale(settings.value.language as Locale)
   }
 
   async function applyBackground() {
@@ -146,6 +155,7 @@ export const useSettingsStore = defineStore('settings', () => {
     loadSettings,
     saveSettings,
     applyTheme,
+    applyLanguage,
     applyBackground,
     addSyncPath,
     removeSyncPath,
