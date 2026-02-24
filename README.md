@@ -4,7 +4,7 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![Version](https://img.shields.io/badge/version-1.5.6-green)
-![License](https://img.shields.io/badge/license-MIT-yellow)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
 
@@ -88,9 +88,17 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 - **Database**: SQLite (via modernc.org/sqlite)
 - **Viewer Engine**: PDF.js & alphaTab
 
-## 📄 License
+## ⚖️ License & Legal Notice
 
-MIT License - see [LICENSE](LICENSE) for details.
+HAYA-TAB is open-sourced software licensed under the **Apache License 2.0**.
+
+### Terms and Conditions
+This project is free for personal and commercial use, modification, and distribution, provided that:
+1. **License & Copyright**: You include a copy of the Apache 2.0 license and the original copyright notice in any substantial portion of the software.
+2. **State Changes**: You explicitly state significant changes made to the files.
+3. **No Liability**: The software is provided "as is", without warranty of any kind.
+
+See the [LICENSE](LICENSE) file for the full legal text and [NOTICE](NOTICE) for attribution requirements.
 
 ## 👤 Author
 
