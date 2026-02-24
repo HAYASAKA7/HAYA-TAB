@@ -30,6 +30,7 @@ const bindingKeys: (keyof KeyBindings)[] = [
 ]
 
 function close() {
+  settingsStore.saveSettings()
   uiStore.hideKeyBindingsModal()
   editingKey.value = null
 }
@@ -52,7 +53,6 @@ function handleKeyDown(e: KeyboardEvent) {
   const keyField = editingKey.value as keyof KeyBindings
   settingsStore.settings.keyBindings[keyField] = newKey
 
-  settingsStore.saveSettings()
   editingKey.value = null
 }
 

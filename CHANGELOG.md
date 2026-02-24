@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.6] - 2026-02-24
+
+### Improved
+- **Settings Auto-Save:** Settings now save automatically when changed, eliminating the need for a manual "Save" button. Key bindings save when closing the modal via "Done" button.
+
 ## [1.5.5] - 2026-02-24
 
 ### Fixed

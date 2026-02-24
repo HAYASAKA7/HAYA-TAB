@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
@@ -16,6 +16,31 @@ const syncStatus = ref('')
 const syncFilename = ref('')
 const syncCount = ref(0)
 const isSyncing = ref(false)
+
+// Auto-save when settings change (excluding keyBindings which saves on modal close)
+watch(
+  () => ({
+    theme: settingsStore.settings.theme,
+    language: settingsStore.settings.language,
+    background: settingsStore.settings.background,
+    bgType: settingsStore.settings.bgType,
+    openMethod: settingsStore.settings.openMethod,
+    openGpMethod: settingsStore.settings.openGpMethod,
+    audioDevice: settingsStore.settings.audioDevice,
+    syncPaths: [...settingsStore.settings.syncPaths],
+    syncStrategy: settingsStore.settings.syncStrategy,
+    autoSyncEnabled: settingsStore.settings.autoSyncEnabled,
+    autoSyncFrequency: settingsStore.settings.autoSyncFrequency,
+  }),
+  async () => {
+    try {
+      await settingsStore.saveSettings()
+    } catch (err) {
+      showToast(t('settings.errorSaving') + ': ' + err, 'error')
+    }
+  },
+  { deep: true }
+)
 
 onMounted(async () => {
   // Check if AudioContext supports setSinkId (required for changing output device)
@@ -62,15 +87,6 @@ async function fetchAudioDevices() {
   } catch (e) {
     console.error('Error fetching audio devices', e)
     showToast(t('toast.failedAudioDevices') + ': ' + e, 'error')
-  }
-}
-
-async function handleSave() {
-  try {
-    await settingsStore.saveSettings()
-    showToast(t('settings.settingsSaved'))
-  } catch (err) {
-    showToast(t('settings.errorSaving') + ': ' + err, 'error')
   }
 }
 
@@ -305,9 +321,5 @@ async function handleSync() {
         </div>
       </div>
     </section>
-
-    <div class="settings-footer">
-      <button class="btn primary" @click="handleSave">{{ t('settings.saveChanges') }}</button>
-    </div>
   </div>
 </template>
