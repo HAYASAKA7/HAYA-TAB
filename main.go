@@ -53,6 +53,8 @@ func NewFileHandler(app *App) *FileHandler {
 
 // ServeHTTP implements http.Handler for streaming files
 func (h *FileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("[FileHandler] ServeHTTP called: %s %s\n", r.Method, r.URL.String())
+
 	// Enable CORS for local development
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
@@ -77,7 +79,12 @@ func (h *FileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Handle /api/cover/{id} - stream cover image
 	if strings.HasPrefix(path, "/api/cover/") {
-		h.serveCoverFile(w, r, strings.TrimPrefix(path, "/api/cover/"))
+		id := strings.TrimPrefix(path, "/api/cover/")
+		// Strip query parameters if present
+		if idx := strings.Index(id, "?"); idx != -1 {
+			id = id[:idx]
+		}
+		h.serveCoverFile(w, r, id)
 		return
 	}
 
@@ -145,25 +152,32 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 }
 
 func (h *FileHandler) serveCoverFile(w http.ResponseWriter, r *http.Request, id string) {
+	fmt.Printf("[ServeCoverFile] Request for ID: %s\n", id)
 	if h.app == nil || h.app.store == nil {
+		fmt.Println("[ServeCoverFile] Store is nil")
 		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 
 	tab, err := h.app.store.GetTab(id)
 	if err != nil || tab == nil {
+		fmt.Printf("[ServeCoverFile] Tab not found for ID: %s, err: %v\n", id, err)
 		http.Error(w, "Tab not found", http.StatusNotFound)
 		return
 	}
 
 	if tab.CoverPath == "" {
+		fmt.Printf("[ServeCoverFile] No cover path for tab: %s\n", id)
 		http.Error(w, "No cover available", http.StatusNotFound)
 		return
 	}
 
+	fmt.Printf("[ServeCoverFile] Opening cover: %s\n", tab.CoverPath)
+
 	// Open the cover file
 	file, err := os.Open(tab.CoverPath)
 	if err != nil {
+		fmt.Printf("[ServeCoverFile] Failed to open cover: %v\n", err)
 		http.Error(w, "Cover not found", http.StatusNotFound)
 		return
 	}

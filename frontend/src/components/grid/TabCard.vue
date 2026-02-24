@@ -18,30 +18,25 @@ const contextMenu = useContextMenu()
 const { showToast } = useToast()
 const { startDrag, endDrag } = useDragDrop()
 
-const coverUrl = ref('')
+const fileServerPort = ref(0)
+const coverError = ref(false)
+const coverUrl = computed(() => {
+  if (!props.tab.coverPath || coverError.value || !fileServerPort.value) return ''
+  // Use the file server endpoint for cover images
+  return `http://127.0.0.1:${fileServerPort.value}/api/cover/${props.tab.id}?t=${props.tab.addedAt}`
+})
 const isSelected = computed(() => tabsStore.isTabSelected(props.tab.id))
 
-async function loadCover(path: string) {
-  if (!path) return
-  try {
-    const b64 = await window.go.main.App.GetCover(path)
-    if (b64) {
-      coverUrl.value = `data:image/jpeg;base64,${b64}`
-    }
-  } catch (e) {
-    console.error('Failed to load cover:', e)
-  }
-}
-
-watch(() => props.tab.coverPath, (newPath) => {
-  if (newPath) {
-    loadCover(newPath)
-  }
+// Reset error state when cover path changes
+watch(() => props.tab.coverPath, () => {
+  coverError.value = false
 })
 
-onMounted(() => {
-  if (props.tab.coverPath) {
-    loadCover(props.tab.coverPath)
+onMounted(async () => {
+  try {
+    fileServerPort.value = await window.go.main.App.GetFileServerPort()
+  } catch (e) {
+    console.error('Failed to get file server port:', e)
   }
 })
 
@@ -195,7 +190,7 @@ function handleCheckboxClick(e: Event) {
           :src="coverUrl"
           class="cover-img"
           loading="lazy"
-          @error="coverUrl = ''"
+          @error="coverError = true"
         />
         <span v-else class="icon-music icon-xl"></span>
       </div>

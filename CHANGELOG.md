@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.3] - 2026-02-24
+
+### Improved
+- **Cover Image Loading:** Migrated cover image loading from Base64 IPC to HTTP streaming, reducing memory overhead and improving grid scroll performance
+
 ## [1.5.2] - 2026-02-24
 
 ### Improved
