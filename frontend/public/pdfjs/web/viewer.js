@@ -240,6 +240,17 @@ const PDFViewerApplication = {
     this._initializedCapability.resolve();
   },
   async _initializeOptions() {
+    // Always parse locale and theme from hash params (before L10n init)
+    const hash = document.location.hash.substring(1);
+    if (hash) {
+      const params = (0, _ui_utils.parseQueryString)(hash);
+      if (params.has("locale")) {
+        _app_options.AppOptions.set("locale", params.get("locale"));
+      }
+      if (params.has("viewerCssTheme")) {
+        _app_options.AppOptions.set("viewerCssTheme", params.get("viewerCssTheme") | 0);
+      }
+    }
     if (_app_options.AppOptions.get("disablePreferences")) {
       if (_app_options.AppOptions.get("pdfBugEnabled")) {
         await this._parseHashParams();

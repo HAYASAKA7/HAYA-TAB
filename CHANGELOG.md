@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.5] - 2026-02-24
+
+### Fixed
+- **PDF Viewer i18n:** Fixed PDF.js toolbar not following app language settings. The viewer now correctly uses the configured language instead of falling back to system locale.
+
 ## [1.5.4] - 2026-02-24
 
 ### Added
