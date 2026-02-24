@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted, nextTick, shallowRef, toRaw } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { useTabsStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
+import { useAlphaTab } from '@/composables/useAlphaTab'
 import GpFloatingToolbar from './GpFloatingToolbar.vue'
 import GpSelectionMenu from './GpSelectionMenu.vue'
 
@@ -21,32 +22,48 @@ const isGp = computed(() => tab.value?.type === 'gp')
 const containerRef = ref<HTMLElement | null>(null)
 const scrollWrapperRef = ref<HTMLElement | null>(null)
 const floatingToolbarRef = ref<InstanceType<typeof GpFloatingToolbar> | null>(null)
-const api = shallowRef<any>(null)
-const isLoaded = ref(false)
-const isSoundFontLoaded = ref(false)
 
-// UI State
+// Composable
+const {
+  api,
+  isLoaded,
+  isSoundFontLoaded,
+  isPlaying,
+  currentBpm,
+  playbackSpeed,
+  metronomeEnabled,
+  isLooping,
+  tracks,
+  selectedTrack,
+  measureCount,
+  markers,
+  selectionRange,
+  isSelectionActive,
+  selectionHighlightStyles,
+
+  initialize,
+  destroy,
+  load,
+  updateAudioOutput,
+  playPause,
+  stop,
+  toggleMetronome,
+  setBpm,
+  setPlaybackSpeed,
+  renderTrack,
+  toggleLoop,
+  clearSelection: composableClearSelection,
+  playSelection,
+  handleSelectionChange: composableHandleSelectionChange
+} = useAlphaTab()
+
+// UI State (Local)
 const highlightStyle = ref<any>(null)
-const measureCount = ref(0)
 const menuVisible = ref(false)
 const menuPosition = ref({ x: 0, y: 0 })
-const selectionRange = ref<any>(null)
-const isSelectionActive = ref(false)
 const isDraggingSelection = ref(false)
 const isShiftDragging = ref(false)
 const isSectionPlaybackMode = ref(false)
-const markers = ref<Array<{ name: string; bar: number }>>([])
-const selectionHighlightStyles = ref<any[]>([])
-
-// Playback state
-const isPlaying = ref(false)
-const baseTempo = ref(120)
-const currentBpm = ref(120)
-const playbackSpeed = ref(1.0)
-const metronomeEnabled = ref(false)
-const isLooping = ref(false)
-const tracks = ref<any[]>([])
-const selectedTrack = ref(0)
 
 // Scroll tracking for toolbar auto-dodge
 const isScrolling = ref(false)
@@ -64,147 +81,53 @@ watch(() => settingsStore.settings.audioDevice, (newId) => {
   updateAudioOutput(newId)
 })
 
-async function updateAudioOutput(deviceId: string) {
-  if (!api.value) return
-  if (deviceId === 'default') deviceId = ''
-
-  try {
-    const player = api.value.player
-    let ctx = (api.value as any).audioContext || (player && player.context)
-
-    if (!ctx && player) {
-       // @ts-ignore
-       if (player.synthesis && player.synthesis.audioContext) {
-         // @ts-ignore
-         ctx = player.synthesis.audioContext
-       }
-    }
-
-    if (ctx && typeof ctx.setSinkId === 'function') {
-      await ctx.setSinkId(deviceId)
-    }
-  } catch (e) {
-    console.warn('Failed to update audio output device', e)
-  }
-}
-
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
-  if (api.value) {
-    try {
-      api.value.stop()
-      api.value.destroy()
-    } catch (e) {
-      console.error('Error destroying alphaTab:', e)
-    }
-  }
+  destroy()
 })
 
 async function loadGpTab() {
   if (!tab.value || !containerRef.value) return
 
   try {
-    const scrollElement = containerRef.value.querySelector('.gp-scroll-wrapper')
-    const renderArea = containerRef.value.querySelector('.gp-render-area')
+    const scrollElement = containerRef.value.querySelector('.gp-scroll-wrapper') as HTMLElement
+    const renderArea = containerRef.value.querySelector('.gp-render-area') as HTMLElement
 
     if (!renderArea || !scrollElement) return
 
-    // @ts-ignore - alphaTab is loaded globally
-    api.value = new alphaTab.AlphaTabApi(renderArea, {
-      core: {
-        fontDirectory: '/alphatab/font/',
-        useWorkers: false
-      },
-      player: {
-        enablePlayer: true,
-        enableCursor: true,
-        soundFont: '/alphatab/soundfont/sonivox.sf3',
-        scrollElement: scrollElement
-      },
-      display: {
-        layoutMode: 'page',
-        staveProfile: 'default'
-      }
-    })
+    initialize(renderArea, scrollElement)
 
-    // Register event handlers BEFORE loading the score to avoid race conditions
-    // (especially for small sf3 files that load almost instantly)
+    // Setup listener for metadata write-back
+    if (api.value) {
+        api.value.scoreLoaded.on((score: any) => {
+             // Frontend Reverse Write-back
+             if (score && props.tabId) {
+                const title = score.title || ''
+                const artist = score.artist || ''
+                const album = score.album || ''
 
-    api.value.scoreLoaded.on((score: any) => {
-      if (score && score.tempo) {
-        baseTempo.value = score.tempo
-        currentBpm.value = score.tempo
-      }
-
-      // Get Measure Count
-      if (score && score.masterBars) {
-        measureCount.value = score.masterBars.length
-
-        // Extract markers from masterBars
-        markers.value = []
-        score.masterBars.forEach((bar: any, index: number) => {
-          if (bar.section && bar.section.text) {
-            markers.value.push({
-              name: bar.section.text,
-              bar: index + 1
-            })
-          }
+                if (title || artist || album) {
+                  window.go.main.App.UpdateTabMetadata(props.tabId, title, artist, album)
+                    .catch((err: any) => {
+                      console.warn('Failed to update tab metadata:', err)
+                    })
+                }
+              }
         })
-      }
 
-      tracks.value = []
-      if (score && score.tracks && score.tracks.length > 0) {
-        score.tracks.forEach((track: any, index: number) => {
-          tracks.value.push({
-            index,
-            name: track.name || `Track ${index + 1}`
-          })
-        })
-        selectedTrack.value = 0
-      }
-
-      isLoaded.value = true
-
-      // Frontend Reverse Write-back: Send parsed metadata to backend
-      // AlphaTab has already parsed the internal title, artist, album from the binary file
-      if (score && props.tabId) {
-        const title = score.title || ''
-        const artist = score.artist || ''
-        const album = score.album || ''
-
-        // Only call backend if we have ANY meaningful metadata to send
-        if (title || artist || album) {
-          window.go.main.App.UpdateTabMetadata(props.tabId, title, artist, album)
-            .catch((err: any) => {
-              console.warn('Failed to update tab metadata:', err)
+        // Setup Selection Listener manually to integrate with UI logic
+        if (api.value.playbackRangeHighlightChanged) {
+            api.value.playbackRangeHighlightChanged.on((args: any) => {
+                onSelectionChange(args)
             })
         }
-      }
-    })
-
-    api.value.playerStateChanged.on((args: any) => {
-      isPlaying.value = args.state === 1
-    })
-
-    // Use playerReady — fires once the player + soundfont are fully initialised.
-    // More reliable than soundFontLoaded which can race with small sf3 files.
-    api.value.playerReady.on(() => {
-      isSoundFontLoaded.value = true
-    })
-
-    // Selection Handling
-    // Correct way to listen for selection in AlphaTab API wrapper:
-    if (api.value.playbackRangeHighlightChanged) {
-        api.value.playbackRangeHighlightChanged.on((args: any) => {
-            handleSelectionChange(args)
-        })
     }
 
-    // Now that all listeners are registered, trigger the actual load
     updateAudioOutput(settingsStore.settings.audioDevice)
     const port = await window.go.main.App.GetFileServerPort()
     const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
-    api.value.load(url)
+    
+    await load(url)
 
   } catch (e) {
     showToast('Failed to load GP Tab: ' + e, 'error')
@@ -212,142 +135,34 @@ async function loadGpTab() {
   }
 }
 
-function handleSelectionChange(args: any) {
+function onSelectionChange(args: any) {
     // Check if selection is cleared or invalid
     if (!args || !args.startBeat || !args.endBeat) {
         // In section playback mode, protect the selection from accidental clears
         if (isSectionPlaybackMode.value) return
+        
         menuVisible.value = false
-        selectionRange.value = null
-        isSelectionActive.value = false
-        selectionHighlightStyles.value = []
+        // Call composable to update its state
+        composableHandleSelectionChange(args)
         return
     }
 
     const startBeat = args.startBeat
     const endBeat = args.endBeat
-
-    // Calculate ticks
     const startTick = startBeat.absolutePlaybackStart
     const endTick = endBeat.absolutePlaybackStart + endBeat.playbackDuration
 
     if (startTick === endTick) {
-        // In section playback mode, protect the selection from accidental clears
         if (isSectionPlaybackMode.value) return
         menuVisible.value = false
-        selectionRange.value = null
-        isSelectionActive.value = false
-        selectionHighlightStyles.value = []
+        composableHandleSelectionChange(args)
         return
     }
 
-    selectionRange.value = {
-        startTick: startTick,
-        endTick: endTick
-    }
-    isSelectionActive.value = true
+    // Update composable state
+    composableHandleSelectionChange(args)
 
-    // Calculate selection highlight bounds - handle multi-line selections
-    if (args.startBeatBounds && args.endBeatBounds) {
-        const startBounds = args.startBeatBounds.visualBounds
-        const endBounds = args.endBeatBounds.visualBounds
-        
-        if (startBounds && endBounds) {
-            const styles: any[] = []
-            
-            // Check if selection spans multiple lines (Y positions differ significantly)
-            const isSameLine = Math.abs(startBounds.y - endBounds.y) < 20
-            
-            if (isSameLine) {
-                // Single line selection - simple rectangle
-                const minX = Math.min(startBounds.x, endBounds.x)
-                const maxX = Math.max(startBounds.x + startBounds.w, endBounds.x + endBounds.w)
-                styles.push({
-                    left: (minX - 4) + 'px',
-                    top: (startBounds.y - 4) + 'px',
-                    width: (maxX - minX + 8) + 'px',
-                    height: (startBounds.h + 8) + 'px'
-                })
-            } else {
-                // Multi-line selection - need to find all beats in range and group by line
-                const boundsLookup = api.value?.boundsLookup || api.value?.renderer?.boundsLookup
-                const groups = boundsLookup ? (boundsLookup.staveGroups || boundsLookup.staffSystems) : null
-                
-                if (groups) {
-                    // Collect all beat bounds within the selection range
-                    const lineGroups: Map<number, { minX: number; maxX: number; y: number; h: number }> = new Map()
-                    
-                    for (const group of groups) {
-                        if (!group.bars) continue
-                        
-                        for (const masterBarBounds of group.bars) {
-                            if (!masterBarBounds.bars) continue
-                            
-                            for (const barBounds of masterBarBounds.bars) {
-                                if (!barBounds.beats) continue
-                                
-                                for (const beatBounds of barBounds.beats) {
-                                    if (!beatBounds.beat || !beatBounds.visualBounds) continue
-                                    
-                                    const beat = beatBounds.beat
-                                    const beatStart = beat.absolutePlaybackStart
-                                    const beatEnd = beatStart + beat.playbackDuration
-                                    
-                                    // Check if this beat is within selection range
-                                    if (beatEnd > startTick && beatStart < endTick) {
-                                        const vb = beatBounds.visualBounds
-                                        // Group by Y position (line) - round to avoid floating point issues
-                                        const lineY = Math.round(vb.y)
-                                        
-                                        if (lineGroups.has(lineY)) {
-                                            const group = lineGroups.get(lineY)!
-                                            group.minX = Math.min(group.minX, vb.x)
-                                            group.maxX = Math.max(group.maxX, vb.x + vb.w)
-                                        } else {
-                                            lineGroups.set(lineY, {
-                                                minX: vb.x,
-                                                maxX: vb.x + vb.w,
-                                                y: vb.y,
-                                                h: vb.h
-                                            })
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Create highlight style for each line
-                    for (const group of lineGroups.values()) {
-                        styles.push({
-                            left: (group.minX - 4) + 'px',
-                            top: (group.y - 4) + 'px',
-                            width: (group.maxX - group.minX + 8) + 'px',
-                            height: (group.h + 8) + 'px'
-                        })
-                    }
-                } else {
-                    // Fallback to simple bounding box if boundsLookup not available
-                    const minX = Math.min(startBounds.x, endBounds.x)
-                    const maxX = Math.max(startBounds.x + startBounds.w, endBounds.x + endBounds.w)
-                    const minY = Math.min(startBounds.y, endBounds.y)
-                    const maxY = Math.max(startBounds.y + startBounds.h, endBounds.y + endBounds.h)
-                    
-                    styles.push({
-                        left: (minX - 4) + 'px',
-                        top: (minY - 4) + 'px',
-                        width: (maxX - minX + 8) + 'px',
-                        height: (maxY - minY + 8) + 'px'
-                    })
-                }
-            }
-            
-            selectionHighlightStyles.value = styles
-        }
-    }
-
-    // Shift+drag → section playback mode with toolbar
-    // Normal drag → visual selection only, no toolbar
+    // UI Logic: Shift+drag → section playback mode with toolbar
     if (isShiftDragging.value) {
         isSectionPlaybackMode.value = true
         if (args.endBeatBounds && args.endBeatBounds.visualBounds) {
@@ -366,57 +181,19 @@ function handleSelectionChange(args: any) {
     }
 }
 
-function playPause() {
-  if (api.value) {
-    api.value.playPause()
-  }
-}
-
-function stop() {
-  if (api.value) {
-    api.value.stop()
-  }
-}
-
-function toggleMetronome() {
-  if (api.value) {
-    metronomeEnabled.value = !metronomeEnabled.value
-    api.value.metronomeVolume = metronomeEnabled.value ? 1 : 0
-  }
-}
-
 function onBpmChange() {
-  if (!api.value) return
-
-  let val = currentBpm.value
-  if (isNaN(val) || val < 20) val = 20
-  if (val > 500) val = 500
-  currentBpm.value = val
-
-  const ratio = val / baseTempo.value
-  api.value.playbackSpeed = ratio
-  playbackSpeed.value = ratio
+  setBpm(currentBpm.value)
 }
 
 function onSpeedChange() {
-  if (!api.value) return
-
-  api.value.playbackSpeed = playbackSpeed.value
-  currentBpm.value = Math.round(baseTempo.value * playbackSpeed.value)
+  setPlaybackSpeed(playbackSpeed.value)
 }
 
 function onTrackChange() {
-  if (!api.value || !api.value.score) return
-
-  const trackIndex = selectedTrack.value
-  if (trackIndex >= 0 && api.value.score.tracks[trackIndex]) {
-    api.value.renderTracks([api.value.score.tracks[trackIndex]])
-    
-    // Restore focus to scroll wrapper so keyboard shortcuts work immediately
-    nextTick(() => {
-        scrollWrapperRef.value?.focus()
-    })
-  }
+  renderTrack(selectedTrack.value)
+  nextTick(() => {
+      scrollWrapperRef.value?.focus()
+  })
 }
 
 function scrollGp(amount: number) {
@@ -428,16 +205,12 @@ function jumpToBar(barNumber: number) {
     if (!api.value) return
     
     try {
-        // Validate input
         if (barNumber < 1 || barNumber > measureCount.value) {
             showToast(`Invalid bar number (1-${measureCount.value})`, 'error')
             return
         }
 
         const barIndex = barNumber - 1
-        
-        // Get bounds lookup - available directly on the api object since alphaTab 1.5.0
-        // Fallback to renderer.boundsLookup for older versions
         const boundsLookup = api.value.boundsLookup || api.value.renderer?.boundsLookup
         
         if (!boundsLookup) {
@@ -445,19 +218,14 @@ function jumpToBar(barNumber: number) {
             return
         }
         
-        // Use the correct API method: findMasterBarByIndex
         let visualBounds = null
-        
-        // Primary method: use findMasterBarByIndex (correct API method)
         if (typeof boundsLookup.findMasterBarByIndex === 'function') {
             const masterBarBounds = boundsLookup.findMasterBarByIndex(barIndex)
             if (masterBarBounds) {
-                // MasterBarBounds has visualBounds, realBounds, and lineAlignedBounds
                 visualBounds = masterBarBounds.visualBounds || masterBarBounds.realBounds || masterBarBounds.lineAlignedBounds
             }
         }
         
-        // Fallback: iterate through staffSystems to find the bar
         if (!visualBounds && boundsLookup.staffSystems) {
             for (const system of boundsLookup.staffSystems) {
                 if (system.bars) {
@@ -477,7 +245,6 @@ function jumpToBar(barNumber: number) {
             return
         }
         
-        // Scroll to the bar
         if (scrollWrapperRef.value) {
             scrollWrapperRef.value.scrollTo({
                 top: visualBounds.y - 100,
@@ -486,12 +253,10 @@ function jumpToBar(barNumber: number) {
             })
         }
 
-        // Set cursor position to the start of the bar
         if (api.value.score && api.value.score.masterBars && api.value.score.masterBars[barIndex]) {
             api.value.tickPosition = api.value.score.masterBars[barIndex].start
         }
         
-        // Visual Highlight with pulse animation
         highlightStyle.value = {
             top: (visualBounds.y - 4) + 'px',
             left: (visualBounds.x - 4) + 'px',
@@ -501,7 +266,6 @@ function jumpToBar(barNumber: number) {
             animation: 'highlightPulse 2s ease-out forwards'
         }
         
-        // Cleanup after animation
         setTimeout(() => {
             highlightStyle.value = null
         }, 2000)
@@ -514,60 +278,27 @@ function jumpToBar(barNumber: number) {
 }
 
 function clearSelection() {
-    if (!api.value) return
-
-    // Clear selection in AlphaTab
-    api.value.isLooping = false
-    api.value.playbackRange = null
-    selectionRange.value = null
-    isSelectionActive.value = false
-    isLooping.value = false
+    composableClearSelection()
     isSectionPlaybackMode.value = false
     menuVisible.value = false
-    selectionHighlightStyles.value = []
     showToast('Selection cleared', 'info')
 }
 
 // Menu Actions
-function playSelection() {
-    if (!api.value || !selectionRange.value) return
-
-    // Always stop first to ensure clean state
-    api.value.stop()
-
-    // Set the playback range to the selection
-    api.value.playbackRange = toRaw(selectionRange.value)
-
-    // Move cursor to start of selection
-    api.value.tickPosition = selectionRange.value.startTick
-
-    // Use nextTick to ensure state updates are processed before starting playback
-    nextTick(() => {
-        if (api.value) {
-            api.value.playPause()
-        }
-    })
+function handlePlaySelection() {
+    playSelection()
 }
 
-function toggleLoop() {
-    if (!api.value) return
-
-    isLooping.value = !isLooping.value
-    if (isLooping.value && selectionRange.value) {
-        api.value.playbackRange = toRaw(selectionRange.value)
-        api.value.isLooping = true
+function handleToggleLoop() {
+    if (toggleLoop()) {
         showToast('Looping enabled', 'success')
     } else {
-        api.value.isLooping = false
-        api.value.playbackRange = null
-        isLooping.value = false
         showToast('Looping disabled', 'info')
     }
 }
 
 function setMenuSpeed(speed: number) {
-    playbackSpeed.value = speed
-    onSpeedChange()
+    setPlaybackSpeed(speed)
 }
 
 function closeMenu() {
@@ -575,49 +306,35 @@ function closeMenu() {
 }
 
 function handleScrollWrapperMouseDown(e: MouseEvent) {
-    // Track if Shift is held — determines selection mode
     isShiftDragging.value = e.shiftKey
-    // User started a potential drag operation - reset flag
-    // The flag will be set true by handleSelectionChange when selection completes
     isDraggingSelection.value = false
 }
 
 function handleScrollWrapperClick() {
-    // After a drag, don't process the click
     if (isDraggingSelection.value) {
         isDraggingSelection.value = false
         return
     }
 
-    // In section playback mode, protect selection from accidental clicks
-    // Only Esc key or Clear button can dismiss it
     if (!isSectionPlaybackMode.value && isSelectionActive.value) {
-        // Normal selection mode — click blank area clears it
-        selectionRange.value = null
-        isSelectionActive.value = false
-        selectionHighlightStyles.value = []
+        clearSelection()
     }
 
-    // Collapse floating toolbar if expanded
     floatingToolbarRef.value?.collapse()
 
-    // Blur any focused element so shortcuts work
     if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur()
     }
 
-    // Focus the scroll wrapper for keyboard events
     scrollWrapperRef.value?.focus()
 }
 
 function handleScrollWrapperContextMenu(e: MouseEvent) {
-    // Right-click on an active selection → enter section playback mode
     if (!isSelectionActive.value || !selectionRange.value || !scrollWrapperRef.value) return
 
     e.preventDefault()
     isSectionPlaybackMode.value = true
 
-    // Calculate position relative to scroll wrapper content (same coordinate space as AlphaTab bounds)
     const rect = scrollWrapperRef.value.getBoundingClientRect()
     menuPosition.value = {
         x: e.clientX - rect.left + scrollWrapperRef.value.scrollLeft,
@@ -656,17 +373,14 @@ function handleKeydown(e: KeyboardEvent) {
     onBpmChange()
   } else if (key === keys.clearSelection || key === 'escape') {
     if (isSectionPlaybackMode.value) {
-      // Single Esc exits section playback mode: close menu, revert to normal selection
       menuVisible.value = false
       isSectionPlaybackMode.value = false
     } else if (isSelectionActive.value) {
       clearSelection()
     }
   } else if (key === keys.toggleLoop && selectionRange.value) {
-    // Toggle loop
-    toggleLoop()
+    handleToggleLoop()
   } else if (key === keys.jumpToBar) {
-    // Open jump-to-bar panel
     e.preventDefault()
     floatingToolbarRef.value?.openSearch()
   } else if (key === keys.jumpToStart) {
@@ -674,7 +388,6 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-// Watch for visibility changes - initialize alphaTab when visible
 watch(() => props.visible, async (newVal) => {
   if (newVal) {
     window.addEventListener('keydown', handleKeydown)
@@ -683,9 +396,7 @@ watch(() => props.visible, async (newVal) => {
   }
 
   if (newVal && !api.value && isGp.value && tab.value) {
-    // Wait for next tick to ensure DOM is rendered and visible
     await nextTick()
-    // Additional small delay to ensure layout is calculated
     await new Promise(resolve => setTimeout(resolve, 50))
     await loadGpTab()
   }
@@ -815,9 +526,9 @@ watch(() => props.visible, async (newVal) => {
                 :isLooping="isLooping"
                 :currentSpeed="playbackSpeed"
                 :isPlaying="isPlaying"
-                @toggle-loop="toggleLoop"
+                @toggle-loop="handleToggleLoop"
                 @set-speed="setMenuSpeed"
-                @play-selection="playSelection"
+                @play-selection="handlePlaySelection"
                 @close="closeMenu"
             />
         </div>
