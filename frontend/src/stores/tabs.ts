@@ -35,9 +35,10 @@ export const useTabsStore = defineStore('tabs', () => {
   })
 
   const currentCategories = computed(() => {
-    // Hide categories when searching
+    // If there is a search query, perform fuzzy search on category names
     if (searchQuery.value) {
-      return []
+      const q = searchQuery.value.toLowerCase()
+      return categories.value.filter(c => c.name.toLowerCase().includes(q))
     }
     return categories.value.filter(c => c.parentId === currentCategoryId.value)
   })

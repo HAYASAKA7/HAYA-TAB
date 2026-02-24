@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.2] - 2026-02-24
+
+### Improved
+- **Library View UX:** Streamlined the UI based on view mode context:
+  - "Upload TAB" and "Link Local TAB" buttons/menu items now only appear in Singles mode
+  - "New Category" button/menu item now only appears in root Categories view (not inside a playlist)
+  - Search filters are hidden in root Categories view for a cleaner interface
+- **Category Search:** Added fuzzy search support for category names in Categories view
+
+### Fixed
+- **Search Scope Removal:** Removed the redundant "Range" (Inside Category / Global) filter from the search bar, simplifying the search interface
+
 ## [1.5.0] - 2026-02-22
 
 ### Fixed

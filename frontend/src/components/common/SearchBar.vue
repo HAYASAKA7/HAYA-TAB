@@ -3,6 +3,13 @@ import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useTabsStore } from '@/stores'
 import { storeToRefs } from 'pinia'
 
+const props = defineProps({
+  showFilters: {
+    type: Boolean,
+    default: true
+  }
+})
+
 const tabsStore = useTabsStore()
 const { searchQuery, searchFilters, searchScope } = storeToRefs(tabsStore)
 const isExpanded = ref(false)
@@ -32,16 +39,13 @@ const currentFilterType = computed({
   set: (val: string) => tabsStore.setSearchFilters([val])
 })
 
-function handleScopeChange(val: 'local' | 'global') {
-    tabsStore.setSearchScope(val)
-}
-
 function toggleExpand() {
+  if (!props.showFilters) return
   isExpanded.value = !isExpanded.value
 }
 
 function expand() {
-  if (!isExpanded.value) isExpanded.value = true
+  if (props.showFilters && !isExpanded.value) isExpanded.value = true
 }
 
 function handleClickOutside(event: MouseEvent) {
@@ -66,48 +70,30 @@ onUnmounted(() => {
     :class="{ expanded: isExpanded }"
   >
     <div class="search-input-container" @click="expand">
-      <button class="toggle-btn" @click.stop="toggleExpand">
+      <button v-if="showFilters" class="toggle-btn" @click.stop="toggleExpand">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
       </button>
+      <div v-else class="search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
       <input 
         type="text" 
         v-model="localQuery" 
         placeholder="Search..." 
         @focus="expand"
       />
-      <div v-show="isExpanded" class="current-scope-indicator" title="Search Scope">
+      <div v-show="isExpanded && showFilters" class="current-scope-indicator" title="Search Scope">
         {{ searchScope === 'local' ? 'Category' : 'Global' }}
       </div>
     </div>
 
-    <div class="search-filters-edge" :class="{ visible: isExpanded }">
-      <div class="filter-group">
-        <span class="label">Range:</span>
-        <label class="radio-label">
-          <input 
-            type="radio" 
-            name="scope"
-            value="local" 
-            :checked="searchScope === 'local'"
-            @change="handleScopeChange('local')"
-          >
-          <span>Inside Category</span>
-        </label>
-        <label class="radio-label">
-          <input 
-            type="radio" 
-            name="scope"
-            value="global" 
-            :checked="searchScope === 'global'"
-            @change="handleScopeChange('global')"
-          >
-          <span>Global</span>
-        </label>
-      </div>
-
+    <div v-if="showFilters" class="search-filters-edge" :class="{ visible: isExpanded }">
       <div class="filter-group">
         <span class="label">Type:</span>
         <label 
@@ -164,6 +150,15 @@ onUnmounted(() => {
 .toggle-btn:hover {
   background: var(--hover);
   color: var(--text);
+}
+
+.search-icon {
+  padding: 4px;
+  margin-right: 0.5rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-input-container input {

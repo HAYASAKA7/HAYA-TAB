@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
+import type { ContextMenuItem } from '@/types'
 import TabCard from '@/components/grid/TabCard.vue'
 import CategoryCard from '@/components/grid/CategoryCard.vue'
 import BackCard from '@/components/grid/BackCard.vue'
@@ -13,6 +14,12 @@ const uiStore = useUIStore()
 const contextMenu = useContextMenu()
 const { showToast } = useToast()
 const viewMode = ref<'singles' | 'categories'>('singles')
+
+const shouldShowFilters = computed(() => {
+  if (viewMode.value === 'singles') return true
+  // In categories mode, only show filters if inside a specific category (playlist view)
+  return !!tabsStore.currentCategoryId
+})
 
 onMounted(async () => {
   if (tabsStore.currentCategoryId) {
@@ -89,16 +96,24 @@ function handleBlankContextMenu(e: MouseEvent) {
 
   e.preventDefault()
   
-  const items = [
-    { label: 'Upload TAB', action: () => { addTab(true) } },
-    { label: 'Link Local TAB', action: () => { addTab(false) } }
-  ]
+  const items: ContextMenuItem[] = []
+
+  // Add Upload/Link only if singles mode
+  if (viewMode.value === 'singles') {
+    items.push(
+        { label: 'Upload TAB', action: () => { addTab(true) } },
+        { label: 'Link Local TAB', action: () => { addTab(false) } }
+    )
+  }
   
-  if (viewMode.value === 'categories') {
-    items.unshift({ label: 'New Category', action: () => { uiStore.showCategoryModal() } })
+  // Add New Category only if in root categories view
+  if (viewMode.value === 'categories' && !tabsStore.currentCategoryId) {
+    items.push({ label: 'New Category', action: () => { uiStore.showCategoryModal() } })
   }
 
-  contextMenu.show(e.pageX, e.pageY, items)
+  if (items.length > 0) {
+    contextMenu.show(e.pageX, e.pageY, items)
+  }
 }
 
 async function addTab(isUpload: boolean) {
@@ -169,20 +184,34 @@ async function addTab(isUpload: boolean) {
           <span v-else class="icon-checkbox"></span>
         </button>
         <button 
-          v-if="viewMode === 'categories'" 
+          v-if="viewMode === 'categories' && !tabsStore.currentCategoryId" 
           class="btn" 
           @click="uiStore.showCategoryModal()" 
           title="New Category"
         >
           New Cat
         </button>
-        <button class="btn" @click="addTab(false)" title="Link Local Tab">Link</button>
-        <button class="btn primary" @click="addTab(true)" title="Upload Tab">Upload</button>
+        <button 
+          v-if="viewMode === 'singles'" 
+          class="btn" 
+          @click="addTab(false)" 
+          title="Link Local Tab"
+        >
+          Link
+        </button>
+        <button 
+          v-if="viewMode === 'singles'" 
+          class="btn primary" 
+          @click="addTab(true)" 
+          title="Upload Tab"
+        >
+          Upload
+        </button>
       </div>
     </header>
 
     <div class="search-container">
-      <SearchBar />
+      <SearchBar :show-filters="shouldShowFilters" />
     </div>
 
     <div class="view-content" @contextmenu="handleBlankContextMenu">
@@ -212,10 +241,10 @@ async function addTab(isUpload: boolean) {
 
         <!-- Categories List -->
         <div v-else class="category-list">
-            <div v-if="tabsStore.categories.length === 0" class="empty-state">No categories found.</div>
+            <div v-if="tabsStore.currentCategories.length === 0" class="empty-state">No categories found.</div>
             <div class="tab-grid">
             <CategoryCard 
-                v-for="cat in tabsStore.categories" 
+                v-for="cat in tabsStore.currentCategories" 
                 :key="cat.id" 
                 :category="cat" 
             />
