@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	syncpkg "haya-tab/pkg/sync"
+
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -88,6 +90,17 @@ func (h *FileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle /api/cloud-stream/{id} - stream cloud tab file via WebDAV proxy
+	if strings.HasPrefix(path, "/api/cloud-stream/") {
+		id := strings.TrimPrefix(path, "/api/cloud-stream/")
+		// Strip query parameters if present
+		if idx := strings.Index(id, "?"); idx != -1 {
+			id = id[:idx]
+		}
+		h.serveCloudFile(w, r, id)
+		return
+	}
+
 	// Not found
 	http.NotFound(w, r)
 }
@@ -109,6 +122,13 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 	if tab == nil {
 		fmt.Printf("[ServeTabFile] Tab not found for ID: %s\n", id)
 		http.Error(w, "Tab not found", http.StatusBadRequest)
+		return
+	}
+
+	// If it's a cloud tab, use the cloud stream handler
+	if tab.IsCloud {
+		fmt.Printf("[ServeTabFile] Tab %s is a cloud tab, using cloud stream\n", id)
+		h.serveCloudFile(w, r, id)
 		return
 	}
 
@@ -209,6 +229,90 @@ func (h *FileHandler) serveCoverFile(w http.ResponseWriter, r *http.Request, id 
 
 	// Stream the file
 	io.Copy(w, file)
+}
+
+func (h *FileHandler) serveCloudFile(w http.ResponseWriter, r *http.Request, id string) {
+	fmt.Printf("[ServeCloudFile] Request for ID: %s\n", id)
+	if h.app == nil || h.app.store == nil {
+		fmt.Println("[ServeCloudFile] Store is nil")
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	tab, err := h.app.store.GetTab(id)
+	if err != nil {
+		fmt.Printf("[ServeCloudFile] Error getting tab %s: %v\n", id, err)
+		http.Error(w, "Tab not found", http.StatusBadRequest)
+		return
+	}
+	if tab == nil {
+		fmt.Printf("[ServeCloudFile] Tab not found for ID: %s\n", id)
+		http.Error(w, "Tab not found", http.StatusBadRequest)
+		return
+	}
+
+	if !tab.IsCloud {
+		fmt.Printf("[ServeCloudFile] Tab %s is not a cloud tab, redirecting to local\n", id)
+		// Redirect to local file handler
+		h.serveTabFile(w, r, id)
+		return
+	}
+
+	// Get WebDAV settings
+	settings := h.app.store.GetSettings()
+	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
+		fmt.Println("[ServeCloudFile] WebDAV not enabled")
+		http.Error(w, "WebDAV not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Create WebDAV client
+	url := strings.TrimRight(settings.WebDAVURL, "/")
+	client := syncpkg.NewWebDAVClient(url, settings.WebDAVUser, settings.WebDAVPassword)
+
+	fmt.Printf("[ServeCloudFile] Streaming from WebDAV: %s\n", tab.FilePath)
+
+	// Get file info for content-length (optional, but helpful)
+	fileInfo, err := client.GetFileInfo(tab.FilePath)
+	if err != nil {
+		fmt.Printf("[ServeCloudFile] Failed to get file info: %v\n", err)
+		// Continue without content-length
+	}
+
+	// Get stream from WebDAV
+	stream, err := client.ReadStream(tab.FilePath)
+	if err != nil {
+		fmt.Printf("[ServeCloudFile] Failed to open WebDAV stream: %v\n", err)
+		http.Error(w, "Failed to stream file", http.StatusInternalServerError)
+		return
+	}
+	defer stream.Close()
+
+	// Set content type based on file extension
+	ext := strings.ToLower(filepath.Ext(tab.FilePath))
+	contentType := "application/octet-stream"
+	switch ext {
+	case ".pdf":
+		contentType = "application/pdf"
+	case ".gp", ".gp5", ".gpx":
+		contentType = "application/x-guitar-pro"
+	}
+
+	// Set headers
+	w.Header().Set("Content-Type", contentType)
+	if fileInfo != nil {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filepath.Base(tab.FilePath)))
+	w.Header().Set("Cache-Control", "private, no-cache") // Don't cache cloud files
+
+	// Stream the file using io.Copy
+	written, err := io.Copy(w, stream)
+	if err != nil {
+		fmt.Printf("[ServeCloudFile] Error streaming file: %v\n", err)
+		return
+	}
+	fmt.Printf("[ServeCloudFile] Streamed %d bytes\n", written)
 }
 
 func main() {

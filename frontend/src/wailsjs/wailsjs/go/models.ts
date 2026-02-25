@@ -189,6 +189,7 @@ export namespace store {
 	    filePath: string;
 	    type: string;
 	    isManaged: boolean;
+	    isCloud: boolean;
 	    coverPath: string;
 	    categoryIds: string[];
 	    country: string;
@@ -210,6 +211,7 @@ export namespace store {
 	        this.filePath = source["filePath"];
 	        this.type = source["type"];
 	        this.isManaged = source["isManaged"];
+	        this.isCloud = source["isCloud"];
 	        this.coverPath = source["coverPath"];
 	        this.categoryIds = source["categoryIds"];
 	        this.country = source["country"];

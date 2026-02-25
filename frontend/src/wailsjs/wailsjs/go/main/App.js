@@ -30,6 +30,10 @@ export function DeleteTab(arg1) {
   return window['go']['main']['App']['DeleteTab'](arg1);
 }
 
+export function DownloadCloudTabToLocal(arg1) {
+  return window['go']['main']['App']['DownloadCloudTabToLocal'](arg1);
+}
+
 export function ExportTab(arg1, arg2) {
   return window['go']['main']['App']['ExportTab'](arg1, arg2);
 }
@@ -128,6 +132,14 @@ export function UpdateTabCategories(arg1, arg2) {
 
 export function UpdateTabMetadata(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['UpdateTabMetadata'](arg1, arg2, arg3, arg4);
+}
+
+export function WebDAVAddOnlineFiles(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['WebDAVAddOnlineFiles'](arg1, arg2, arg3, arg4);
+}
+
+export function WebDAVCheckStatus() {
+  return window['go']['main']['App']['WebDAVCheckStatus']();
 }
 
 export function WebDAVDownloadFiles(arg1, arg2, arg3, arg4) {

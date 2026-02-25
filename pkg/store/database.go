@@ -241,6 +241,14 @@ func (s *DBStore) runMigrations() error {
 		fmt.Printf("Migration warning: failed to migrate categories: %v\n", err)
 	}
 
+	// Add is_cloud column for online tabs feature
+	_, err = s.db.Exec("ALTER TABLE tabs ADD COLUMN is_cloud INTEGER DEFAULT 0")
+	if err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			// It's okay
+		}
+	}
+
 	return nil
 }
 
@@ -380,7 +388,7 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 	defer s.mu.Unlock()
 
 	rows, err := s.db.Query(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
+		SELECT id, title, artist, album, file_path, type, is_managed, is_cloud, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened
 		FROM tabs
 	`)
 	if err != nil {
@@ -393,12 +401,13 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 
 	for rows.Next() {
 		var t Tab
-		var isManaged int
+		var isManaged, isCloud int
 		var legacyCatID sql.NullString // Handle legacy or null category_id
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
 			return nil, err
 		}
 		t.IsManaged = isManaged == 1
+		t.IsCloud = isCloud == 1
 		t.CategoryIDs = []string{} // Initialize
 		tabs = append(tabs, t)
 		tabMap[t.ID] = &tabs[len(tabs)-1]
@@ -484,7 +493,7 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 	}
 
 	query := fmt.Sprintf(`
-		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, tabs.is_managed, tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), tabs.added_at, tabs.last_opened 
+		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), tabs.added_at, tabs.last_opened 
 		FROM tabs 
 		%s
 		%s 
@@ -506,12 +515,13 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 
 	for rows.Next() {
 		var t Tab
-		var isManaged int
+		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
 			return nil, 0, err
 		}
 		t.IsManaged = isManaged == 1
+		t.IsCloud = isCloud == 1
 		t.CategoryIDs = []string{}
 		tabs = append(tabs, t)
 		tabIDs = append(tabIDs, t.ID)
@@ -523,7 +533,7 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 		placeholders := strings.Repeat("?,", len(tabIDs))
 		placeholders = placeholders[:len(placeholders)-1]
 		catQuery := fmt.Sprintf("SELECT tab_id, category_id FROM tab_categories WHERE tab_id IN (%s)", placeholders)
-		
+
 		catRows, err := s.db.Query(catQuery, tabIDs...)
 		if err != nil {
 			return nil, 0, err
@@ -639,12 +649,13 @@ func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, sea
 
 	for rows.Next() {
 		var t Tab
-		var isManaged int
+		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
 			return nil, 0, err
 		}
 		t.IsManaged = isManaged == 1
+		t.IsCloud = isCloud == 1
 		t.CategoryIDs = []string{}
 		tabs = append(tabs, t)
 		tabIDs = append(tabIDs, t.ID)
@@ -656,7 +667,7 @@ func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, sea
 		placeholders := strings.Repeat("?,", len(tabIDs))
 		placeholders = placeholders[:len(placeholders)-1]
 		catQuery := fmt.Sprintf("SELECT tab_id, category_id FROM tab_categories WHERE tab_id IN (%s)", placeholders)
-		
+
 		catRows, err := s.db.Query(catQuery, tabIDs...)
 		if err != nil {
 			return nil, 0, err
@@ -738,7 +749,7 @@ func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, se
 	}
 
 	query := fmt.Sprintf(`
-		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, tabs.is_managed, tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), tabs.added_at, tabs.last_opened 
+		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), tabs.added_at, tabs.last_opened 
 		FROM tabs 
 		%s
 		%s 
@@ -760,12 +771,13 @@ func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, se
 
 	for rows.Next() {
 		var t Tab
-		var isManaged int
+		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
 			return nil, 0, err
 		}
 		t.IsManaged = isManaged == 1
+		t.IsCloud = isCloud == 1
 		t.CategoryIDs = []string{}
 		tabs = append(tabs, t)
 		tabIDs = append(tabIDs, t.ID)
@@ -777,7 +789,7 @@ func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, se
 		placeholders := strings.Repeat("?,", len(tabIDs))
 		placeholders = placeholders[:len(placeholders)-1]
 		catQuery := fmt.Sprintf("SELECT tab_id, category_id FROM tab_categories WHERE tab_id IN (%s)", placeholders)
-		
+
 		catRows, err := s.db.Query(catQuery, tabIDs...)
 		if err != nil {
 			return nil, 0, err
@@ -802,12 +814,12 @@ func (s *DBStore) GetTab(id string) (*Tab, error) {
 	defer s.mu.Unlock()
 
 	var t Tab
-	var isManaged int
+	var isManaged, isCloud int
 	var legacyCatID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
+		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened
 		FROM tabs WHERE id = ?
-	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened)
+	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -815,6 +827,7 @@ func (s *DBStore) GetTab(id string) (*Tab, error) {
 		return nil, err
 	}
 	t.IsManaged = isManaged == 1
+	t.IsCloud = isCloud == 1
 	t.CategoryIDs = []string{}
 
 	// Fetch categories
@@ -847,6 +860,10 @@ func (s *DBStore) AddTab(tab Tab) error {
 	if tab.IsManaged {
 		isManaged = 1
 	}
+	isCloud := 0
+	if tab.IsCloud {
+		isCloud = 1
+	}
 
 	// For backward compatibility or if we decide to keep a "primary" category, we could use the first one.
 	// For now, let's just use empty string for category_id in tabs table
@@ -856,9 +873,9 @@ func (s *DBStore) AddTab(tab Tab) error {
 	}
 
 	_, err = tx.Exec(`
-		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, tag, added_at, last_opened)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.Type, isManaged, tab.CoverPath, primaryCatID, tab.Country, tab.Language, tab.Tag, tab.AddedAt, tab.LastOpened)
+		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, type, is_managed, is_cloud, cover_path, category_id, country, language, tag, added_at, last_opened)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.Type, isManaged, isCloud, tab.CoverPath, primaryCatID, tab.Country, tab.Language, tab.Tag, tab.AddedAt, tab.LastOpened)
 	if err != nil {
 		return err
 	}
@@ -943,12 +960,12 @@ func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
 	defer s.mu.Unlock()
 
 	var t Tab
-	var isManaged int
+	var isManaged, isCloud int
 	var legacyCatID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
+		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened
 		FROM tabs WHERE file_path = ?
-	`, filePath).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened)
+	`, filePath).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -956,6 +973,7 @@ func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
 		return nil, err
 	}
 	t.IsManaged = isManaged == 1
+	t.IsCloud = isCloud == 1
 	t.CategoryIDs = []string{}
 
 	// Fetch categories
@@ -978,12 +996,12 @@ func (s *DBStore) GetTabByTitle(title string) (*Tab, error) {
 	defer s.mu.Unlock()
 
 	var t Tab
-	var isManaged int
+	var isManaged, isCloud int
 	var legacyCatID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
+		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened
 		FROM tabs WHERE title = ?
-	`, title).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened)
+	`, title).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -991,6 +1009,7 @@ func (s *DBStore) GetTabByTitle(title string) (*Tab, error) {
 		return nil, err
 	}
 	t.IsManaged = isManaged == 1
+	t.IsCloud = isCloud == 1
 	t.CategoryIDs = []string{}
 
 	// Fetch categories
@@ -1079,10 +1098,10 @@ func (s *DBStore) GetRecentTabs(limit int) ([]Tab, error) {
 	}
 
 	rows, err := s.db.Query(`
-		SELECT id, title, artist, album, file_path, type, is_managed, cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened 
-		FROM tabs 
+		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), added_at, last_opened
+		FROM tabs
 		WHERE last_opened > 0
-		ORDER BY last_opened DESC 
+		ORDER BY last_opened DESC
 		LIMIT ?
 	`, limit)
 	if err != nil {
@@ -1092,15 +1111,16 @@ func (s *DBStore) GetRecentTabs(limit int) ([]Tab, error) {
 
 	tabs := []Tab{}
 	tabMap := make(map[string]*Tab)
-	
+
 	for rows.Next() {
 		var t Tab
-		var isManaged int
+		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.AddedAt, &t.LastOpened); err != nil {
 			return nil, err
 		}
 		t.IsManaged = isManaged == 1
+		t.IsCloud = isCloud == 1
 		t.CategoryIDs = []string{}
 		tabs = append(tabs, t)
 		tabMap[t.ID] = &tabs[len(tabs)-1]
@@ -1183,6 +1203,38 @@ func (s *DBStore) MoveCategory(id, newParentID string) error {
 
 	_, err := s.db.Exec("UPDATE categories SET parent_id = ? WHERE id = ?", newParentID, id)
 	return err
+}
+
+// EnsureCloudCategory creates or updates the system cloud category
+func (s *DBStore) EnsureCloudCategory() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, err := s.db.Exec(`
+		INSERT OR REPLACE INTO categories (id, name, parent_id, cover_path)
+		VALUES (?, ?, '', '')
+	`, SystemCloudCategoryID, "Cloud Storage")
+	return err
+}
+
+// GetCategory retrieves a single category by ID
+func (s *DBStore) GetCategory(id string) (*Category, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var c Category
+	err := s.db.QueryRow(`
+		SELECT c.id, c.name, c.parent_id, c.cover_path,
+		COALESCE(NULLIF(c.cover_path, ''), (SELECT cover_path FROM tabs WHERE category_id = c.id ORDER BY added_at ASC LIMIT 1), '') as effective_cover_path
+		FROM categories c WHERE c.id = ?
+	`, id).Scan(&c.ID, &c.Name, &c.ParentID, &c.CoverPath, &c.EffectiveCoverPath)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &c, nil
 }
 
 // === Settings Operations ===

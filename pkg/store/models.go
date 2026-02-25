@@ -1,14 +1,20 @@
 package store
 
+// System category IDs
+const (
+	SystemCloudCategoryID = "sys_cloud"
+)
+
 // Tab represents a guitar tab file and its metadata
 type Tab struct {
 	ID          string   `json:"id"`
 	Title       string   `json:"title"`
 	Artist      string   `json:"artist"`
 	Album       string   `json:"album"`
-	FilePath    string   `json:"filePath"`    // Absolute path or relative to app
+	FilePath    string   `json:"filePath"`    // Absolute path or relative to app (or WebDAV path for cloud tabs)
 	Type        string   `json:"type"`        // "pdf" or "gp"
 	IsManaged   bool     `json:"isManaged"`
+	IsCloud     bool     `json:"isCloud"`     // True if this is a cloud/online tab (not downloaded)
 	CoverPath   string   `json:"coverPath"`
 	CategoryIDs []string `json:"categoryIds"` // List of Category IDs
 	Country     string   `json:"country"`     // e.g. "US", "JP"

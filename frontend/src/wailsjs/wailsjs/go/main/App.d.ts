@@ -17,6 +17,8 @@ export function DeleteCategory(arg1:string):Promise<void>;
 
 export function DeleteTab(arg1:string):Promise<void>;
 
+export function DownloadCloudTabToLocal(arg1:string):Promise<void>;
+
 export function ExportTab(arg1:string,arg2:string):Promise<void>;
 
 export function GetCategories():Promise<Array<store.Category>>;
@@ -66,6 +68,10 @@ export function UpdateTab(arg1:store.Tab):Promise<void>;
 export function UpdateTabCategories(arg1:string,arg2:Array<string>):Promise<void>;
 
 export function UpdateTabMetadata(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function WebDAVAddOnlineFiles(arg1:string,arg2:string,arg3:string,arg4:Array<string>):Promise<void>;
+
+export function WebDAVCheckStatus():Promise<boolean>;
 
 export function WebDAVDownloadFiles(arg1:string,arg2:string,arg3:string,arg4:Array<string>):Promise<void>;
 

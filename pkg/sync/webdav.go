@@ -155,14 +155,24 @@ func (c *WebDAVClient) UploadFile(localPath, remoteDir string) error {
 	}
 	defer f.Close()
 
-	// Ensure remote directory exists (simple check, might fail if parent doesn't exist, 
+	// Ensure remote directory exists (simple check, might fail if parent doesn't exist,
 	// but gowebdav MkdirAll isn't available, only Mkdir. recursive mkdir is complex.
 	// We'll assume the user picked an existing dir from ListRemoteDirectories or root)
 	// For robustness, we could try to create it.
-	c.client.Mkdir(remoteDir, 0755) 
+	c.client.Mkdir(remoteDir, 0755)
 
 	fileName := filepath.Base(localPath)
 	remotePath := path.Join(remoteDir, fileName)
 
 	return c.client.WriteStream(remotePath, f, 0644)
+}
+
+// ReadStream returns a read stream for the remote file (for streaming/proxy)
+func (c *WebDAVClient) ReadStream(remotePath string) (io.ReadCloser, error) {
+	return c.client.ReadStream(remotePath)
+}
+
+// GetFileInfo returns file info for a remote path
+func (c *WebDAVClient) GetFileInfo(remotePath string) (os.FileInfo, error) {
+	return c.client.Stat(remotePath)
 }

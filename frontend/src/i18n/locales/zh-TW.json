@@ -100,7 +100,15 @@
     "uploadComplete": "上傳完成",
     "name": "名稱",
     "size": "大小",
-    "path": "路徑"
+    "path": "路徑",
+    "filesSelected": "個檔案已選擇",
+    "addOnline": "新增至曲庫（線上）",
+    "addOnlineTooltip": "新增至曲庫但不下載，按需串流播放",
+    "addOnlineFailed": "新增線上檔案失敗",
+    "downloadToLocal": "下載到本機",
+    "downloadingToLocal": "正在下載到本機儲存空間...",
+    "downloadFailed": "下載失敗",
+    "offlineCannotOpen": "無法開啟：雲端儲存離線"
   },
   "keyBindings": {
     "title": "按鍵綁定",
@@ -128,7 +136,8 @@
     "coverImage": "封面圖片",
     "defaultCover": "預設（第一個樂譜）",
     "select": "選擇",
-    "clear": "清除"
+    "clear": "清除",
+    "cloudStorage": "雲端儲存"
   },
   "tab": {
     "editMetadata": "編輯樂譜資訊",
@@ -188,6 +197,7 @@
     "exportTab": "匯出樂譜",
     "deleteTab": "刪除樂譜",
     "unlinkTab": "取消連結",
+    "removeTab": "從曲庫中移除",
     "open": "開啟",
     "rename": "重新命名",
     "deleteCategory": "刪除分類",

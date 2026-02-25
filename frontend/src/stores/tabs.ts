@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Tab, Category, TabsResponse } from '@/types'
+import { SYSTEM_CLOUD_CATEGORY_ID } from '@/types'
 
 export const useTabsStore = defineStore('tabs', () => {
   // State
@@ -145,7 +146,13 @@ export const useTabsStore = defineStore('tabs', () => {
 
   async function fetchCategories() {
     try {
-      categories.value = await window.go.main.App.GetCategories() || []
+      const result = await window.go.main.App.GetCategories() || []
+      // Sort categories: cloud category first, then alphabetically
+      categories.value = result.sort((a: Category, b: Category) => {
+        if (a.id === SYSTEM_CLOUD_CATEGORY_ID) return -1
+        if (b.id === SYSTEM_CLOUD_CATEGORY_ID) return 1
+        return a.name.localeCompare(b.name)
+      })
     } catch (err) {
       console.error('Error fetching categories:', err)
       categories.value = []

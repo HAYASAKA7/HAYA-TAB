@@ -67,3 +67,9 @@ export function WebDAVScanRemoteFiles(arg1:string,arg2:string,arg3:string,arg4:s
 export function WebDAVTestConnection(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function WebDAVUploadFiles(arg1:string,arg2:string,arg3:string,arg4:Array<string>,arg5:string):Promise<void>;
+
+export function WebDAVAddOnlineFiles(arg1:string,arg2:string,arg3:string,arg4:Array<string>):Promise<void>;
+
+export function WebDAVCheckStatus():Promise<boolean>;
+
+export function DownloadCloudTabToLocal(arg1:string):Promise<void>;

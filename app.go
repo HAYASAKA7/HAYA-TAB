@@ -55,6 +55,29 @@ func getAppDir() string {
 	return filepath.Dir(exePath)
 }
 
+// generateID generates a unique ID for tabs
+func generateID() string {
+	return fmt.Sprintf("tab_%d", time.Now().UnixNano())
+}
+
+// copyFile copies a file from src to dst
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	return err
+}
+
 // WailsEventEmitter adapts wails runtime to the EventEmitter interface
 type WailsEventEmitter struct {
 	ctx context.Context
@@ -410,12 +433,19 @@ func (a *App) DeleteTab(id string) error {
 		}
 	}
 
-	return a.store.DeleteTab(id)
+	if err := a.store.DeleteTab(id); err != nil {
+		return err
+	}
+
+	// Emit event to notify frontend
+	wailsRuntime.EventsEmit(a.ctx, "tab-deleted", id)
+	return nil
 }
 
 // BatchDeleteTabs deletes multiple tabs at once
 func (a *App) BatchDeleteTabs(ids []string) (int, error) {
 	deleted := 0
+	deletedIds := []string{}
 	for _, id := range ids {
 		targetTab, err := a.store.GetTab(id)
 		if err != nil || targetTab == nil {
@@ -435,8 +465,15 @@ func (a *App) BatchDeleteTabs(ids []string) (int, error) {
 
 		if err := a.store.DeleteTab(id); err == nil {
 			deleted++
+			deletedIds = append(deletedIds, id)
 		}
 	}
+
+	// Emit event to notify frontend
+	if deleted > 0 {
+		wailsRuntime.EventsEmit(a.ctx, "tabs-deleted", deletedIds)
+	}
+
 	return deleted, nil
 }
 
@@ -1013,6 +1050,242 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 		wailsRuntime.EventsEmit(a.ctx, "cloud-upload-progress", map[string]interface{}{
 			"status": "complete",
 			"success": successCount,
+		})
+	}()
+
+	return nil
+}
+
+// WebDAVAddOnlineFiles adds cloud files to library without downloading (lazy loading)
+func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []string) error {
+	url = strings.TrimRight(url, "/")
+
+	// Ensure cloud category exists
+	if err := a.store.EnsureCloudCategory(); err != nil {
+		a.logger.Error("Failed to ensure cloud category: %v", err)
+	}
+
+	wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+		"status": "start",
+		"total":  len(remotePaths),
+	})
+
+	go func() {
+		successCount := 0
+		skippedCount := 0
+
+		for i, remotePath := range remotePaths {
+			fileName := filepath.Base(remotePath)
+
+			// Check for duplicates by remote path
+			existingTab, _ := a.store.GetTabByPath(remotePath)
+			if existingTab != nil {
+				a.logger.Info("Skipping duplicate cloud file %s", fileName)
+				skippedCount++
+				wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+					"status":   "progress",
+					"current":  i + 1,
+					"total":    len(remotePaths),
+					"filename": fileName,
+				})
+				continue
+			}
+
+			// Parse metadata from filename (lazy - no download)
+			title, artist := parseMetadataFromFilename(fileName)
+
+			// Determine file type
+			ext := strings.ToLower(filepath.Ext(fileName))
+			fileType := "gp"
+			if ext == ".pdf" {
+				fileType = "pdf"
+			}
+
+			// Create tab record
+			tab := store.Tab{
+				ID:          generateID(),
+				Title:       title,
+				Artist:      artist,
+				FilePath:    remotePath, // Store remote path
+				Type:        fileType,
+				IsManaged:   false,
+				IsCloud:     true,
+				CategoryIDs: []string{store.SystemCloudCategoryID},
+				AddedAt:     time.Now().Unix(),
+			}
+
+			if err := a.store.AddTab(tab); err != nil {
+				a.logger.Error("Failed to add cloud tab %s: %v", fileName, err)
+			} else {
+				successCount++
+			}
+
+			wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+				"status":   "progress",
+				"current":  i + 1,
+				"total":    len(remotePaths),
+				"filename": fileName,
+			})
+		}
+
+		wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+			"status":  "complete",
+			"success": successCount,
+			"skipped": skippedCount,
+			"errors":  0,
+		})
+	}()
+
+	return nil
+}
+
+// parseMetadataFromFilename extracts title and artist from filename
+// Supports formats: "Artist - Title.ext" or just "Title.ext"
+func parseMetadataFromFilename(filename string) (title, artist string) {
+	// Remove extension
+	name := strings.TrimSuffix(filename, filepath.Ext(filename))
+
+	// Try to split by " - " (common format: "Artist - Title")
+	parts := strings.SplitN(name, " - ", 2)
+	if len(parts) == 2 {
+		artist = strings.TrimSpace(parts[0])
+		title = strings.TrimSpace(parts[1])
+	} else {
+		title = strings.TrimSpace(name)
+		artist = ""
+	}
+
+	return title, artist
+}
+
+// WebDAVCheckStatus checks if WebDAV connection is available
+func (a *App) WebDAVCheckStatus() bool {
+	settings := a.store.GetSettings()
+	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
+		return false
+	}
+
+	client := syncpkg.NewWebDAVClient(
+		strings.TrimRight(settings.WebDAVURL, "/"),
+		settings.WebDAVUser,
+		settings.WebDAVPassword,
+	)
+
+	err := client.TestConnection()
+	return err == nil
+}
+
+// DownloadCloudTabToLocal downloads a cloud tab to local storage
+// IMPORTANT: This preserves existing metadata - does NOT re-parse the file
+func (a *App) DownloadCloudTabToLocal(tabID string) error {
+	tab, err := a.store.GetTab(tabID)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
+	}
+	if tab == nil {
+		return fmt.Errorf("tab not found")
+	}
+	if !tab.IsCloud {
+		return fmt.Errorf("tab is not a cloud tab")
+	}
+
+	settings := a.store.GetSettings()
+	if !settings.WebDAVEnabled {
+		return fmt.Errorf("WebDAV is not enabled")
+	}
+
+	client := syncpkg.NewWebDAVClient(
+		strings.TrimRight(settings.WebDAVURL, "/"),
+		settings.WebDAVUser,
+		settings.WebDAVPassword,
+	)
+
+	wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+		"status": "start",
+		"tabId":  tabID,
+	})
+
+	go func() {
+		remotePath := tab.FilePath
+		fileName := filepath.Base(remotePath)
+
+		// Create temp file
+		tempFile, err := os.CreateTemp("", "haya-tab-download-*.tmp")
+		if err != nil {
+			a.logger.Error("Failed to create temp file: %v", err)
+			wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+				"status": "error",
+				"tabId":  tabID,
+				"error":  err.Error(),
+			})
+			return
+		}
+		tempPath := tempFile.Name()
+		tempFile.Close()
+
+		// Download file
+		if err := client.DownloadFile(remotePath, tempPath); err != nil {
+			a.logger.Error("Failed to download %s: %v", remotePath, err)
+			os.Remove(tempPath)
+			wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+				"status": "error",
+				"tabId":  tabID,
+				"error":  err.Error(),
+			})
+			return
+		}
+
+		// Move to storage directory
+		ext := filepath.Ext(fileName)
+		appDir := getAppDir()
+		localPath := filepath.Join(appDir, "storage", tab.ID+ext)
+
+		if err := copyFile(tempPath, localPath); err != nil {
+			a.logger.Error("Failed to copy to storage: %v", err)
+			os.Remove(tempPath)
+			wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+				"status": "error",
+				"tabId":  tabID,
+				"error":  err.Error(),
+			})
+			return
+		}
+		os.Remove(tempPath)
+
+		// CRITICAL: Do NOT call ProcessFile - preserve existing metadata
+		// Only update the necessary state fields
+		tab.FilePath = localPath
+		tab.IsCloud = false
+		tab.IsManaged = true
+
+		// Remove from cloud category, keep other categories
+		newCategoryIDs := []string{}
+		for _, catID := range tab.CategoryIDs {
+			if catID != store.SystemCloudCategoryID {
+				newCategoryIDs = append(newCategoryIDs, catID)
+			}
+		}
+		tab.CategoryIDs = newCategoryIDs
+
+		if err := a.store.UpdateTab(*tab); err != nil {
+			a.logger.Error("Failed to update tab: %v", err)
+			wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+				"status": "error",
+				"tabId":  tabID,
+				"error":  err.Error(),
+			})
+			return
+		}
+
+		// Optionally fetch cover if not already present
+		if tab.CoverPath == "" && tab.Artist != "" {
+			a.fetchCoverAsync(*tab)
+		}
+
+		wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+			"status": "complete",
+			"tabId":  tabID,
+			"tab":    tab,
 		})
 	}()
 

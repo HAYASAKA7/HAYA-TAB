@@ -48,6 +48,9 @@ interface Window {
         WebDAVListDir(url: string, user: string, pass: string, dir: string): Promise<any[]>
         WebDAVDownloadFiles(url: string, user: string, pass: string, remotePaths: string[]): Promise<void>
         WebDAVUploadFiles(url: string, user: string, pass: string, localPaths: string[], remoteDir: string): Promise<void>
+        WebDAVAddOnlineFiles(url: string, user: string, pass: string, remotePaths: string[]): Promise<void>
+        WebDAVCheckStatus(): Promise<boolean>
+        DownloadCloudTabToLocal(tabId: string): Promise<void>
       }
     }
   }

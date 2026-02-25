@@ -7,6 +7,7 @@ export interface Tab {
   filePath: string
   type: 'pdf' | 'gp' | 'unknown'
   isManaged: boolean
+  isCloud: boolean
   coverPath: string
   categoryIds: string[]
   country: string
@@ -15,6 +16,9 @@ export interface Tab {
   addedAt: number
   lastOpened: number
 }
+
+// System category IDs
+export const SYSTEM_CLOUD_CATEGORY_ID = 'sys_cloud'
 
 // Category represents a virtual folder for organizing tabs
 export interface Category {

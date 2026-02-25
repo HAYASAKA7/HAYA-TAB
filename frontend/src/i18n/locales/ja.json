@@ -100,7 +100,15 @@
     "uploadComplete": "アップロード完了",
     "name": "名前",
     "size": "サイズ",
-    "path": "パス"
+    "path": "パス",
+    "filesSelected": "ファイル選択済み",
+    "addOnline": "ライブラリに追加（オンライン）",
+    "addOnlineTooltip": "ダウンロードせずにライブラリに追加、オンデマンドでストリーミング",
+    "addOnlineFailed": "オンラインファイルの追加に失敗しました",
+    "downloadToLocal": "ローカルにダウンロード",
+    "downloadingToLocal": "ローカルストレージにダウンロード中...",
+    "downloadFailed": "ダウンロードに失敗しました",
+    "offlineCannotOpen": "開けません：クラウドストレージがオフラインです"
   },
   "keyBindings": {
     "title": "キーバインド",
@@ -128,7 +136,8 @@
     "coverImage": "カバー画像",
     "defaultCover": "デフォルト（最初のタブ）",
     "select": "選択",
-    "clear": "クリア"
+    "clear": "クリア",
+    "cloudStorage": "クラウドストレージ"
   },
   "tab": {
     "editMetadata": "タブ情報を編集",
@@ -188,6 +197,7 @@
     "exportTab": "タブをエクスポート",
     "deleteTab": "タブを削除",
     "unlinkTab": "リンク解除",
+    "removeTab": "ライブラリから削除",
     "open": "開く",
     "rename": "名前を変更",
     "deleteCategory": "カテゴリを削除",

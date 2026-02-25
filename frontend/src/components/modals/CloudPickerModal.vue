@@ -170,6 +170,24 @@ async function handleDownload() {
   }
 }
 
+async function handleAddOnline() {
+  if (selectedFiles.value.size === 0) return
+
+  loading.value = true
+  try {
+    await window.go.main.App.WebDAVAddOnlineFiles(
+      settingsStore.settings.webdavUrl,
+      settingsStore.settings.webdavUser,
+      settingsStore.settings.webdavPassword,
+      Array.from(selectedFiles.value)
+    )
+    // Progress events will handle completion
+  } catch (err) {
+    loading.value = false
+    showToast(t('cloud.addOnlineFailed') + ': ' + err, 'error')
+  }
+}
+
 function formatSize(bytes: number) {
   if (bytes === 0) return '0 B'
   const k = 1024
@@ -268,6 +286,9 @@ function formatSize(bytes: number) {
         </div>
         <div style="flex: 1"></div>
         <button class="btn" @click="uiStore.hideCloudPickerModal">{{ t('confirm.cancel') }}</button>
+        <button class="btn secondary" @click="handleAddOnline" :disabled="selectedFiles.size === 0 || loading" :title="t('cloud.addOnlineTooltip')">
+          {{ t('cloud.addOnline') }}
+        </button>
         <button class="btn primary" @click="handleDownload" :disabled="selectedFiles.size === 0 || loading">
           {{ t('cloud.downloadSelected') }}
         </button>
@@ -451,5 +472,16 @@ function formatSize(bytes: number) {
 .selected-count {
   font-size: 0.9em;
   color: var(--text-muted);
+}
+
+.btn.secondary {
+  background: var(--bg-secondary);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+
+.btn.secondary:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
 }
 </style>

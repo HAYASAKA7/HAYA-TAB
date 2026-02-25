@@ -133,3 +133,15 @@ export function WebDAVTestConnection(arg1, arg2, arg3) {
 export function WebDAVUploadFiles(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['WebDAVUploadFiles'](arg1, arg2, arg3, arg4, arg5);
 }
+
+export function WebDAVAddOnlineFiles(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['WebDAVAddOnlineFiles'](arg1, arg2, arg3, arg4);
+}
+
+export function WebDAVCheckStatus() {
+  return window['go']['main']['App']['WebDAVCheckStatus']();
+}
+
+export function DownloadCloudTabToLocal(arg1) {
+  return window['go']['main']['App']['DownloadCloudTabToLocal'](arg1);
+}

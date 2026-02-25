@@ -100,7 +100,15 @@
     "uploadComplete": "上传完成",
     "name": "名称",
     "size": "大小",
-    "path": "路径"
+    "path": "路径",
+    "filesSelected": "个文件已选择",
+    "addOnline": "添加到曲库（在线）",
+    "addOnlineTooltip": "添加到曲库但不下载，按需流式播放",
+    "addOnlineFailed": "添加在线文件失败",
+    "downloadToLocal": "下载到本地",
+    "downloadingToLocal": "正在下载到本地存储...",
+    "downloadFailed": "下载失败",
+    "offlineCannotOpen": "无法打开：云存储离线"
   },
   "keyBindings": {
     "title": "按键绑定",
@@ -128,7 +136,8 @@
     "coverImage": "封面图片",
     "defaultCover": "默认（第一个曲谱）",
     "select": "选择",
-    "clear": "清除"
+    "clear": "清除",
+    "cloudStorage": "云存储"
   },
   "tab": {
     "editMetadata": "编辑曲谱信息",
@@ -188,6 +197,7 @@
     "exportTab": "导出曲谱",
     "deleteTab": "删除曲谱",
     "unlinkTab": "取消链接",
+    "removeTab": "从曲库中移除",
     "open": "打开",
     "rename": "重命名",
     "deleteCategory": "删除分类",

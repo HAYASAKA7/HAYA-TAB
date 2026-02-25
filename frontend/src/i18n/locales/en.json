@@ -100,7 +100,15 @@
     "uploadComplete": "Upload complete",
     "name": "Name",
     "size": "Size",
-    "path": "Path"
+    "path": "Path",
+    "filesSelected": "file(s) selected",
+    "addOnline": "Add to Library (Online)",
+    "addOnlineTooltip": "Add to library without downloading. Stream on demand.",
+    "addOnlineFailed": "Failed to add online files",
+    "downloadToLocal": "Download to Local",
+    "downloadingToLocal": "Downloading to local storage...",
+    "downloadFailed": "Download failed",
+    "offlineCannotOpen": "Cannot open: Cloud storage is offline"
   },
   "keyBindings": {
     "title": "Key Bindings",
@@ -128,7 +136,8 @@
     "coverImage": "Cover Image",
     "defaultCover": "Default (First Tab)",
     "select": "Select",
-    "clear": "Clear"
+    "clear": "Clear",
+    "cloudStorage": "Cloud Storage"
   },
   "tab": {
     "editMetadata": "Edit Tab Metadata",
@@ -188,6 +197,7 @@
     "exportTab": "Export TAB",
     "deleteTab": "Delete TAB",
     "unlinkTab": "Unlink TAB",
+    "removeTab": "Remove from Library",
     "open": "Open",
     "rename": "Rename",
     "deleteCategory": "Delete Category",

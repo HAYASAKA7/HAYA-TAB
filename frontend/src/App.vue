@@ -31,6 +31,11 @@ onMounted(async () => {
   await tabsStore.refreshData()
   await settingsStore.loadSettings()
 
+  // Start WebDAV status monitoring if enabled
+  if (settingsStore.settings.webdavEnabled) {
+    settingsStore.startWebDAVStatusCheck()
+  }
+
   // Event listeners
   window.runtime.EventsOn('tab-updated', () => {
     tabsStore.refreshData()
@@ -47,6 +52,25 @@ onMounted(async () => {
 
   window.runtime.EventsOn('file-changes-detected', (msg: string) => {
     showToast(msg + ' - Click Sync to update.', 'info')
+  })
+
+  // Listen for cloud download completion
+  window.runtime.EventsOn('cloud-download-single', (data: any) => {
+    if (data.status === 'complete') {
+      showToast('Downloaded to local storage', 'success')
+      tabsStore.refreshData()
+    } else if (data.status === 'error') {
+      showToast('Download failed: ' + data.error, 'error')
+    }
+  })
+
+  // Listen for tab deletion events
+  window.runtime.EventsOn('tab-deleted', () => {
+    tabsStore.refreshData()
+  })
+
+  window.runtime.EventsOn('tabs-deleted', () => {
+    tabsStore.refreshData()
   })
 })
 

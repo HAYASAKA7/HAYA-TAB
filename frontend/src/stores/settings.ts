@@ -41,6 +41,8 @@ export const useSettingsStore = defineStore('settings', () => {
   })
 
   const loading = ref(false)
+  const webdavConnected = ref(false)
+  let webdavCheckInterval: ReturnType<typeof setInterval> | null = null
 
   // Actions
   async function loadSettings() {
@@ -144,6 +146,51 @@ export const useSettingsStore = defineStore('settings', () => {
     return await window.go.main.App.TriggerSync()
   }
 
+  // WebDAV connection status check
+  async function checkWebDAVStatus() {
+    if (!settings.value.webdavEnabled) {
+      webdavConnected.value = false
+      return false
+    }
+
+    // Also check browser online status
+    if (!navigator.onLine) {
+      webdavConnected.value = false
+      return false
+    }
+
+    try {
+      const connected = await window.go.main.App.WebDAVCheckStatus()
+      webdavConnected.value = connected
+      return connected
+    } catch (err) {
+      console.error('WebDAV status check failed:', err)
+      webdavConnected.value = false
+      return false
+    }
+  }
+
+  // Start periodic WebDAV status checks
+  function startWebDAVStatusCheck(intervalMs = 30000) {
+    stopWebDAVStatusCheck()
+    checkWebDAVStatus() // Initial check
+    webdavCheckInterval = setInterval(checkWebDAVStatus, intervalMs)
+
+    // Listen for online/offline events
+    window.addEventListener('online', checkWebDAVStatus)
+    window.addEventListener('offline', () => {
+      webdavConnected.value = false
+    })
+  }
+
+  // Stop periodic WebDAV status checks
+  function stopWebDAVStatusCheck() {
+    if (webdavCheckInterval) {
+      clearInterval(webdavCheckInterval)
+      webdavCheckInterval = null
+    }
+  }
+
   // Watch for system theme changes
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
@@ -156,6 +203,7 @@ export const useSettingsStore = defineStore('settings', () => {
   return {
     settings,
     loading,
+    webdavConnected,
     loadSettings,
     saveSettings,
     applyTheme,
@@ -163,6 +211,9 @@ export const useSettingsStore = defineStore('settings', () => {
     applyBackground,
     addSyncPath,
     removeSyncPath,
-    triggerSync
+    triggerSync,
+    checkWebDAVStatus,
+    startWebDAVStatusCheck,
+    stopWebDAVStatusCheck
   }
 })
