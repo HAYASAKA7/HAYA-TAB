@@ -1,10 +1,13 @@
 import { ref, shallowRef, toRaw, nextTick } from 'vue'
 
-export function useAlphaTab() {
+type TranslateFunction = (key: string, params?: Record<string, any>) => string
+
+export function useAlphaTab(t?: TranslateFunction) {
   // Core API
   const api = shallowRef<any>(null)
   const isLoaded = ref(false)
   const isSoundFontLoaded = ref(false)
+  const loadError = ref<string | null>(null)
 
   // Playback State
   const isPlaying = ref(false)
@@ -123,12 +126,35 @@ export function useAlphaTab() {
     if (!api.value) return
     try {
         isLoaded.value = false
+        loadError.value = null
+
+        // Pre-check: fetch the URL to detect HTTP errors before AlphaTab tries to load
+        const response = await fetch(url)
+        if (!response.ok) {
+          let errorMsg = t ? t('gpViewer.httpError', { status: response.status }) : `Failed to load file (HTTP ${response.status})`
+          if (response.status === 403) {
+            errorMsg = t ? t('gpViewer.accessDenied') : 'Access denied: The file may be too large or you may not have permission to access it'
+          } else if (response.status === 404) {
+            errorMsg = t ? t('gpViewer.fileNotFound') : 'File not found'
+          } else if (response.status === 500) {
+            // Try to get more details from response
+            const text = await response.text().catch(() => '')
+            if (text.includes('403') || text.toLowerCase().includes('forbidden')) {
+              errorMsg = t ? t('gpViewer.accessDeniedWebdav') : 'Access denied: The WebDAV server rejected the request (possibly file too large)'
+            } else {
+              errorMsg = t ? t('gpViewer.serverError') : 'Server error: Failed to stream file from cloud storage'
+            }
+          }
+          throw new Error(errorMsg)
+        }
+
         if (trackIndex !== undefined) {
              api.value.tracks = [trackIndex]
         }
         await api.value.load(url)
     } catch(e) {
         console.error("AlphaTab Load Failed", e)
+        loadError.value = e instanceof Error ? e.message : String(e)
         throw e
     }
   }
@@ -372,6 +398,7 @@ export function useAlphaTab() {
     api,
     isLoaded,
     isSoundFontLoaded,
+    loadError,
     isPlaying,
     baseTempo,
     currentBpm,

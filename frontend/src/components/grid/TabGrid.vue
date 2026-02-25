@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
@@ -11,6 +12,7 @@ const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const contextMenu = useContextMenu()
 const { showToast } = useToast()
+const { t } = useI18n()
 
 function handleBlankContextMenu(e: MouseEvent) {
   // Only show if not clicking on a card
@@ -18,10 +20,10 @@ function handleBlankContextMenu(e: MouseEvent) {
 
   e.preventDefault()
   contextMenu.show(e.pageX, e.pageY, [
-    { label: 'New Category', action: () => uiStore.showCategoryModal() },
-    { label: 'Cloud Library', action: () => uiStore.showCloudPickerModal() },
-    { label: 'Upload TAB', action: () => addTab(true) },
-    { label: 'Link Local TAB', action: () => addTab(false) }
+    { label: t('library.newCategory'), action: () => uiStore.showCategoryModal() },
+    { label: t('cloud.title'), action: () => uiStore.showCloudPickerModal() },
+    { label: t('library.uploadTab'), action: () => addTab(true) },
+    { label: t('library.linkTab'), action: () => addTab(false) }
   ])
 }
 
@@ -46,9 +48,9 @@ async function addTab(isUpload: boolean) {
 
     // Show toast
     if (skipped > 0) {
-      showToast(`Added ${added} tab(s), ${skipped} skipped (duplicates)`, 'warning')
+      showToast(t('toast.addedWithSkip', { added, skipped }), 'warning')
     } else if (added > 0) {
-      showToast(`Added ${added} tab(s)`)
+      showToast(t('toast.added', { count: added }))
     }
   }
 }

@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { useAlphaTab } from '@/composables/useAlphaTab'
 import GpFloatingToolbar from './GpFloatingToolbar.vue'
 import GpSelectionMenu from './GpSelectionMenu.vue'
+import { EventsOn, EventsOff } from '@/wailsjs/runtime/runtime'
 
+const { t } = useI18n()
 const props = defineProps<{
   tabId: string
   visible: boolean
@@ -28,6 +31,7 @@ const {
   api,
   isLoaded,
   isSoundFontLoaded,
+  loadError,
   isPlaying,
   currentBpm,
   playbackSpeed,
@@ -55,7 +59,7 @@ const {
   clearSelection: composableClearSelection,
   playSelection,
   handleSelectionChange: composableHandleSelectionChange
-} = useAlphaTab()
+} = useAlphaTab(t)
 
 // UI State (Local)
 const highlightStyle = ref<any>(null)
@@ -81,8 +85,22 @@ watch(() => settingsStore.settings.audioDevice, (newId) => {
   updateAudioOutput(newId)
 })
 
+// Cloud download event handler (only reload, toast is handled globally in App.vue)
+function handleCloudDownload(data: any) {
+  if (data.tabId !== props.tabId) return
+  if (data.status === 'complete') {
+    // Reload the tab after download
+    loadGpTab()
+  }
+}
+
+onMounted(() => {
+  EventsOn('cloud-download-single', handleCloudDownload)
+})
+
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  EventsOff('cloud-download-single')
   destroy()
 })
 
@@ -130,8 +148,20 @@ async function loadGpTab() {
     await load(url)
 
   } catch (e) {
-    showToast('Failed to load GP Tab: ' + e, 'error')
+    // Error is already displayed in the UI via loadError state
     console.error(e)
+  }
+}
+
+async function downloadToLocal() {
+  if (!tab.value?.isCloud) return
+  try {
+    showToast(t('cloud.downloadingToLocal'), 'info')
+    await window.go.main.App.DownloadCloudTabToLocal(props.tabId)
+    // Success/error handling is done via cloud-download-single event listener
+  } catch (err) {
+    console.error('Failed to download cloud tab:', err)
+    // Error toast is handled by event listener, only log here
   }
 }
 
@@ -203,18 +233,18 @@ function scrollGp(amount: number) {
 
 function jumpToBar(barNumber: number) {
     if (!api.value) return
-    
+
     try {
         if (barNumber < 1 || barNumber > measureCount.value) {
-            showToast(`Invalid bar number (1-${measureCount.value})`, 'error')
+            showToast(t('toast.invalidBarNumber', { max: measureCount.value }), 'error')
             return
         }
 
         const barIndex = barNumber - 1
         const boundsLookup = api.value.boundsLookup || api.value.renderer?.boundsLookup
-        
+
         if (!boundsLookup) {
-            showToast('Score not fully rendered yet', 'error')
+            showToast(t('gpViewer.scoreNotRendered'), 'error')
             return
         }
         
@@ -239,9 +269,9 @@ function jumpToBar(barNumber: number) {
                 if (visualBounds) break
             }
         }
-        
+
         if (!visualBounds) {
-            showToast('Could not locate bar position', 'error')
+            showToast(t('gpViewer.cannotLocateBar'), 'error')
             return
         }
         
@@ -269,11 +299,11 @@ function jumpToBar(barNumber: number) {
         setTimeout(() => {
             highlightStyle.value = null
         }, 2000)
-        
-        showToast(`Jumped to measure ${barNumber}`, 'success')
+
+        showToast(t('gpViewer.jumpedToMeasure', { bar: barNumber }), 'success')
     } catch(e) {
         console.error('Jump failed', e)
-        showToast('Failed to navigate to measure', 'error')
+        showToast(t('gpViewer.failedToNavigate'), 'error')
     }
 }
 
@@ -281,7 +311,7 @@ function clearSelection() {
     composableClearSelection()
     isSectionPlaybackMode.value = false
     menuVisible.value = false
-    showToast('Selection cleared', 'info')
+    showToast(t('gpViewer.selectionCleared'), 'info')
 }
 
 // Menu Actions
@@ -291,9 +321,9 @@ function handlePlaySelection() {
 
 function handleToggleLoop() {
     if (toggleLoop()) {
-        showToast('Looping enabled', 'success')
+        showToast(t('gpViewer.loopingEnabled'), 'success')
     } else {
-        showToast('Looping disabled', 'info')
+        showToast(t('gpViewer.loopingDisabled'), 'info')
     }
 }
 
@@ -483,10 +513,28 @@ watch(() => props.visible, async (newVal) => {
     <div class="gp-main-content">
         <!-- SoundFont Loading Overlay -->
         <Transition name="fade-mask">
-          <div v-if="!isSoundFontLoaded" class="sf-loading-mask">
+          <div v-if="loadError" class="sf-loading-mask error-mask">
+            <div class="sf-loading-content error-content">
+              <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+              <span class="error-message">{{ loadError }}</span>
+              <span v-if="tab?.isCloud" class="error-hint">{{ t('gpViewer.loadErrorHint') }}</span>
+              <div class="error-buttons">
+                <button class="retry-button" @click="loadGpTab">{{ t('gpViewer.retry') }}</button>
+                <button v-if="tab?.isCloud" class="download-button" @click="downloadToLocal">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                  </svg>
+                  {{ t('gpViewer.download') }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="!isSoundFontLoaded" class="sf-loading-mask">
             <div class="sf-loading-content">
               <div class="sf-spinner"></div>
-              <span v-if="!isLoaded">Loading score...</span>
+              <span v-if="!isLoaded">{{ t('library.loading') }}</span>
               <span v-else>Loading SoundFont...</span>
             </div>
           </div>
@@ -735,5 +783,68 @@ watch(() => props.visible, async (newVal) => {
 .fade-mask-enter-from,
 .fade-mask-leave-to {
     opacity: 0;
+}
+
+/* Error State */
+.error-mask {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.error-content {
+    text-align: center;
+    max-width: 400px;
+    padding: 24px;
+}
+
+.error-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--danger, #e74c3c);
+    margin-bottom: 8px;
+}
+
+.error-message {
+    color: var(--text-primary, #fff);
+    font-size: 1rem;
+    line-height: 1.5;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.error-hint {
+    color: var(--text-secondary, #aaa);
+    font-size: 0.85rem;
+    display: block;
+    margin-bottom: 16px;
+}
+
+.error-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.retry-button,
+.download-button {
+    padding: 8px 24px;
+    background: var(--primary-color, #965233);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.retry-button:hover,
+.download-button:hover {
+    background: var(--primary-hover, #7a4329);
+}
+
+.download-button svg {
+    flex-shrink: 0;
 }
 </style>

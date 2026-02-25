@@ -166,7 +166,7 @@ async function handleDownload() {
     // Progress events will handle completion
   } catch (err) {
     loading.value = false
-    showToast('Download failed: ' + err, 'error')
+    showToast(t('cloud.downloadFailed') + ': ' + err, 'error')
   }
 }
 

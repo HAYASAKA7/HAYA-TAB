@@ -109,7 +109,9 @@
     "downloadingToLocal": "正在下載到本機儲存空間...",
     "downloadFailed": "下載失敗",
     "downloadSuccess": "已下載到本機儲存空間",
-    "offlineCannotOpen": "無法開啟：雲端儲存離線"
+    "offlineCannotOpen": "無法開啟：雲端儲存離線",
+    "uploadFailed": "上傳失敗",
+    "listDirectoriesFailed": "取得目錄清單失敗"
   },
   "keyBindings": {
     "title": "按鍵綁定",
@@ -213,14 +215,21 @@
     "confirmUnlinkTab": "確定要取消連結「{title}」嗎？",
     "confirmUnlinkTabInfo": "檔案將保留在磁碟上。",
     "confirmDeleteCategory": "確定要刪除分類「{name}」嗎？",
-    "confirmDeleteCategoryInfo": "該分類中的樂譜將被移動到根目錄。"
+    "confirmDeleteCategoryInfo": "該分類中的樂譜將被移動到根目錄。",
+    "pin": "釘選",
+    "unpin": "取消釘選",
+    "close": "關閉"
   },
   "toast": {
     "added": "已新增 {count} 個樂譜",
     "addedWithSkip": "已新增 {added} 個樂譜，{skipped} 個已跳過（重複）",
     "saved": "已儲存。",
     "failedAudioDevices": "取得音訊裝置清單失敗",
-    "syncError": "同步錯誤"
+    "syncError": "同步錯誤",
+    "invalidBarNumber": "無效的小節號（1-{max}）",
+    "tabPinned": "已釘選分頁",
+    "tabUnpinned": "已取消釘選分頁",
+    "clickSyncToUpdate": "點擊同步以更新"
   },
   "countries": {
     "US": "美國",
@@ -239,5 +248,23 @@
     "fr_fr": "法語",
     "ko_kr": "韓語",
     "zh_cn": "中文"
+  },
+  "gpViewer": {
+    "loadError": "載入失敗",
+    "loadErrorHint": "您可以先下載到本機再開啟",
+    "retry": "重試",
+    "download": "下載",
+    "scoreNotRendered": "樂譜尚未完全渲染",
+    "cannotLocateBar": "無法定位小節位置",
+    "jumpedToMeasure": "已跳至第 {bar} 小節",
+    "failedToNavigate": "跳至小節失敗",
+    "selectionCleared": "已清除選擇",
+    "loopingEnabled": "已啟用循環",
+    "loopingDisabled": "已停用循環",
+    "httpError": "載入檔案失敗（HTTP {status}）",
+    "accessDenied": "存取被拒絕：檔案可能過大或您沒有存取權限",
+    "accessDeniedWebdav": "存取被拒絕：WebDAV 伺服器拒絕了請求（可能是檔案過大）",
+    "fileNotFound": "找不到檔案",
+    "serverError": "伺服器錯誤：無法從雲端儲存串流檔案"
   }
 }

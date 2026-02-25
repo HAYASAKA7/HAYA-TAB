@@ -109,7 +109,9 @@
     "downloadingToLocal": "ローカルストレージにダウンロード中...",
     "downloadFailed": "ダウンロードに失敗しました",
     "downloadSuccess": "ローカルストレージにダウンロードしました",
-    "offlineCannotOpen": "開けません：クラウドストレージがオフラインです"
+    "offlineCannotOpen": "開けません：クラウドストレージがオフラインです",
+    "uploadFailed": "アップロードに失敗しました",
+    "listDirectoriesFailed": "ディレクトリの取得に失敗しました"
   },
   "keyBindings": {
     "title": "キーバインド",
@@ -213,14 +215,21 @@
     "confirmUnlinkTab": "「{title}」のリンクを解除しますか？",
     "confirmUnlinkTabInfo": "ファイルはディスクに残ります。",
     "confirmDeleteCategory": "カテゴリ「{name}」を削除しますか？",
-    "confirmDeleteCategoryInfo": "このカテゴリ内のタブはルートに移動されます。"
+    "confirmDeleteCategoryInfo": "このカテゴリ内のタブはルートに移動されます。",
+    "pin": "固定",
+    "unpin": "固定解除",
+    "close": "閉じる"
   },
   "toast": {
     "added": "{count}個のタブを追加しました",
     "addedWithSkip": "{added}個のタブを追加、{skipped}個をスキップ（重複）",
     "saved": "保存しました。",
     "failedAudioDevices": "オーディオデバイスの取得に失敗しました",
-    "syncError": "同期エラー"
+    "syncError": "同期エラー",
+    "invalidBarNumber": "無効な小節番号（1-{max}）",
+    "tabPinned": "タブを固定しました",
+    "tabUnpinned": "タブの固定を解除しました",
+    "clickSyncToUpdate": "同期をクリックして更新"
   },
   "countries": {
     "US": "アメリカ",
@@ -239,5 +248,23 @@
     "fr_fr": "フランス語",
     "ko_kr": "韓国語",
     "zh_cn": "中国語"
+  },
+  "gpViewer": {
+    "loadError": "読み込みに失敗しました",
+    "loadErrorHint": "ファイルをダウンロードしてから開くことができます",
+    "retry": "再試行",
+    "download": "ダウンロード",
+    "scoreNotRendered": "スコアがまだ完全にレンダリングされていません",
+    "cannotLocateBar": "小節の位置を特定できませんでした",
+    "jumpedToMeasure": "第{bar}小節にジャンプしました",
+    "failedToNavigate": "小節への移動に失敗しました",
+    "selectionCleared": "選択を解除しました",
+    "loopingEnabled": "ループを有効にしました",
+    "loopingDisabled": "ループを無効にしました",
+    "httpError": "ファイルの読み込みに失敗しました（HTTP {status}）",
+    "accessDenied": "アクセスが拒否されました：ファイルが大きすぎるか、アクセス権限がない可能性があります",
+    "accessDeniedWebdav": "アクセスが拒否されました：WebDAVサーバーがリクエストを拒否しました（ファイルが大きすぎる可能性があります）",
+    "fileNotFound": "ファイルが見つかりません",
+    "serverError": "サーバーエラー：クラウドストレージからのファイルストリーミングに失敗しました"
   }
 }

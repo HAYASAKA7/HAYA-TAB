@@ -253,7 +253,6 @@ func (h *FileHandler) serveCloudFile(w http.ResponseWriter, r *http.Request, id 
 
 	if !tab.IsCloud {
 		fmt.Printf("[ServeCloudFile] Tab %s is not a cloud tab, redirecting to local\n", id)
-		// Redirect to local file handler
 		h.serveTabFile(w, r, id)
 		return
 	}
@@ -266,24 +265,39 @@ func (h *FileHandler) serveCloudFile(w http.ResponseWriter, r *http.Request, id 
 		return
 	}
 
-	// Create WebDAV client
-	url := strings.TrimRight(settings.WebDAVURL, "/")
-	client := syncpkg.NewWebDAVClient(url, settings.WebDAVUser, settings.WebDAVPassword)
+	// Create WebDAV client with browser-like User-Agent
+	baseURL := strings.TrimRight(settings.WebDAVURL, "/")
+	client := syncpkg.NewWebDAVClient(baseURL, settings.WebDAVUser, settings.WebDAVPassword)
 
 	fmt.Printf("[ServeCloudFile] Streaming from WebDAV: %s\n", tab.FilePath)
 
-	// Get file info for content-length (optional, but helpful)
+	// Get file info for content-length
+	var fileSize int64
 	fileInfo, err := client.GetFileInfo(tab.FilePath)
 	if err != nil {
 		fmt.Printf("[ServeCloudFile] Failed to get file info: %v\n", err)
-		// Continue without content-length
+		// Continue without file size - not fatal
+	} else {
+		fileSize = fileInfo.Size()
 	}
 
-	// Get stream from WebDAV
+	// Create context that cancels when client disconnects
+	ctx := r.Context()
+
+	// Use gowebdav's ReadStream which handles auth properly for Baidu/Jianguoyun etc.
 	stream, err := client.ReadStream(tab.FilePath)
 	if err != nil {
 		fmt.Printf("[ServeCloudFile] Failed to open WebDAV stream: %v\n", err)
-		http.Error(w, "Failed to stream file", http.StatusInternalServerError)
+		errStr := err.Error()
+		if strings.Contains(errStr, "403") || strings.Contains(strings.ToLower(errStr), "forbidden") {
+			http.Error(w, "Access denied (403): Server rejected the request", http.StatusForbidden)
+			return
+		}
+		if strings.Contains(errStr, "404") || strings.Contains(strings.ToLower(errStr), "not found") {
+			http.Error(w, "File not found on cloud storage", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to stream file: "+errStr, http.StatusInternalServerError)
 		return
 	}
 	defer stream.Close()
@@ -298,21 +312,39 @@ func (h *FileHandler) serveCloudFile(w http.ResponseWriter, r *http.Request, id 
 		contentType = "application/x-guitar-pro"
 	}
 
-	// Set headers
+	// Set response headers
 	w.Header().Set("Content-Type", contentType)
-	if fileInfo != nil {
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
-	}
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filepath.Base(tab.FilePath)))
-	w.Header().Set("Cache-Control", "private, no-cache") // Don't cache cloud files
+	w.Header().Set("Cache-Control", "private, no-cache")
+	w.Header().Set("Accept-Ranges", "bytes")
 
-	// Stream the file using io.Copy
-	written, err := io.Copy(w, stream)
-	if err != nil {
-		fmt.Printf("[ServeCloudFile] Error streaming file: %v\n", err)
-		return
+	if fileSize > 0 {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize))
 	}
-	fmt.Printf("[ServeCloudFile] Streamed %d bytes\n", written)
+
+	// Stream the file with context awareness for cancellation
+	done := make(chan struct{})
+	var written int64
+	var copyErr error
+
+	go func() {
+		written, copyErr = io.Copy(w, stream)
+		close(done)
+	}()
+
+	select {
+	case <-ctx.Done():
+		// Client disconnected - close stream to stop the goroutine
+		stream.Close()
+		fmt.Printf("[ServeCloudFile] Client disconnected after streaming started\n")
+		return
+	case <-done:
+		if copyErr != nil {
+			fmt.Printf("[ServeCloudFile] Error streaming file: %v\n", copyErr)
+			return
+		}
+		fmt.Printf("[ServeCloudFile] Streamed %d bytes successfully\n", written)
+	}
 }
 
 func main() {

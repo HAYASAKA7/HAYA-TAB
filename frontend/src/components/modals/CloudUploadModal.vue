@@ -58,7 +58,7 @@ async function listDirectories(path: string) {
     }
   } catch (err) {
     console.error(err)
-    showToast('Failed to list directories: ' + err, 'error')
+    showToast(t('cloud.listDirectoriesFailed') + ': ' + err, 'error')
   } finally {
     loading.value = false
   }
@@ -90,7 +90,7 @@ async function handleUpload() {
     )
   } catch (err) {
     loading.value = false
-    showToast('Upload failed: ' + err, 'error')
+    showToast(t('cloud.uploadFailed') + ': ' + err, 'error')
   }
 }
 </script>

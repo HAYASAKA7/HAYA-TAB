@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useSettingsStore, useUIStore, useViewersStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
@@ -26,6 +27,7 @@ const settingsStore = useSettingsStore()
 const uiStore = useUIStore()
 const viewersStore = useViewersStore()
 const { showToast } = useToast()
+const { t } = useI18n()
 
 onMounted(async () => {
   await tabsStore.refreshData()
@@ -51,16 +53,16 @@ onMounted(async () => {
   })
 
   window.runtime.EventsOn('file-changes-detected', (msg: string) => {
-    showToast(msg + ' - Click Sync to update.', 'info')
+    showToast(msg + ' - ' + t('toast.clickSyncToUpdate'), 'info')
   })
 
-  // Listen for cloud download completion
+  // Listen for cloud download completion (handle toast globally to avoid duplicates)
   window.runtime.EventsOn('cloud-download-single', (data: any) => {
     if (data.status === 'complete') {
-      showToast('Downloaded to local storage', 'success')
+      showToast(t('cloud.downloadSuccess'), 'success')
       tabsStore.refreshData()
     } else if (data.status === 'error') {
-      showToast('Download failed: ' + data.error, 'error')
+      showToast(t('cloud.downloadFailed') + ': ' + data.error, 'error')
     }
   })
 

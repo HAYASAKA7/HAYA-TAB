@@ -47,7 +47,7 @@ onMounted(async () => {
     console.error('Failed to get file server port:', e)
   }
 
-  // Listen for cloud download completion events
+  // Listen for cloud download completion events (only update data, toast is handled globally in App.vue)
   EventsOn('cloud-download-single', (data: any) => {
     if (data.status === 'complete' && data.tabId === props.tab.id && data.tab) {
       // In-place update: update the tab properties without full refresh
@@ -57,9 +57,6 @@ onMounted(async () => {
         filePath: data.tab.filePath,
         categoryIds: data.tab.categoryIds
       })
-      showToast(t('cloud.downloadSuccess'), 'success')
-    } else if (data.status === 'error' && data.tabId === props.tab.id) {
-      showToast(t('cloud.downloadFailed') + ': ' + data.error, 'error')
     }
   })
 })
@@ -179,7 +176,7 @@ async function downloadToLocal() {
     // Success/error handling is done via cloud-download-single event listener
   } catch (err) {
     console.error('Failed to download cloud tab:', err)
-    showToast(t('cloud.downloadFailed'), 'error')
+    // Error toast is handled by event listener, only log here
   }
 }
 

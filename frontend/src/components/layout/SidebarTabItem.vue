@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore, useViewersStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
@@ -13,6 +14,7 @@ const uiStore = useUIStore()
 const viewersStore = useViewersStore()
 const contextMenu = useContextMenu()
 const { showToast } = useToast()
+const { t } = useI18n()
 
 const tab = computed(() => tabsStore.getTabById(props.tabId))
 const isPinned = computed(() => viewersStore.isPinned(props.tabId))
@@ -43,14 +45,14 @@ function handleContextMenu(e: MouseEvent) {
 
   contextMenu.show(e.pageX, e.pageY, [
     {
-      label: isPinned.value ? 'Unpin' : 'Pin',
+      label: isPinned.value ? t('contextMenu.unpin') : t('contextMenu.pin'),
       action: () => {
         viewersStore.togglePin(props.tabId)
-        showToast(isPinned.value ? 'Tab unpinned' : 'Tab pinned')
+        showToast(isPinned.value ? t('toast.tabUnpinned') : t('toast.tabPinned'))
       }
     },
     {
-      label: 'Close',
+      label: t('contextMenu.close'),
       action: () => {
         viewersStore.closeTab(props.tabId)
         uiStore.switchView('home')

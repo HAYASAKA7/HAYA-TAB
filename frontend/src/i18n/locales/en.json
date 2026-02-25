@@ -109,7 +109,9 @@
     "downloadingToLocal": "Downloading to local storage...",
     "downloadFailed": "Download failed",
     "downloadSuccess": "Downloaded to local storage",
-    "offlineCannotOpen": "Cannot open: Cloud storage is offline"
+    "offlineCannotOpen": "Cannot open: Cloud storage is offline",
+    "uploadFailed": "Upload failed",
+    "listDirectoriesFailed": "Failed to list directories"
   },
   "keyBindings": {
     "title": "Key Bindings",
@@ -213,14 +215,21 @@
     "confirmUnlinkTab": "Are you sure you want to unlink \"{title}\"?",
     "confirmUnlinkTabInfo": "The file will remain on disk.",
     "confirmDeleteCategory": "Are you sure you want to delete the category \"{name}\"?",
-    "confirmDeleteCategoryInfo": "Tabs in this category will be moved to root."
+    "confirmDeleteCategoryInfo": "Tabs in this category will be moved to root.",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "close": "Close"
   },
   "toast": {
     "added": "Added {count} tab(s)",
     "addedWithSkip": "Added {added} tab(s), {skipped} skipped (duplicates)",
     "saved": "Saved.",
     "failedAudioDevices": "Failed to list audio devices",
-    "syncError": "Sync error"
+    "syncError": "Sync error",
+    "invalidBarNumber": "Invalid bar number (1-{max})",
+    "tabPinned": "Tab pinned",
+    "tabUnpinned": "Tab unpinned",
+    "clickSyncToUpdate": "Click Sync to update"
   },
   "countries": {
     "US": "US",
@@ -239,5 +248,23 @@
     "fr_fr": "French",
     "ko_kr": "Korean",
     "zh_cn": "Chinese"
+  },
+  "gpViewer": {
+    "loadError": "Failed to load",
+    "loadErrorHint": "You can download the file first and then open it",
+    "retry": "Retry",
+    "download": "Download",
+    "scoreNotRendered": "Score not fully rendered yet",
+    "cannotLocateBar": "Could not locate bar position",
+    "jumpedToMeasure": "Jumped to measure {bar}",
+    "failedToNavigate": "Failed to navigate to measure",
+    "selectionCleared": "Selection cleared",
+    "loopingEnabled": "Looping enabled",
+    "loopingDisabled": "Looping disabled",
+    "httpError": "Failed to load file (HTTP {status})",
+    "accessDenied": "Access denied: The file may be too large or you may not have permission to access it",
+    "accessDeniedWebdav": "Access denied: The WebDAV server rejected the request (possibly file too large)",
+    "fileNotFound": "File not found",
+    "serverError": "Server error: Failed to stream file from cloud storage"
   }
 }

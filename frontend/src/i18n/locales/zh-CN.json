@@ -109,7 +109,9 @@
     "downloadingToLocal": "正在下载到本地存储...",
     "downloadFailed": "下载失败",
     "downloadSuccess": "已下载到本地存储",
-    "offlineCannotOpen": "无法打开：云存储离线"
+    "offlineCannotOpen": "无法打开：云存储离线",
+    "uploadFailed": "上传失败",
+    "listDirectoriesFailed": "获取目录列表失败"
   },
   "keyBindings": {
     "title": "按键绑定",
@@ -213,14 +215,21 @@
     "confirmUnlinkTab": "确定要取消链接「{title}」吗？",
     "confirmUnlinkTabInfo": "文件将保留在磁盘上。",
     "confirmDeleteCategory": "确定要删除分类「{name}」吗？",
-    "confirmDeleteCategoryInfo": "该分类中的曲谱将被移动到根目录。"
+    "confirmDeleteCategoryInfo": "该分类中的曲谱将被移动到根目录。",
+    "pin": "固定",
+    "unpin": "取消固定",
+    "close": "关闭"
   },
   "toast": {
     "added": "已添加 {count} 个曲谱",
     "addedWithSkip": "已添加 {added} 个曲谱，{skipped} 个已跳过（重复）",
     "saved": "已保存。",
     "failedAudioDevices": "获取音频设备列表失败",
-    "syncError": "同步错误"
+    "syncError": "同步错误",
+    "invalidBarNumber": "无效的小节号（1-{max}）",
+    "tabPinned": "已固定标签页",
+    "tabUnpinned": "已取消固定标签页",
+    "clickSyncToUpdate": "点击同步以更新"
   },
   "countries": {
     "US": "美国",
@@ -239,5 +248,23 @@
     "fr_fr": "法语",
     "ko_kr": "韩语",
     "zh_cn": "中文"
+  },
+  "gpViewer": {
+    "loadError": "加载失败",
+    "loadErrorHint": "您可以先下载到本地再打开",
+    "retry": "重试",
+    "download": "下载",
+    "scoreNotRendered": "乐谱尚未完全渲染",
+    "cannotLocateBar": "无法定位小节位置",
+    "jumpedToMeasure": "已跳转到第 {bar} 小节",
+    "failedToNavigate": "跳转到小节失败",
+    "selectionCleared": "已清除选择",
+    "loopingEnabled": "已启用循环",
+    "loopingDisabled": "已禁用循环",
+    "httpError": "加载文件失败（HTTP {status}）",
+    "accessDenied": "访问被拒绝：文件可能过大或您没有访问权限",
+    "accessDeniedWebdav": "访问被拒绝：WebDAV 服务器拒绝了请求（可能是文件过大）",
+    "fileNotFound": "文件未找到",
+    "serverError": "服务器错误：无法从云存储流式传输文件"
   }
 }
