@@ -252,7 +252,7 @@ function formatSize(bytes: number) {
                     :checked="selectedFiles.has(file.path)" 
                     @change="toggleSelection(file.path)"
                   >
-                  <span v-else class="folder-icon">📁</span>
+                  <span v-else class="icon-folder"></span>
                 </td>
                 <td>{{ file.name }}</td>
                 <td>{{ file.isDir ? '-' : formatSize(file.size) }}</td>
@@ -401,8 +401,9 @@ function formatSize(bytes: number) {
   font-weight: 500;
 }
 
-.folder-icon {
-  font-size: 1.1em;
+.icon-folder {
+  color: var(--primary);
+  font-size: 1.2em;
 }
 
 .loading-state, .progress-state {
