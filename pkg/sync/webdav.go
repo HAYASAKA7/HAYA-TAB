@@ -30,6 +30,14 @@ func (c *WebDAVClient) TestConnection() error {
 
 // ScanRemoteFiles recursively scans the remote directory for supported files
 func (c *WebDAVClient) ScanRemoteFiles(dir string) ([]store.RemoteFile, error) {
+	return c.scanRecursive(dir, 0)
+}
+
+func (c *WebDAVClient) scanRecursive(dir string, depth int) ([]store.RemoteFile, error) {
+	if depth > 10 { // Depth limit to prevent infinite loops or excessively deep scans
+		return nil, nil
+	}
+
 	var files []store.RemoteFile
 
 	if dir == "" {
@@ -46,7 +54,7 @@ func (c *WebDAVClient) ScanRemoteFiles(dir string) ([]store.RemoteFile, error) {
 		
 		if info.IsDir() {
 			// Recursive scan
-			subFiles, err := c.ScanRemoteFiles(fullPath)
+			subFiles, err := c.scanRecursive(fullPath, depth+1)
 			if err == nil {
 				files = append(files, subFiles...)
 			}

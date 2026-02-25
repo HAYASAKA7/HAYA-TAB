@@ -182,7 +182,7 @@ function formatSize(bytes: number) {
       </div>
 
       <div class="modal-actions">
-        <button class="btn" @click="uiStore.hideCloudPickerModal" :disabled="loading">{{ t('confirm.cancel') }}</button>
+        <button class="btn" @click="uiStore.hideCloudPickerModal">{{ t('confirm.cancel') }}</button>
         <button class="btn primary" @click="handleDownload" :disabled="selectedFiles.size === 0 || loading">
           {{ t('cloud.downloadSelected') }} ({{ selectedFiles.size }})
         </button>

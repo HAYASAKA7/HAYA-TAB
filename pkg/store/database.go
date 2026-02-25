@@ -310,7 +310,12 @@ func (s *DBStore) loadSettings() error {
 		s.Settings.WebDAVUser = v
 	}
 	if v, ok := settings["webdavPassword"]; ok {
-		s.Settings.WebDAVPassword = v
+		// Try to decrypt, fallback to raw value if failed (migration)
+		if decrypted, err := Decrypt(v); err == nil {
+			s.Settings.WebDAVPassword = decrypted
+		} else {
+			s.Settings.WebDAVPassword = v
+		}
 	}
 
 	// Load key bindings
@@ -1192,6 +1197,11 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 
 	s.Settings = settings
 
+	encryptedPass, err := Encrypt(settings.WebDAVPassword)
+	if err != nil {
+		return err
+	}
+
 	// Save each setting
 	settingsMap := map[string]string{
 		"theme":                       settings.Theme,
@@ -1209,7 +1219,7 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 		"webdavEnabled":               fmt.Sprintf("%v", settings.WebDAVEnabled),
 		"webdavUrl":                   settings.WebDAVURL,
 		"webdavUser":                  settings.WebDAVUser,
-		"webdavPassword":              settings.WebDAVPassword,
+		"webdavPassword":              encryptedPass,
 		"keyBindings.scrollDown":      settings.KeyBindings.ScrollDown,
 		"keyBindings.scrollUp":        settings.KeyBindings.ScrollUp,
 		"keyBindings.metronome":       settings.KeyBindings.Metronome,

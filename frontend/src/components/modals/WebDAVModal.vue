@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
@@ -15,9 +15,19 @@ const password = ref('')
 const testing = ref(false)
 
 onMounted(() => {
-  url.value = settingsStore.settings.webdavUrl
-  user.value = settingsStore.settings.webdavUser
-  password.value = settingsStore.settings.webdavPassword
+  if (uiStore.webdavModalVisible) {
+    url.value = settingsStore.settings.webdavUrl
+    user.value = settingsStore.settings.webdavUser
+    password.value = settingsStore.settings.webdavPassword
+  }
+})
+
+watch(() => uiStore.webdavModalVisible, (visible) => {
+  if (visible) {
+    url.value = settingsStore.settings.webdavUrl
+    user.value = settingsStore.settings.webdavUser
+    password.value = settingsStore.settings.webdavPassword
+  }
 })
 
 async function testConnection() {

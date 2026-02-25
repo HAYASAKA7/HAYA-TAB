@@ -867,24 +867,29 @@ func (a *App) SelectImage() string {
 
 // WebDAVTestConnection tests the WebDAV connection
 func (a *App) WebDAVTestConnection(url, user, password string) error {
+	url = strings.TrimRight(url, "/")
 	client := syncpkg.NewWebDAVClient(url, user, password)
 	return client.TestConnection()
 }
 
 // WebDAVScanRemoteFiles scans a remote directory
 func (a *App) WebDAVScanRemoteFiles(url, user, password, dir string) ([]store.RemoteFile, error) {
+	// Sanitize URL: remove trailing slash
+	url = strings.TrimRight(url, "/")
 	client := syncpkg.NewWebDAVClient(url, user, password)
 	return client.ScanRemoteFiles(dir)
 }
 
 // WebDAVListRemoteDirectories lists directories in a remote path
 func (a *App) WebDAVListRemoteDirectories(url, user, password, dir string) ([]string, error) {
+	url = strings.TrimRight(url, "/")
 	client := syncpkg.NewWebDAVClient(url, user, password)
 	return client.ListRemoteDirectories(dir)
 }
 
 // WebDAVDownloadFiles downloads selected files and processes them
 func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []string) error {
+	url = strings.TrimRight(url, "/")
 	client := syncpkg.NewWebDAVClient(url, user, password)
 	appDir := getAppDir()
 	storageDir := filepath.Join(appDir, "storage")
@@ -965,6 +970,7 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 
 // WebDAVUploadFiles uploads local files to a remote directory
 func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string, remoteDir string) error {
+	url = strings.TrimRight(url, "/")
 	client := syncpkg.NewWebDAVClient(url, user, password)
 
 	wailsRuntime.EventsEmit(a.ctx, "cloud-upload-progress", map[string]interface{}{
