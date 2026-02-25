@@ -23,10 +23,11 @@ const { startDrag, endDrag } = useDragDrop()
 
 const fileServerPort = ref(0)
 const coverError = ref(false)
+const coverTimestamp = ref(Date.now()) // Used for cache busting when cover changes
 const coverUrl = computed(() => {
   if (!props.tab.coverPath || coverError.value || !fileServerPort.value) return ''
   // Use the file server endpoint for cover images
-  return `http://127.0.0.1:${fileServerPort.value}/api/cover/${props.tab.id}?t=${props.tab.addedAt}`
+  return `http://127.0.0.1:${fileServerPort.value}/api/cover/${props.tab.id}?t=${coverTimestamp.value}`
 })
 const isSelected = computed(() => tabsStore.isTabSelected(props.tab.id))
 
@@ -35,9 +36,10 @@ const isCloudOffline = computed(() =>
   props.tab.isCloud && !settingsStore.webdavConnected
 )
 
-// Reset error state when cover path changes
+// Reset error state and update timestamp when cover path changes
 watch(() => props.tab.coverPath, () => {
   coverError.value = false
+  coverTimestamp.value = Date.now()
 })
 
 onMounted(async () => {

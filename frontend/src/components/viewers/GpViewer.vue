@@ -32,6 +32,7 @@ const {
   isLoaded,
   isSoundFontLoaded,
   loadError,
+  isServerError,
   isPlaying,
   currentBpm,
   playbackSpeed,
@@ -519,10 +520,10 @@ watch(() => props.visible, async (newVal) => {
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
               </svg>
               <span class="error-message">{{ loadError }}</span>
-              <span v-if="tab?.isCloud" class="error-hint">{{ t('gpViewer.loadErrorHint') }}</span>
+              <span v-if="tab?.isCloud && !isServerError" class="error-hint">{{ t('gpViewer.loadErrorHint') }}</span>
               <div class="error-buttons">
                 <button class="retry-button" @click="loadGpTab">{{ t('gpViewer.retry') }}</button>
-                <button v-if="tab?.isCloud" class="download-button" @click="downloadToLocal">
+                <button v-if="tab?.isCloud && !isServerError" class="download-button" @click="downloadToLocal">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
                     <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
                   </svg>

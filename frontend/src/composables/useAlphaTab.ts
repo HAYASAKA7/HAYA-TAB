@@ -8,6 +8,7 @@ export function useAlphaTab(t?: TranslateFunction) {
   const isLoaded = ref(false)
   const isSoundFontLoaded = ref(false)
   const loadError = ref<string | null>(null)
+  const isServerError = ref(false) // True if error is server-side (500, etc.), download won't help
 
   // Playback State
   const isPlaying = ref(false)
@@ -127,6 +128,7 @@ export function useAlphaTab(t?: TranslateFunction) {
     try {
         isLoaded.value = false
         loadError.value = null
+        isServerError.value = false
 
         // Pre-check: fetch the URL to detect HTTP errors before AlphaTab tries to load
         const response = await fetch(url)
@@ -134,9 +136,12 @@ export function useAlphaTab(t?: TranslateFunction) {
           let errorMsg = t ? t('gpViewer.httpError', { status: response.status }) : `Failed to load file (HTTP ${response.status})`
           if (response.status === 403) {
             errorMsg = t ? t('gpViewer.accessDenied') : 'Access denied: The file may be too large or you may not have permission to access it'
+            isServerError.value = true
           } else if (response.status === 404) {
             errorMsg = t ? t('gpViewer.fileNotFound') : 'File not found'
-          } else if (response.status === 500) {
+          } else if (response.status >= 500) {
+            // Server errors - download won't help
+            isServerError.value = true
             // Try to get more details from response
             const text = await response.text().catch(() => '')
             if (text.includes('403') || text.toLowerCase().includes('forbidden')) {
@@ -399,6 +404,7 @@ export function useAlphaTab(t?: TranslateFunction) {
     isLoaded,
     isSoundFontLoaded,
     loadError,
+    isServerError,
     isPlaying,
     baseTempo,
     currentBpm,

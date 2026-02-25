@@ -710,6 +710,9 @@ func (a *App) UpdateTab(tab store.Tab) error {
 		return err
 	}
 
+	// Notify frontend about the update
+	wailsRuntime.EventsEmit(a.ctx, "tab-updated", tab)
+
 	// Trigger Cover Update (Async)
 	a.fetchCoverAsync(tab)
 

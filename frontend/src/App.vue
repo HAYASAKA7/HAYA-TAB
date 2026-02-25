@@ -39,8 +39,14 @@ onMounted(async () => {
   }
 
   // Event listeners
-  window.runtime.EventsOn('tab-updated', () => {
-    tabsStore.refreshData()
+  window.runtime.EventsOn('tab-updated', (updatedTab: any) => {
+    // Use in-place update to preserve scroll position and avoid full refresh
+    if (updatedTab && updatedTab.id) {
+      tabsStore.updateTabInPlace(updatedTab.id, updatedTab)
+    } else {
+      // Fallback to full refresh if no tab data provided
+      tabsStore.refreshData()
+    }
   })
 
   window.runtime.EventsOn('cover-error', (msg: string) => {
