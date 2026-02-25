@@ -108,6 +108,7 @@
     "downloadToLocal": "Download to Local",
     "downloadingToLocal": "Downloading to local storage...",
     "downloadFailed": "Download failed",
+    "downloadSuccess": "Downloaded to local storage",
     "offlineCannotOpen": "Cannot open: Cloud storage is offline"
   },
   "keyBindings": {

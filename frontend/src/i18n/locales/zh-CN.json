@@ -108,6 +108,7 @@
     "downloadToLocal": "下载到本地",
     "downloadingToLocal": "正在下载到本地存储...",
     "downloadFailed": "下载失败",
+    "downloadSuccess": "已下载到本地存储",
     "offlineCannotOpen": "无法打开：云存储离线"
   },
   "keyBindings": {

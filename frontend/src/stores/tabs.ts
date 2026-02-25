@@ -198,6 +198,19 @@ export const useTabsStore = defineStore('tabs', () => {
     await refreshData()
   }
 
+  // In-place update of a single tab without full refresh (preserves scroll position)
+  function updateTabInPlace(tabId: string, updates: Partial<Tab>) {
+    const targetTab = tabs.value.find(t => t.id === tabId)
+    if (targetTab) {
+      Object.assign(targetTab, updates)
+    }
+    // Also update in recentTabs if present
+    const recentTab = recentTabs.value.find(t => t.id === tabId)
+    if (recentTab) {
+      Object.assign(recentTab, updates)
+    }
+  }
+
   async function deleteTab(id: string) {
     await window.go.main.App.DeleteTab(id)
     await refreshData()
@@ -383,6 +396,7 @@ export const useTabsStore = defineStore('tabs', () => {
     selectAllTabs,
     isTabSelected,
     getTabById,
-    getCategoryPath
+    getCategoryPath,
+    updateTabInPlace
   }
 })

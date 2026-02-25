@@ -108,6 +108,7 @@
     "downloadToLocal": "ローカルにダウンロード",
     "downloadingToLocal": "ローカルストレージにダウンロード中...",
     "downloadFailed": "ダウンロードに失敗しました",
+    "downloadSuccess": "ローカルストレージにダウンロードしました",
     "offlineCannotOpen": "開けません：クラウドストレージがオフラインです"
   },
   "keyBindings": {

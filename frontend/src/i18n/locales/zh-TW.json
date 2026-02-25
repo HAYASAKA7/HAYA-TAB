@@ -108,6 +108,7 @@
     "downloadToLocal": "下載到本機",
     "downloadingToLocal": "正在下載到本機儲存空間...",
     "downloadFailed": "下載失敗",
+    "downloadSuccess": "已下載到本機儲存空間",
     "offlineCannotOpen": "無法開啟：雲端儲存離線"
   },
   "keyBindings": {

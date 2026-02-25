@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Tab, ContextMenuItem } from '@/types'
 import { useTabsStore, useUIStore, useViewersStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
 import { useDragDrop } from '@/composables/useDragDrop'
+import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 
 const props = defineProps<{
   tab: Tab
@@ -45,6 +46,26 @@ onMounted(async () => {
   } catch (e) {
     console.error('Failed to get file server port:', e)
   }
+
+  // Listen for cloud download completion events
+  EventsOn('cloud-download-single', (data: any) => {
+    if (data.status === 'complete' && data.tabId === props.tab.id && data.tab) {
+      // In-place update: update the tab properties without full refresh
+      tabsStore.updateTabInPlace(data.tabId, {
+        isCloud: data.tab.isCloud,
+        isManaged: data.tab.isManaged,
+        filePath: data.tab.filePath,
+        categoryIds: data.tab.categoryIds
+      })
+      showToast(t('cloud.downloadSuccess'), 'success')
+    } else if (data.status === 'error' && data.tabId === props.tab.id) {
+      showToast(t('cloud.downloadFailed') + ': ' + data.error, 'error')
+    }
+  })
+})
+
+onUnmounted(() => {
+  EventsOff('cloud-download-single')
 })
 
 function handleClick(e: MouseEvent) {
@@ -155,6 +176,7 @@ async function downloadToLocal() {
   try {
     showToast(t('cloud.downloadingToLocal'), 'info')
     await window.go.main.App.DownloadCloudTabToLocal(props.tab.id)
+    // Success/error handling is done via cloud-download-single event listener
   } catch (err) {
     console.error('Failed to download cloud tab:', err)
     showToast(t('cloud.downloadFailed'), 'error')
