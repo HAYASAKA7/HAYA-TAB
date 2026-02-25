@@ -10,16 +10,18 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 
 - **Tab Management** - Organize your PDF and Guitar Pro (.gp, .gp5, .gpx) tabs in one place
 - **Upload or Link** - Upload tabs to internal storage or link existing files from your filesystem
-- **Advanced Search** - Filter by range (Category/Global) and type (Song/Artist/Album/Tag) with a smart collapsible interface
-- **Real-time Sync** - Automatically watches synced folders for file changes (add/delete/rename)
-- **Smart Metadata** - Auto-parse artist, album, and song info from filenames
-- **Tag Support** - Add version/part tags to tabs (e.g., "Lead Guitar", "Bass", "First Version")
-- **Album Artwork** - Automatic cover art fetching from iTunes (now also for synced tabs)
+- **Advanced Search** - **Instant Full-Text Search (FTS5)** across titles, artists, and albums with fuzzy matching
+- **Real-time Sync** - Automatically watches synced folders for changes; **Non-destructive** import (renames duplicates)
+- **Smart Metadata** - Auto-parse info from filenames; **Bi-directional sync** with Guitar Pro internal metadata
+- **Tag Support** - Add version/part tags (e.g., "Lead Guitar", "Bass", "First Version")
+- **Album Artwork** - Automatic cover art fetching from iTunes; **High-performance** concurrent downloads
 - **Categories** - Organize tabs into virtual folders with drag-and-drop support
 - **Batch Operations** - Select and move/delete multiple tabs at once
-- **Internal Viewer** - Built-in viewer for both PDF and Guitar Pro files
-- **Dark/Light Theme** - System-aware theme with manual override
-- **Duplicate Detection** - Prevents adding the same tab twice
+- **Rich Internal Viewer**:
+  - **PDF:** Built-in viewer with **Auto-Scroll** (variable speed)
+  - **Guitar Pro:** alphaTab engine with **Looping**, **Section Playback**, **Speed Control**, and **Floating Toolbar**
+- **Internationalization** - Full support for **English, Chinese (Simplified/Traditional), and Japanese**
+- **Modern UI** - Dark/Light theme, **Auto-saving settings**, and responsive Grid/List views
 
 ## 📦 Installation
 
@@ -57,6 +59,7 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 2. **Organize**: Create categories and drag tabs into them
 3. **Sync Folders**: Go to Settings → Add sync paths to auto-import tabs from folders
 4. **View Tabs**: Click a tab to open with system default, or right-click → "Open with Inner Viewer"
+5. **Key Bindings**: Customize viewer controls (Loop, Auto-scroll, etc.) in Settings
 
 ## 📁 Project Structure
 
@@ -65,6 +68,9 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 ├── main.go             # Application entry point
 ├── frontend/           # UI (Vue 3 + Vite)
 │   ├── src/            # Frontend source code
+│   │   ├── components/ # UI Components
+│   │   ├── stores/     # State Management (Pinia)
+│   │   └── locales/    # i18n Translation files
 │   ├── index.html      # Entry point
 │   └── vite.config.ts  # Build config
 ├── pkg/                # Internal packages
@@ -85,7 +91,9 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 
 - **Backend**: Go + Wails v2
 - **Frontend**: Vue 3 + TypeScript + Vite
-- **Database**: SQLite (via modernc.org/sqlite)
+- **State Management**: Pinia
+- **Internationalization**: vue-i18n
+- **Database**: SQLite (via modernc.org/sqlite) + FTS5
 - **Viewer Engine**: PDF.js & alphaTab
 
 ## ⚖️ License & Legal Notice
