@@ -41,6 +41,12 @@ interface Window {
         TriggerSync(): Promise<string>
         GetCover(path: string): Promise<string>
         GetFileServerPort(): Promise<number>
+        // WebDAV
+        WebDAVTestConnection(url: string, user: string, pass: string): Promise<void>
+        WebDAVScanRemoteFiles(url: string, user: string, pass: string, dir: string): Promise<any[]>
+        WebDAVListRemoteDirectories(url: string, user: string, pass: string, dir: string): Promise<string[]>
+        WebDAVDownloadFiles(url: string, user: string, pass: string, remotePaths: string[]): Promise<void>
+        WebDAVUploadFiles(url: string, user: string, pass: string, localPaths: string[], remoteDir: string): Promise<void>
       }
     }
   }

@@ -109,3 +109,23 @@ export function TriggerSync() {
 export function UpdateTab(arg1) {
   return window['go']['main']['App']['UpdateTab'](arg1);
 }
+
+export function WebDAVDownloadFiles(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['WebDAVDownloadFiles'](arg1, arg2, arg3, arg4);
+}
+
+export function WebDAVListRemoteDirectories(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['WebDAVListRemoteDirectories'](arg1, arg2, arg3, arg4);
+}
+
+export function WebDAVScanRemoteFiles(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['WebDAVScanRemoteFiles'](arg1, arg2, arg3, arg4);
+}
+
+export function WebDAVTestConnection(arg1, arg2, arg3) {
+  return window['go']['main']['App']['WebDAVTestConnection'](arg1, arg2, arg3);
+}
+
+export function WebDAVUploadFiles(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['WebDAVUploadFiles'](arg1, arg2, arg3, arg4, arg5);
+}

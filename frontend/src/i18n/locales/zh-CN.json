@@ -75,7 +75,32 @@
     "filesProcessed": "个文件已处理",
     "saveChanges": "保存更改",
     "settingsSaved": "设置已保存",
-    "errorSaving": "保存设置时出错"
+    "errorSaving": "保存设置时出错",
+    "enableWebdav": "启用 WebDAV",
+    "username": "用户名",
+    "password": "密码",
+    "testConnection": "测试连接",
+    "connectionSuccess": "连接成功！",
+    "connectionFailed": "连接失败",
+    "configureWebdav": "配置 WebDAV",
+    "webdavAddress": "WebDAV 地址"
+  },
+  "cloud": {
+    "title": "云端曲库",
+    "uploadTitle": "上传到云端",
+    "selectDestination": "选择目标文件夹",
+    "download": "下载",
+    "downloadSelected": "下载选中项",
+    "upload": "上传",
+    "scanning": "扫描中...",
+    "scanError": "扫描文件出错",
+    "downloading": "下载中...",
+    "uploading": "上传中...",
+    "downloadComplete": "下载完成",
+    "uploadComplete": "上传完成",
+    "name": "名称",
+    "size": "大小",
+    "path": "路径"
   },
   "keyBindings": {
     "title": "按键绑定",

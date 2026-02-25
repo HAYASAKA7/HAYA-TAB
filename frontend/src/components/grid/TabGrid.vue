@@ -19,6 +19,7 @@ function handleBlankContextMenu(e: MouseEvent) {
   e.preventDefault()
   contextMenu.show(e.pageX, e.pageY, [
     { label: 'New Category', action: () => uiStore.showCategoryModal() },
+    { label: 'Cloud Library', action: () => uiStore.showCloudPickerModal() },
     { label: 'Upload TAB', action: () => addTab(true) },
     { label: 'Link Local TAB', action: () => addTab(false) }
   ])

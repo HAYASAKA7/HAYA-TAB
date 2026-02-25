@@ -31,6 +31,7 @@ watch(
     syncStrategy: settingsStore.settings.syncStrategy,
     autoSyncEnabled: settingsStore.settings.autoSyncEnabled,
     autoSyncFrequency: settingsStore.settings.autoSyncFrequency,
+    webdavEnabled: settingsStore.settings.webdavEnabled, // Only watch enabled state
   }),
   async () => {
     try {
@@ -138,6 +139,15 @@ async function handleSync() {
         syncCount.value = 0
       }
     }, 3000)
+  }
+}
+
+function handleWebDAVToggle() {
+  if (settingsStore.settings.webdavEnabled) {
+    // If enabled, check if URL is set. If not, open modal.
+    if (!settingsStore.settings.webdavUrl) {
+      uiStore.showWebdavModal()
+    }
   }
 }
 </script>
@@ -270,6 +280,26 @@ async function handleSync() {
     </section>
 
     <section class="settings-section">
+      <h3><span class="icon-cloud"></span> WebDAV</h3>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" v-model="settingsStore.settings.webdavEnabled" @change="handleWebDAVToggle">
+          {{ t('settings.enableWebdav') }}
+        </label>
+      </div>
+      <div v-if="settingsStore.settings.webdavEnabled" class="webdav-info">
+        <div class="form-group">
+          <label>{{ t('settings.webdavAddress') }}</label>
+          <div class="input-with-button">
+            <input type="text" :value="settingsStore.settings.webdavUrl" disabled readonly>
+            <button class="btn" @click="uiStore.showWebdavModal" :title="t('settings.configureWebdav')"><span class="icon-edit"></span></button>
+            <button class="btn" @click="uiStore.showCloudPickerModal" :title="t('cloud.title')"><span class="icon-cloud"></span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-section">
       <h3><span class="icon-sync"></span> {{ t('settings.autoSync') }}</h3>
       <div class="form-group">
         <label>
@@ -323,3 +353,18 @@ async function handleSync() {
     </section>
   </div>
 </template>
+
+<style scoped>
+.input-with-button {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input-with-button input {
+  flex: 1;
+}
+
+.input-with-button .btn {
+  padding: 0 0.75rem;
+}
+</style>

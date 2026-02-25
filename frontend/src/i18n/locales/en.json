@@ -75,7 +75,32 @@
     "filesProcessed": "files processed",
     "saveChanges": "Save Changes",
     "settingsSaved": "Settings saved",
-    "errorSaving": "Error saving settings"
+    "errorSaving": "Error saving settings",
+    "enableWebdav": "Enable WebDAV",
+    "username": "Username",
+    "password": "Password",
+    "testConnection": "Test Connection",
+    "connectionSuccess": "Connection successful!",
+    "connectionFailed": "Connection failed",
+    "configureWebdav": "Configure WebDAV",
+    "webdavAddress": "WebDAV Address"
+  },
+  "cloud": {
+    "title": "Cloud Library",
+    "uploadTitle": "Upload to Cloud",
+    "selectDestination": "Select Destination Folder",
+    "download": "Download",
+    "downloadSelected": "Download Selected",
+    "upload": "Upload",
+    "scanning": "Scanning...",
+    "scanError": "Error scanning files",
+    "downloading": "Downloading...",
+    "uploading": "Uploading...",
+    "downloadComplete": "Download complete",
+    "uploadComplete": "Upload complete",
+    "name": "Name",
+    "size": "Size",
+    "path": "Path"
   },
   "keyBindings": {
     "title": "Key Bindings",

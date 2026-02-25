@@ -299,6 +299,20 @@ func (s *DBStore) loadSettings() error {
 		s.Settings.SyncPaths = strings.Split(v, "|")
 	}
 
+	// WebDAV Settings
+	if v, ok := settings["webdavEnabled"]; ok {
+		s.Settings.WebDAVEnabled = (v == "true")
+	}
+	if v, ok := settings["webdavUrl"]; ok {
+		s.Settings.WebDAVURL = v
+	}
+	if v, ok := settings["webdavUser"]; ok {
+		s.Settings.WebDAVUser = v
+	}
+	if v, ok := settings["webdavPassword"]; ok {
+		s.Settings.WebDAVPassword = v
+	}
+
 	// Load key bindings
 	if v, ok := settings["keyBindings.scrollDown"]; ok && v != "" {
 		s.Settings.KeyBindings.ScrollDown = v
@@ -1192,6 +1206,10 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 		"lastSyncTime":                fmt.Sprintf("%d", settings.LastSyncTime),
 		"syncStrategy":                settings.SyncStrategy,
 		"syncPaths":                   strings.Join(settings.SyncPaths, "|"),
+		"webdavEnabled":               fmt.Sprintf("%v", settings.WebDAVEnabled),
+		"webdavUrl":                   settings.WebDAVURL,
+		"webdavUser":                  settings.WebDAVUser,
+		"webdavPassword":              settings.WebDAVPassword,
 		"keyBindings.scrollDown":      settings.KeyBindings.ScrollDown,
 		"keyBindings.scrollUp":        settings.KeyBindings.ScrollUp,
 		"keyBindings.metronome":       settings.KeyBindings.Metronome,

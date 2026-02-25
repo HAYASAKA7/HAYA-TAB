@@ -54,6 +54,9 @@ function handleMove() {
       <button class="btn" @click="handleMove">
         <span class="icon-folder"></span> {{ t('batch.moveTo') }}
       </button>
+      <button class="btn" @click="uiStore.showCloudUploadModal(Array.from(tabsStore.selectedTabIds).map(id => tabsStore.tabs.find(t => t.id === id)?.filePath).filter(p => !!p) as string[])">
+        <span class="icon-cloud"></span> {{ t('cloud.upload') }}
+      </button>
       <button class="btn danger" @click="handleDelete">
         <span class="icon-trash"></span> {{ t('batch.remove') }}
       </button>

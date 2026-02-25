@@ -16,6 +16,9 @@ import MoveTabModal from '@/components/modals/MoveTabModal.vue'
 import BatchMoveModal from '@/components/modals/BatchMoveModal.vue'
 import ConfirmModal from '@/components/modals/ConfirmModal.vue'
 import KeyBindingModal from '@/components/modals/KeyBindingModal.vue'
+import CloudPickerModal from '@/components/modals/CloudPickerModal.vue'
+import CloudUploadModal from '@/components/modals/CloudUploadModal.vue'
+import WebDAVModal from '@/components/modals/WebDAVModal.vue'
 import BatchActionBar from '@/components/BatchActionBar.vue'
 
 const tabsStore = useTabsStore()
@@ -136,6 +139,9 @@ function isViewActive(viewType: string): boolean {
     <BatchMoveModal />
     <ConfirmModal />
     <KeyBindingModal />
+    <CloudPickerModal />
+    <CloudUploadModal />
+    <WebDAVModal />
 
     <!-- Toast & Context Menu -->
     <Toast />

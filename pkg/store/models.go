@@ -60,4 +60,18 @@ type Settings struct {
 	AutoSyncFrequency string      `json:"autoSyncFrequency"` // "startup", "weekly", "monthly", "yearly"
 	LastSyncTime      int64       `json:"lastSyncTime"`      // Unix timestamp
 	KeyBindings       KeyBindings `json:"keyBindings"`
+
+	// WebDAV Settings
+	WebDAVEnabled  bool   `json:"webdavEnabled"`
+	WebDAVURL      string `json:"webdavUrl"`
+	WebDAVUser     string `json:"webdavUser"`
+	WebDAVPassword string `json:"webdavPassword"`
 }
+
+type RemoteFile struct {
+	Name string `json:"name"`
+	Path string `json:"path"` // Full remote path
+	Size int64  `json:"size"`
+	IsDir bool  `json:"isDir"`
+}
+

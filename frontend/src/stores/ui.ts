@@ -14,6 +14,10 @@ export const useUIStore = defineStore('ui', () => {
   const batchMoveModalVisible = ref(false)
   const confirmModalVisible = ref(false)
   const keyBindingsModalVisible = ref(false)
+  const cloudPickerModalVisible = ref(false)
+  const cloudUploadModalVisible = ref(false)
+  const webdavModalVisible = ref(false)
+  const cloudUploadFiles = ref<string[]>([])
 
   // Modal data
   const editModalData = ref<any>(null)
@@ -104,6 +108,32 @@ export const useUIStore = defineStore('ui', () => {
     keyBindingsModalVisible.value = false
   }
 
+  function showCloudPickerModal() {
+    cloudPickerModalVisible.value = true
+  }
+
+  function hideCloudPickerModal() {
+    cloudPickerModalVisible.value = false
+  }
+
+  function showCloudUploadModal(files: string[]) {
+    cloudUploadFiles.value = files
+    cloudUploadModalVisible.value = true
+  }
+
+  function hideCloudUploadModal() {
+    cloudUploadModalVisible.value = false
+    cloudUploadFiles.value = []
+  }
+
+  function showWebdavModal() {
+    webdavModalVisible.value = true
+  }
+
+  function hideWebdavModal() {
+    webdavModalVisible.value = false
+  }
+
   function showContextMenu(x: number, y: number, items: any[]) {
     contextMenuX.value = x
     contextMenuY.value = y
@@ -126,6 +156,10 @@ export const useUIStore = defineStore('ui', () => {
     batchMoveModalVisible,
     confirmModalVisible,
     keyBindingsModalVisible,
+    cloudPickerModalVisible,
+    cloudUploadModalVisible,
+    webdavModalVisible,
+    cloudUploadFiles,
     editModalData,
     categoryModalData,
     moveModalTabId,
@@ -150,6 +184,12 @@ export const useUIStore = defineStore('ui', () => {
     hideConfirmModal,
     showKeyBindingsModal,
     hideKeyBindingsModal,
+    showCloudPickerModal,
+    hideCloudPickerModal,
+    showCloudUploadModal,
+    hideCloudUploadModal,
+    showWebdavModal,
+    hideWebdavModal,
     showContextMenu,
     hideContextMenu
   }

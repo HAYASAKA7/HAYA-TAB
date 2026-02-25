@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useTabsStore, useUIStore } from '@/stores'
+import { useTabsStore, useUIStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
 import type { ContextMenuItem } from '@/types'
@@ -13,6 +13,7 @@ import SearchBar from '@/components/common/SearchBar.vue'
 const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
+const settingsStore = useSettingsStore()
 const contextMenu = useContextMenu()
 const { showToast } = useToast()
 const viewMode = ref<'singles' | 'categories'>('singles')
@@ -192,6 +193,14 @@ async function addTab(isUpload: boolean) {
           :title="t('library.newCategory')"
         >
           {{ t('library.newCat') }}
+        </button>
+        <button
+          v-if="viewMode === 'singles' && settingsStore.settings.webdavEnabled"
+          class="btn icon-btn"
+          @click="uiStore.showCloudPickerModal()"
+          :title="t('cloud.title')"
+        >
+          <span class="icon-cloud"></span>
         </button>
         <button
           v-if="viewMode === 'singles'"

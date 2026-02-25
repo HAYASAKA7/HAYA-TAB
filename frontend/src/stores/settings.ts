@@ -33,7 +33,11 @@ export const useSettingsStore = defineStore('settings', () => {
       autoScroll: 'n',
       scrollSpeedUp: '.',
       scrollSpeedDown: ','
-    }
+    },
+    webdavEnabled: false,
+    webdavUrl: '',
+    webdavUser: '',
+    webdavPassword: ''
   })
 
   const loading = ref(false)

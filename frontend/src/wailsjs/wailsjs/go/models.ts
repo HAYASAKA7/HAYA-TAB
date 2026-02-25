@@ -101,6 +101,24 @@ export namespace store {
 	        this.scrollSpeedDown = source["scrollSpeedDown"];
 	    }
 	}
+	export class RemoteFile {
+	    name: string;
+	    path: string;
+	    size: number;
+	    isDir: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new RemoteFile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.path = source["path"];
+	        this.size = source["size"];
+	        this.isDir = source["isDir"];
+	    }
+	}
 	export class Settings {
 	    theme: string;
 	    language: string;
@@ -115,6 +133,10 @@ export namespace store {
 	    autoSyncFrequency: string;
 	    lastSyncTime: number;
 	    keyBindings: KeyBindings;
+	    webdavEnabled: boolean;
+	    webdavUrl: string;
+	    webdavUser: string;
+	    webdavPassword: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -135,6 +157,10 @@ export namespace store {
 	        this.autoSyncFrequency = source["autoSyncFrequency"];
 	        this.lastSyncTime = source["lastSyncTime"];
 	        this.keyBindings = this.convertValues(source["keyBindings"], KeyBindings);
+	        this.webdavEnabled = source["webdavEnabled"];
+	        this.webdavUrl = source["webdavUrl"];
+	        this.webdavUser = source["webdavUser"];
+	        this.webdavPassword = source["webdavPassword"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

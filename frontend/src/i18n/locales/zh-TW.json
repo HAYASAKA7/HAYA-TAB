@@ -75,7 +75,32 @@
     "filesProcessed": "個檔案已處理",
     "saveChanges": "儲存變更",
     "settingsSaved": "設定已儲存",
-    "errorSaving": "儲存設定時發生錯誤"
+    "errorSaving": "儲存設定時發生錯誤",
+    "enableWebdav": "啟用 WebDAV",
+    "username": "使用者名稱",
+    "password": "密碼",
+    "testConnection": "測試連線",
+    "connectionSuccess": "連線成功！",
+    "connectionFailed": "連線失敗",
+    "configureWebdav": "設定 WebDAV",
+    "webdavAddress": "WebDAV 位址"
+  },
+  "cloud": {
+    "title": "雲端曲庫",
+    "uploadTitle": "上傳到雲端",
+    "selectDestination": "選擇目標資料夾",
+    "download": "下載",
+    "downloadSelected": "下載選取項目",
+    "upload": "上傳",
+    "scanning": "掃描中...",
+    "scanError": "掃描檔案錯誤",
+    "downloading": "下載中...",
+    "uploading": "上傳中...",
+    "downloadComplete": "下載完成",
+    "uploadComplete": "上傳完成",
+    "name": "名稱",
+    "size": "大小",
+    "path": "路徑"
   },
   "keyBindings": {
     "title": "按鍵綁定",

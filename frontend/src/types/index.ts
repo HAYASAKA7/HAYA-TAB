@@ -57,6 +57,11 @@ export interface Settings {
   autoSyncFrequency: 'startup' | 'weekly' | 'monthly' | 'yearly'
   lastSyncTime: number
   keyBindings: KeyBindings
+  // WebDAV
+  webdavEnabled: boolean
+  webdavUrl: string
+  webdavUser: string
+  webdavPassword: string
 }
 
 // TabsResponse represents a paginated response for tabs

@@ -105,6 +105,7 @@ function handleContextMenu(e: MouseEvent) {
 
   items.push(
     { label: t('contextMenu.exportTab'), action: () => exportTab() },
+    { label: t('cloud.uploadTitle'), action: () => uiStore.showCloudUploadModal([props.tab.filePath]) },
     { type: 'separator' },
     { label: props.tab.isManaged ? t('contextMenu.deleteTab') : t('contextMenu.unlinkTab'), action: () => confirmDelete() }
   )

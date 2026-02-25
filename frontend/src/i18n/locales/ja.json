@@ -75,7 +75,32 @@
     "filesProcessed": "ファイル処理済み",
     "saveChanges": "変更を保存",
     "settingsSaved": "設定を保存しました",
-    "errorSaving": "設定の保存中にエラーが発生しました"
+    "errorSaving": "設定の保存中にエラーが発生しました",
+    "enableWebdav": "WebDAVを有効にする",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "testConnection": "接続テスト",
+    "connectionSuccess": "接続に成功しました！",
+    "connectionFailed": "接続に失敗しました",
+    "configureWebdav": "WebDAVを設定",
+    "webdavAddress": "WebDAVアドレス"
+  },
+  "cloud": {
+    "title": "クラウドライブラリ",
+    "uploadTitle": "クラウドへアップロード",
+    "selectDestination": "保存先フォルダを選択",
+    "download": "ダウンロード",
+    "downloadSelected": "選択項目をダウンロード",
+    "upload": "アップロード",
+    "scanning": "スキャン中...",
+    "scanError": "ファイルのスキャンエラー",
+    "downloading": "ダウンロード中...",
+    "uploading": "アップロード中...",
+    "downloadComplete": "ダウンロード完了",
+    "uploadComplete": "アップロード完了",
+    "name": "名前",
+    "size": "サイズ",
+    "path": "パス"
   },
   "keyBindings": {
     "title": "キーバインド",

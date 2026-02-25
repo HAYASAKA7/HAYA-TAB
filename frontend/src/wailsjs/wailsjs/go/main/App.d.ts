@@ -66,3 +66,13 @@ export function UpdateTab(arg1:store.Tab):Promise<void>;
 export function UpdateTabCategories(arg1:string,arg2:Array<string>):Promise<void>;
 
 export function UpdateTabMetadata(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function WebDAVDownloadFiles(arg1:string,arg2:string,arg3:string,arg4:Array<string>):Promise<void>;
+
+export function WebDAVListRemoteDirectories(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<string>>;
+
+export function WebDAVScanRemoteFiles(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<store.RemoteFile>>;
+
+export function WebDAVTestConnection(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function WebDAVUploadFiles(arg1:string,arg2:string,arg3:string,arg4:Array<string>,arg5:string):Promise<void>;

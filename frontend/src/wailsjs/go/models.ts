@@ -67,6 +67,13 @@ export namespace store {
 	    openGpMethod: string;
 	    syncPaths: string[];
 	    syncStrategy: string;
+	    autoSyncEnabled: boolean;
+	    autoSyncFrequency: string;
+	    lastSyncTime: number;
+	    webdavEnabled: boolean;
+	    webdavUrl: string;
+	    webdavUser: string;
+	    webdavPassword: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -81,6 +88,13 @@ export namespace store {
 	        this.openGpMethod = source["openGpMethod"];
 	        this.syncPaths = source["syncPaths"];
 	        this.syncStrategy = source["syncStrategy"];
+	        this.autoSyncEnabled = source["autoSyncEnabled"];
+	        this.autoSyncFrequency = source["autoSyncFrequency"];
+	        this.lastSyncTime = source["lastSyncTime"];
+	        this.webdavEnabled = source["webdavEnabled"];
+	        this.webdavUrl = source["webdavUrl"];
+	        this.webdavUser = source["webdavUser"];
+	        this.webdavPassword = source["webdavPassword"];
 	    }
 	}
 	export class Tab {
@@ -115,6 +129,29 @@ export namespace store {
 	        this.country = source["country"];
 	        this.language = source["language"];
 	        this.tag = source["tag"];
+	    }
+	}
+
+}
+
+export namespace sync {
+	
+	export class RemoteFile {
+	    name: string;
+	    path: string;
+	    size: number;
+	    isDir: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new RemoteFile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.path = source["path"];
+	        this.size = source["size"];
+	        this.isDir = source["isDir"];
 	    }
 	}
 
