@@ -60,6 +60,8 @@ export function WebDAVDownloadFiles(arg1:string,arg2:string,arg3:string,arg4:Arr
 
 export function WebDAVListRemoteDirectories(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<string>>;
 
+export function WebDAVListDir(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<store.RemoteFile>>;
+
 export function WebDAVScanRemoteFiles(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<store.RemoteFile>>;
 
 export function WebDAVTestConnection(arg1:string,arg2:string,arg3:string):Promise<void>;

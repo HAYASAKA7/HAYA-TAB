@@ -97,6 +97,38 @@ func (c *WebDAVClient) ListRemoteDirectories(dir string) ([]string, error) {
 	return dirs, nil
 }
 
+// ListDir returns a list of files and directories in the given path (non-recursive)
+func (c *WebDAVClient) ListDir(dir string) ([]store.RemoteFile, error) {
+	if dir == "" {
+		dir = "/"
+	}
+
+	infos, err := c.client.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory %s: %w", dir, err)
+	}
+
+	var files []store.RemoteFile
+	for _, info := range infos {
+		fullPath := path.Join(dir, info.Name())
+		
+		isDir := info.IsDir()
+		ext := strings.ToLower(filepath.Ext(info.Name()))
+		
+		// Include directories or supported files
+		if isDir || ext == ".gp" || ext == ".gp5" || ext == ".gpx" || ext == ".pdf" {
+			files = append(files, store.RemoteFile{
+				Name:  info.Name(),
+				Path:  fullPath,
+				Size:  info.Size(),
+				IsDir: isDir,
+			})
+		}
+	}
+
+	return files, nil
+}
+
 // DownloadFile downloads a single file to the local destination
 func (c *WebDAVClient) DownloadFile(remotePath, localPath string) error {
 	data, err := c.client.ReadStream(remotePath)

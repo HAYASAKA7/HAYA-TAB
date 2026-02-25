@@ -118,6 +118,10 @@ export function WebDAVListRemoteDirectories(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['WebDAVListRemoteDirectories'](arg1, arg2, arg3, arg4);
 }
 
+export function WebDAVListDir(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['WebDAVListDir'](arg1, arg2, arg3, arg4);
+}
+
 export function WebDAVScanRemoteFiles(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['WebDAVScanRemoteFiles'](arg1, arg2, arg3, arg4);
 }

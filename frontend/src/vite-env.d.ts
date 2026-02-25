@@ -45,6 +45,7 @@ interface Window {
         WebDAVTestConnection(url: string, user: string, pass: string): Promise<void>
         WebDAVScanRemoteFiles(url: string, user: string, pass: string, dir: string): Promise<any[]>
         WebDAVListRemoteDirectories(url: string, user: string, pass: string, dir: string): Promise<string[]>
+        WebDAVListDir(url: string, user: string, pass: string, dir: string): Promise<any[]>
         WebDAVDownloadFiles(url: string, user: string, pass: string, remotePaths: string[]): Promise<void>
         WebDAVUploadFiles(url: string, user: string, pass: string, localPaths: string[], remoteDir: string): Promise<void>
       }

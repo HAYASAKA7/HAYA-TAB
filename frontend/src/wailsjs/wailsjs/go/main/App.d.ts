@@ -69,6 +69,8 @@ export function UpdateTabMetadata(arg1:string,arg2:string,arg3:string,arg4:strin
 
 export function WebDAVDownloadFiles(arg1:string,arg2:string,arg3:string,arg4:Array<string>):Promise<void>;
 
+export function WebDAVListDir(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<store.RemoteFile>>;
+
 export function WebDAVListRemoteDirectories(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<string>>;
 
 export function WebDAVScanRemoteFiles(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<store.RemoteFile>>;

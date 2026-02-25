@@ -18,21 +18,35 @@ interface RemoteFile {
   isDir: boolean
 }
 
+const currentPath = ref('/')
 const files = ref<RemoteFile[]>([])
 const loading = ref(false)
 const selectedFiles = ref<Set<string>>(new Set())
 const searchQuery = ref('')
-const progress = ref<{ status: string, current?: number, total?: number, filename?: string, success?: number } | null>(null)
+const progress = ref<{ status: string, current?: number, total?: number, filename?: string, success?: number, skipped?: number, errors?: number } | null>(null)
+
+// Breadcrumbs computation
+const breadcrumbs = computed(() => {
+  const parts = currentPath.value.split('/').filter(p => p)
+  const crumbs = [{ name: 'Root', path: '/' }]
+  let current = ''
+  for (const part of parts) {
+    current += '/' + part
+    crumbs.push({ name: part, path: current })
+  }
+  return crumbs
+})
 
 onMounted(() => {
   if (uiStore.cloudPickerModalVisible) {
-    scanFiles()
+    loadDirectory('/')
   }
 })
 
 watch(() => uiStore.cloudPickerModalVisible, (visible) => {
   if (visible) {
-    scanFiles()
+    currentPath.value = '/'
+    loadDirectory('/')
     progress.value = null
     selectedFiles.value.clear()
     searchQuery.value = ''
@@ -41,7 +55,12 @@ watch(() => uiStore.cloudPickerModalVisible, (visible) => {
     EventsOn('cloud-progress', (data: any) => {
       progress.value = data
       if (data.status === 'complete') {
-        showToast(t('cloud.downloadComplete') + ` (${data.success} files)`)
+        let msg = t('cloud.downloadComplete') + ` (${data.success} success`
+        if (data.skipped) msg += `, ${data.skipped} skipped`
+        if (data.errors) msg += `, ${data.errors} errors`
+        msg += ')'
+        
+        showToast(msg, data.errors > 0 ? 'warning' : 'success')
         loading.value = false
         // Refresh local library
         tabsStore.refreshData()
@@ -53,7 +72,7 @@ watch(() => uiStore.cloudPickerModalVisible, (visible) => {
   }
 })
 
-async function scanFiles() {
+async function loadDirectory(path: string) {
   if (!settingsStore.settings.webdavEnabled) {
     showToast(t('settings.enableWebdav'), 'error')
     uiStore.hideCloudPickerModal()
@@ -62,28 +81,57 @@ async function scanFiles() {
 
   loading.value = true
   files.value = []
+  currentPath.value = path
   
   try {
-    const result = await window.go.main.App.WebDAVScanRemoteFiles(
+    // Use the new non-recursive list method
+    const result = await window.go.main.App.WebDAVListDir(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,
-      '/'
+      path
     )
-    files.value = result || []
+    
+    // Sort: Folders first, then files
+    files.value = (result || []).sort((a: RemoteFile, b: RemoteFile) => {
+      if (a.isDir === b.isDir) return a.name.localeCompare(b.name)
+      return a.isDir ? -1 : 1
+    })
   } catch (err) {
     console.error(err)
     showToast(t('cloud.scanError') + ': ' + err, 'error')
+    // Go up if failed (e.g. permission error on folder)
+    if (path !== '/') {
+      goUp()
+    }
   } finally {
     loading.value = false
+  }
+}
+
+function goUp() {
+  const parts = currentPath.value.split('/').filter(p => p)
+  if (parts.length > 0) {
+    parts.pop()
+    loadDirectory('/' + parts.join('/'))
+  } else {
+    loadDirectory('/')
   }
 }
 
 const filteredFiles = computed(() => {
   if (!searchQuery.value) return files.value
   const query = searchQuery.value.toLowerCase()
-  return files.value.filter(f => f.name.toLowerCase().includes(query) || f.path.toLowerCase().includes(query))
+  return files.value.filter(f => f.name.toLowerCase().includes(query))
 })
+
+const currentFilesOnly = computed(() => {
+  return filteredFiles.value.filter(f => !f.isDir)
+})
+
+function navigateTo(path: string) {
+  loadDirectory(path)
+}
 
 function toggleSelection(path: string) {
   if (selectedFiles.value.has(path)) {
@@ -94,10 +142,13 @@ function toggleSelection(path: string) {
 }
 
 function selectAll() {
-  if (selectedFiles.value.size === filteredFiles.value.length) {
-    selectedFiles.value.clear()
+  const filePaths = currentFilesOnly.value.map(f => f.path)
+  const allSelected = filePaths.every(p => selectedFiles.value.has(p))
+  
+  if (allSelected) {
+    filePaths.forEach(p => selectedFiles.value.delete(p))
   } else {
-    filteredFiles.value.forEach(f => selectedFiles.value.add(f.path))
+    filePaths.forEach(p => selectedFiles.value.add(p))
   }
 }
 
@@ -135,20 +186,35 @@ function formatSize(bytes: number) {
       
       <div class="modal-body">
         <div class="toolbar">
-          <input 
-            type="text" 
-            v-model="searchQuery" 
-            :placeholder="t('search.placeholder')"
-            class="search-input"
-          />
-          <button class="btn" @click="scanFiles" :disabled="loading">
-            <span class="icon-sync" :class="{ spinning: loading }"></span>
-          </button>
+           <!-- Breadcrumbs -->
+          <div class="breadcrumbs">
+             <span 
+              v-for="(crumb, index) in breadcrumbs" 
+              :key="crumb.path" 
+              class="crumb"
+              :class="{ active: index === breadcrumbs.length - 1 }"
+              @click="loadDirectory(crumb.path)"
+            >
+              {{ crumb.name }}
+            </span>
+          </div>
+          
+          <div class="actions">
+             <input 
+              type="text" 
+              v-model="searchQuery" 
+              :placeholder="t('search.placeholder')"
+              class="search-input"
+            />
+            <button class="btn icon-btn" @click="loadDirectory(currentPath)" :disabled="loading">
+              <span class="icon-sync" :class="{ spinning: loading }"></span>
+            </button>
+          </div>
         </div>
 
         <div class="file-list-container">
           <div v-if="loading && !progress" class="loading-state">
-            <span class="spinner"></span> {{ t('cloud.scanning') }}
+            <span class="spinner"></span>
           </div>
           <div v-else-if="progress" class="progress-state">
             <div class="progress-bar">
@@ -163,18 +229,33 @@ function formatSize(bytes: number) {
           <table v-else class="file-table">
             <thead>
               <tr>
-                <th width="40"><input type="checkbox" @change="selectAll" :checked="selectedFiles.size > 0 && selectedFiles.size === filteredFiles.length"></th>
+                <th width="40"><input type="checkbox" @change="selectAll" :checked="currentFilesOnly.length > 0 && currentFilesOnly.every(f => selectedFiles.has(f.path))" :disabled="currentFilesOnly.length === 0"></th>
                 <th>{{ t('cloud.name') }}</th>
-                <th>{{ t('cloud.path') }}</th>
                 <th width="100">{{ t('cloud.size') }}</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="file in filteredFiles" :key="file.path" :class="{ selected: selectedFiles.has(file.path) }" @click="toggleSelection(file.path)">
-                <td><input type="checkbox" :checked="selectedFiles.has(file.path)" @click.stop="toggleSelection(file.path)"></td>
+              <tr v-if="currentPath !== '/'" @click="goUp" class="folder-row">
+                <td></td>
+                <td colspan="2">..</td>
+              </tr>
+              <tr 
+                v-for="file in filteredFiles" 
+                :key="file.path" 
+                :class="{ selected: selectedFiles.has(file.path), folder: file.isDir }" 
+                @click="file.isDir ? navigateTo(file.path) : toggleSelection(file.path)"
+              >
+                <td @click.stop>
+                  <input 
+                    v-if="!file.isDir" 
+                    type="checkbox" 
+                    :checked="selectedFiles.has(file.path)" 
+                    @change="toggleSelection(file.path)"
+                  >
+                  <span v-else class="folder-icon">📁</span>
+                </td>
                 <td>{{ file.name }}</td>
-                <td class="path-col">{{ file.path }}</td>
-                <td>{{ formatSize(file.size) }}</td>
+                <td>{{ file.isDir ? '-' : formatSize(file.size) }}</td>
               </tr>
             </tbody>
           </table>
@@ -182,9 +263,13 @@ function formatSize(bytes: number) {
       </div>
 
       <div class="modal-actions">
+        <div class="selected-count" v-if="selectedFiles.size > 0">
+          {{ selectedFiles.size }} {{ t('cloud.filesSelected') }}
+        </div>
+        <div style="flex: 1"></div>
         <button class="btn" @click="uiStore.hideCloudPickerModal">{{ t('confirm.cancel') }}</button>
         <button class="btn primary" @click="handleDownload" :disabled="selectedFiles.size === 0 || loading">
-          {{ t('cloud.downloadSelected') }} ({{ selectedFiles.size }})
+          {{ t('cloud.downloadSelected') }}
         </button>
       </div>
     </div>
@@ -195,15 +280,15 @@ function formatSize(bytes: number) {
 .modal.large {
   width: 800px;
   max-width: 90vw;
-  height: 80vh; /* Fixed height for browser */
+  height: 80vh;
   display: flex;
   flex-direction: column;
 }
 
 .modal-body {
   margin-top: 16px;
-  flex: 1; /* Take remaining space */
-  overflow: hidden; /* Prevent modal body scroll, handle inside components */
+  flex: 1;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -211,16 +296,62 @@ function formatSize(bytes: number) {
 
 .toolbar {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
+  background: var(--bg-alt);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.9em;
+}
+
+.crumb {
+  cursor: pointer;
+  color: var(--primary);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.crumb:hover {
+  background: var(--hover);
+  text-decoration: underline;
+}
+
+.crumb.active {
+  color: var(--text);
+  font-weight: 600;
+  cursor: default;
+  text-decoration: none;
+}
+
+.crumb:not(:last-child)::after {
+  content: '/';
+  margin-left: 4px;
+  color: var(--text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
 }
 
 .search-input {
-  flex: 1;
-  padding: 8px;
+  width: 200px;
+  padding: 6px;
   background-color: var(--bg);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text);
+}
+
+.icon-btn {
+  padding: 6px 10px;
 }
 
 .file-list-container {
@@ -249,6 +380,7 @@ function formatSize(bytes: number) {
   position: sticky;
   top: 0;
   font-weight: 600;
+  z-index: 1;
 }
 
 .file-table tr:hover {
@@ -257,13 +389,20 @@ function formatSize(bytes: number) {
 }
 
 .file-table tr.selected {
-  background: rgba(var(--primary-rgb), 0.1); /* Assuming variable exists or fallback */
-  background: var(--hover); /* Fallback */
+  background: rgba(var(--primary-rgb), 0.1); 
+  background: var(--hover);
 }
 
-.path-col {
-  color: var(--text-muted);
-  font-size: 0.9em;
+.folder-row {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.folder {
+  font-weight: 500;
+}
+
+.folder-icon {
+  font-size: 1.1em;
 }
 
 .loading-state, .progress-state {
@@ -306,5 +445,10 @@ function formatSize(bytes: number) {
   height: 100%;
   background: var(--primary);
   transition: width 0.3s ease;
+}
+
+.selected-count {
+  font-size: 0.9em;
+  color: var(--text-muted);
 }
 </style>

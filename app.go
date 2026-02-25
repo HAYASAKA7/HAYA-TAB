@@ -887,13 +887,18 @@ func (a *App) WebDAVListRemoteDirectories(url, user, password, dir string) ([]st
 	return client.ListRemoteDirectories(dir)
 }
 
+// WebDAVListDir lists files and directories in a remote path (non-recursive)
+func (a *App) WebDAVListDir(url, user, password, dir string) ([]store.RemoteFile, error) {
+	url = strings.TrimRight(url, "/")
+	client := syncpkg.NewWebDAVClient(url, user, password)
+	return client.ListDir(dir)
+}
+
 // WebDAVDownloadFiles downloads selected files and processes them
 func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []string) error {
 	url = strings.TrimRight(url, "/")
 	client := syncpkg.NewWebDAVClient(url, user, password)
-	appDir := getAppDir()
-	storageDir := filepath.Join(appDir, "storage")
-
+	
 	wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
 		"status": "start",
 		"total":  len(remotePaths),
@@ -902,53 +907,61 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 	// Run in background to avoid blocking UI
 	go func() {
 		successCount := 0
+		skippedCount := 0
+		errorCount := 0
+		
 		for i, remotePath := range remotePaths {
 			fileName := filepath.Base(remotePath)
-			localPath := filepath.Join(storageDir, fileName)
-
-			// Download
-			if err := client.DownloadFile(remotePath, localPath); err != nil {
+			
+			// Create temp file
+			tempFile, err := os.CreateTemp("", "haya-tab-download-*.tmp")
+			if err != nil {
+				a.logger.Error("Failed to create temp file for %s: %v", fileName, err)
+				errorCount++
+				continue
+			}
+			tempPath := tempFile.Name()
+			tempFile.Close() // Close immediately, DownloadFile will open/create it or we can just pass path
+			
+			// Download to temp path
+			if err := client.DownloadFile(remotePath, tempPath); err != nil {
 				a.logger.Error("Failed to download %s: %v", remotePath, err)
+				os.Remove(tempPath)
+				errorCount++
 				continue
 			}
 
-			// Process File (add to DB, parse metadata, etc.)
-			// We simulate "ProcessFile" logic here or call it if available.
-			// The original prompt said: "immediately call the existing ProcessFile logic"
-			// But app.ProcessFile returns a struct and does internal logic.
-			// We probably want to SaveTab as well? 
-			// Looking at ProcessFile usage: it likely returns a parsed Tab object.
-			// Then we need to save it.
+			// Process File to get metadata
+			parsedTab := a.syncService.ProcessFile(tempPath)
 			
-			// Wait, ProcessFile in app.go calls a.syncService.ProcessFile(path).
-			// Let's use that.
+			// If ProcessFile failed to get meaningful title (e.g. empty file), fallback to filename
+			if parsedTab.Title == "" {
+				parsedTab.Title = strings.TrimSuffix(fileName, filepath.Ext(fileName))
+			}
 			
-			// Note: ProcessFile in SyncService likely parses the file.
-			// We should then add it to the DB.
+			// Attempt to Save (this handles ID generation, file moving/renaming, and duplicate checks)
+			// SaveTab expects the file at parsedTab.FilePath (which is tempPath now)
+			// It will copy it to storage/ID.ext if second arg is true.
 			
-			// Let's see what ProcessFile does in sync/sync.go. 
-			// Since I can't see sync.go right now, I'll assume ProcessFile returns a Tab that is ready to be displayed/edited,
-			// but maybe not saved yet? Or maybe it handles everything?
-			// The context said "metadata ... is parsed and written to the SQLite database".
-			// If ProcessFile just parses, we need to save it.
-			// Let's assume we need to call SaveTab.
-
-			// Actually, better to check syncpkg.ProcessFile first?
-			// But for now, I'll rely on the existing pattern.
-			// The user said: "once a file is saved locally, you MUST immediately call the existing ProcessFile logic so that metadata... is parsed and written..."
+			// Check for duplicates first? SaveTab does it.
+			// But SaveTab returns error on duplicate. We want to catch that and count as skipped.
 			
-			parsedTab := a.syncService.ProcessFile(localPath)
-			// Ensure it's marked as managed since it's in storage
-			parsedTab.IsManaged = true
-			parsedTab.AddedAt = time.Now().Unix()
-			
-			// Save to DB
-			if err := a.store.AddTab(parsedTab); err != nil {
-				a.logger.Error("Failed to save downloaded tab %s: %v", fileName, err)
+			err = a.SaveTab(parsedTab, true)
+			if err != nil {
+				if strings.Contains(err.Error(), "already exists") {
+					a.logger.Info("Skipping duplicate file %s: %v", fileName, err)
+					skippedCount++
+				} else {
+					a.logger.Error("Failed to save downloaded tab %s: %v", fileName, err)
+					errorCount++
+				}
+				// Clean up temp file since SaveTab failed (if it succeeded, it copied it, so we still need to clean temp)
+				os.Remove(tempPath) 
 			} else {
-				// Fetch cover async
-				a.fetchCoverAsync(parsedTab)
+				// Success
 				successCount++
+				// Clean up temp file (SaveTab copied it)
+				os.Remove(tempPath)
 			}
 
 			wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
@@ -960,8 +973,10 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 		}
 
 		wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
-			"status": "complete",
-			"success": successCount,
+			"status":   "complete",
+			"success":  successCount,
+			"skipped":  skippedCount,
+			"errors":   errorCount,
 		})
 	}()
 
