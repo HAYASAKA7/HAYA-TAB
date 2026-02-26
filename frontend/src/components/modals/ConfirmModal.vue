@@ -22,7 +22,7 @@ function handleConfirm() {
   >
     <div class="modal confirm-modal">
       <h2 id="confirm-title">{{ uiStore.confirmModalData?.title }}</h2>
-      <p id="confirm-message" v-html="uiStore.confirmModalData?.message"></p>
+      <p id="confirm-message" class="selectable" v-html="uiStore.confirmModalData?.message"></p>
       <div class="modal-actions">
         <button
           id="confirm-cancel-btn"

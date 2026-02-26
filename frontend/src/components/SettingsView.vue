@@ -327,7 +327,7 @@ function handleWebDAVToggle() {
         <label>{{ t('settings.monitoredFolders') }}</label>
         <ul id="sync-path-list">
           <li v-for="(path, index) in settingsStore.settings.syncPaths" :key="index">
-            <span>{{ path }}</span>
+            <span class="selectable">{{ path }}</span>
             <span class="delete-icon" @click="settingsStore.removeSyncPath(index)">
               <span class="icon-trash"></span>
             </span>

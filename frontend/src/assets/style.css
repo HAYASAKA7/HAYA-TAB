@@ -51,10 +51,17 @@ body {
     color: var(--text);
     overflow: hidden;
     transition: background 0.2s, color 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 button, input, select, textarea {
     font-family: inherit;
+}
+
+input, textarea, [contenteditable], pre, code, .selectable {
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 /* Layout */
@@ -87,7 +94,7 @@ button, input, select, textarea {
     border: none;
     color: var(--text-muted);
     font-size: 1.2rem;
-    padding: 8px 20px;
+    padding: 8px 15px;
     cursor: pointer;
     text-align: left;
     width: 100%;
@@ -102,8 +109,8 @@ button, input, select, textarea {
     width: 50px;
 }
 #sidebar.collapsed #sidebar-toggle {
-    text-align: center;
-    padding: 8px 0;
+    text-align: left;
+    padding: 8px 15px;
 }
 #sidebar.collapsed .sidebar-item {
     justify-content: flex-start;
@@ -369,7 +376,7 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 #sync-path-list { list-style: none; padding: 0; }
 #sync-path-list li {
     background: var(--card-bg);
-    padding: 10px;
+    padding: 5px 10px;
     border: 1px solid var(--border);
     border-radius: 4px;
     margin-bottom: 8px;
