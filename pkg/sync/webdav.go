@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,13 +26,62 @@ type customTransport struct {
 }
 
 func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Clone request to avoid modifying the original request concurrently
+	clone := req.Clone(req.Context())
+
 	// Set browser-like User-Agent
-	req.Header.Set("User-Agent", BrowserUserAgent)
+	clone.Header.Set("User-Agent", BrowserUserAgent)
 	// Add Accept header for better compatibility
-	if req.Header.Get("Accept") == "" {
-		req.Header.Set("Accept", "*/*")
+	if clone.Header.Get("Accept") == "" {
+		clone.Header.Set("Accept", "*/*")
 	}
-	return t.base.RoundTrip(req)
+
+	if clone.URL != nil {
+		host := strings.ToLower(clone.URL.Host)
+
+		// Bypass Anti-Hotlinking based on domain
+		switch {
+		case strings.Contains(host, "aliyundrive") || strings.Contains(host, "alicloudccp"):
+			clone.Header.Set("Referer", "https://www.aliyundrive.com/")
+			clone.Header.Set("Origin", "https://www.aliyundrive.com")
+		case strings.Contains(host, "quark"):
+			clone.Header.Set("Referer", "https://pan.quark.cn/")
+			clone.Header.Set("Origin", "https://pan.quark.cn")
+		case strings.Contains(host, "baidu.com") || strings.Contains(host, "bdimg.com") || strings.Contains(host, "baidupcs.com"):
+			clone.Header.Set("Referer", "https://pan.baidu.com/")
+			clone.Header.Set("Origin", "https://pan.baidu.com")
+		case strings.Contains(host, "115.com") || strings.Contains(host, "115.net"):
+			clone.Header.Set("Referer", "https://115.com/")
+			clone.Header.Set("Origin", "https://115.com")
+		case strings.Contains(host, "189.cn"):
+			clone.Header.Set("Referer", "https://cloud.189.cn/")
+			clone.Header.Set("Origin", "https://cloud.189.cn")
+		case strings.Contains(host, "123pan.cn") || strings.Contains(host, "123pan.com"):
+			clone.Header.Set("Referer", "https://www.123pan.com/")
+			clone.Header.Set("Origin", "https://www.123pan.com")
+		case strings.Contains(host, "10086.cn"):
+			clone.Header.Set("Referer", "https://caiyun.feixin.10086.cn/")
+			clone.Header.Set("Origin", "https://caiyun.feixin.10086.cn")
+		case strings.Contains(host, "mypikpak.com"):
+			clone.Header.Set("Referer", "https://mypikpak.com/")
+			clone.Header.Set("Origin", "https://mypikpak.com")
+		default:
+			// Fallback for global drives and initial WebDAV requests
+			// Escape Redirect URLs to prevent 400 Bad Request on strict CDNs due to unescaped spaces
+			if clone.URL.Path != "" {
+				clone.URL.RawPath = strings.ReplaceAll(url.PathEscape(clone.URL.Path), "%2F", "/")
+			}
+
+			if clone.Header.Get("Referer") == "" {
+				clone.Header.Set("Referer", clone.URL.Scheme+"://"+clone.URL.Host+"/")
+			}
+			if clone.Header.Get("Origin") == "" {
+				clone.Header.Set("Origin", clone.URL.Scheme+"://"+clone.URL.Host)
+			}
+		}
+	}
+
+	return t.base.RoundTrip(clone)
 }
 
 type WebDAVClient struct {
@@ -42,25 +92,34 @@ type WebDAVClient struct {
 
 func NewWebDAVClient(serverURL, user, password string) *WebDAVClient {
 	// Create custom HTTP client with browser-like transport and long timeout for large files
+	var baseTransport *http.Transport
+	if defaultTransport, ok := http.DefaultTransport.(*http.Transport); ok {
+		baseTransport = defaultTransport.Clone()
+	} else {
+		baseTransport = &http.Transport{}
+	}
+
+	baseTransport.MaxIdleConns = 10
+	baseTransport.IdleConnTimeout = 90 * time.Second
+	baseTransport.DisableCompression = false
+	baseTransport.DisableKeepAlives = true // Disable Keep-Alives to prevent idle HTTP channel panics during file streaming
+	baseTransport.MaxIdleConnsPerHost = 5
+	// Disable HTTP/2
+	baseTransport.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+
 	transport := &customTransport{
-		base: &http.Transport{
-			MaxIdleConns:        10,
-			IdleConnTimeout:     90 * time.Second,
-			DisableCompression:  false,
-			DisableKeepAlives:   false,
-			MaxIdleConnsPerHost: 5,
-		},
+		base: baseTransport,
 	}
 
 	httpClient := &http.Client{
 		Transport: transport,
-		Timeout:   30 * time.Minute, // Long timeout for large file transfers
+		Timeout:   0, // Disable timeout for large file transfers
 	}
 
 	client := gowebdav.NewClient(serverURL, user, password)
 	// Set the custom HTTP client with browser User-Agent
 	client.SetTransport(transport)
-	client.SetTimeout(30 * time.Minute)
+	client.SetTimeout(0)
 	// Also set header directly as fallback
 	client.SetHeader("User-Agent", BrowserUserAgent)
 
@@ -132,7 +191,7 @@ func (c *WebDAVClient) scanRecursive(dir string, depth int) ([]store.RemoteFile,
 
 	for _, info := range infos {
 		fullPath := path.Join(dir, info.Name())
-		
+
 		if info.IsDir() {
 			// Recursive scan
 			subFiles, err := c.scanRecursive(fullPath, depth+1)
@@ -192,10 +251,10 @@ func (c *WebDAVClient) ListDir(dir string) ([]store.RemoteFile, error) {
 	var files []store.RemoteFile
 	for _, info := range infos {
 		fullPath := path.Join(dir, info.Name())
-		
+
 		isDir := info.IsDir()
 		ext := strings.ToLower(filepath.Ext(info.Name()))
-		
+
 		// Include directories or supported files
 		if isDir || ext == ".gp" || ext == ".gp5" || ext == ".gpx" || ext == ".pdf" {
 			files = append(files, store.RemoteFile{

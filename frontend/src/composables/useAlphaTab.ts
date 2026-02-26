@@ -153,10 +153,13 @@ export function useAlphaTab(t?: TranslateFunction) {
           throw new Error(errorMsg)
         }
 
+        const arrayBuffer = await response.arrayBuffer()
+        const unit8Array = new Uint8Array(arrayBuffer)
+
         if (trackIndex !== undefined) {
              api.value.tracks = [trackIndex]
         }
-        await api.value.load(url)
+        await api.value.load(unit8Array)
     } catch(e) {
         console.error("AlphaTab Load Failed", e)
         loadError.value = e instanceof Error ? e.message : String(e)
