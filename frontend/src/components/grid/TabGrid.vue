@@ -32,11 +32,15 @@ async function addTab(isUpload: boolean) {
   if (paths && paths.length > 0) {
     let added = 0
     let skipped = 0
+    const newTabs: any[] = []
 
     for (const path of paths) {
       try {
         const tabData = await window.go.main.App.ProcessFile(path)
-        await window.go.main.App.SaveTab(tabData, isUpload)
+        const savedTab = await window.go.main.App.SaveTab(tabData, isUpload)
+        if (savedTab) {
+          newTabs.push(savedTab)
+        }
         added++
       } catch (err) {
         console.warn('Skipped duplicate or error:', err)
@@ -44,7 +48,10 @@ async function addTab(isUpload: boolean) {
       }
     }
 
-    await tabsStore.refreshData()
+    // Add new tabs in-place to preserve scroll position
+    if (newTabs.length > 0) {
+      tabsStore.addTabsInPlace(newTabs)
+    }
 
     // Show toast
     if (skipped > 0) {

@@ -639,23 +639,24 @@ func (a *App) SelectFolder() string {
 
 // SaveTab saves the tab. copyFile determines if we import it to internal storage.
 // The passed tab should have the user-confirmed Metadata.
-func (a *App) SaveTab(tab store.Tab, shouldCopy bool) error {
+// Returns the saved tab on success.
+func (a *App) SaveTab(tab store.Tab, shouldCopy bool) (*store.Tab, error) {
 	// Check for duplicate file path before adding (for linked files)
 	existingByPath, err := a.store.GetTabByPath(tab.FilePath)
 	if err != nil {
-		return fmt.Errorf("failed to check for duplicate path: %w", err)
+		return nil, fmt.Errorf("failed to check for duplicate path: %w", err)
 	}
 	if existingByPath != nil {
-		return fmt.Errorf("a tab with this file already exists: %s", existingByPath.Title)
+		return nil, fmt.Errorf("a tab with this file already exists: %s", existingByPath.Title)
 	}
 
 	// Check for duplicate title globally (catches uploaded files with same content)
 	existingByTitle, err := a.store.GetTabByTitle(tab.Title)
 	if err != nil {
-		return fmt.Errorf("failed to check for duplicate title: %w", err)
+		return nil, fmt.Errorf("failed to check for duplicate title: %w", err)
 	}
 	if existingByTitle != nil {
-		return fmt.Errorf("a tab with title '%s' already exists", existingByTitle.Title)
+		return nil, fmt.Errorf("a tab with title '%s' already exists", existingByTitle.Title)
 	}
 
 	appDir := getAppDir()
@@ -668,18 +669,18 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) error {
 
 		src, err := os.Open(tab.FilePath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer src.Close()
 
 		dst, err := os.Create(destPath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer dst.Close()
 
 		if _, err = io.Copy(dst, src); err != nil {
-			return err
+			return nil, err
 		}
 
 		tab.FilePath = destPath
@@ -694,13 +695,13 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) error {
 
 	// Save initial version first
 	if err := a.store.AddTab(tab); err != nil {
-		return err
+		return nil, err
 	}
 
 	// 2. Handle Cover (Async)
 	a.fetchCoverAsync(tab)
 
-	return nil
+	return &tab, nil
 }
 
 // UpdateTab updates an existing tab's metadata
@@ -986,7 +987,7 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 			// Check for duplicates first? SaveTab does it.
 			// But SaveTab returns error on duplicate. We want to catch that and count as skipped.
 			
-			err = a.SaveTab(parsedTab, true)
+			_, err = a.SaveTab(parsedTab, true)
 			if err != nil {
 				if strings.Contains(err.Error(), "already exists") {
 					a.logger.Info("Skipping duplicate file %s: %v", fileName, err)

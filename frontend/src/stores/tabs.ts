@@ -189,8 +189,22 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   async function addTab(tab: Tab, shouldCopy: boolean) {
-    await window.go.main.App.SaveTab(tab, shouldCopy)
-    await refreshData()
+    const savedTab = await window.go.main.App.SaveTab(tab, shouldCopy)
+    // Add in-place to preserve scroll position
+    if (savedTab) {
+      addTabsInPlace([savedTab])
+    }
+  }
+
+  // Add tabs in-place without full refresh (preserves scroll position)
+  function addTabsInPlace(newTabs: Tab[]) {
+    // Prepend new tabs to the beginning of the list
+    tabs.value = [...newTabs, ...tabs.value]
+    pagination.value.total += newTabs.length
+    // Also add to recentTabs if it's populated
+    if (recentTabs.value.length > 0) {
+      recentTabs.value = [...newTabs, ...recentTabs.value]
+    }
   }
 
   async function updateTab(tab: Tab) {
@@ -402,6 +416,7 @@ export const useTabsStore = defineStore('tabs', () => {
     fetchRecentTabs,
     refreshData,
     addTab,
+    addTabsInPlace,
     updateTab,
     deleteTab,
     deleteTabInPlace,

@@ -20,7 +20,7 @@ interface Window {
         AddCategory(category: import('./types').Category): Promise<void>
         DeleteCategory(id: string): Promise<void>
         MoveCategory(id: string, newParentId: string): Promise<void>
-        SaveTab(tab: import('./types').Tab, shouldCopy: boolean): Promise<void>
+        SaveTab(tab: import('./types').Tab, shouldCopy: boolean): Promise<import('./types').Tab>
         UpdateTab(tab: import('./types').Tab): Promise<void>
         UpdateTabMetadata(id: string, title: string, artist: string, album: string): Promise<void>
         DeleteTab(id: string): Promise<void>

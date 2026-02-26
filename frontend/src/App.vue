@@ -72,14 +72,8 @@ onMounted(async () => {
     }
   })
 
-  // Listen for tab deletion events
-  window.runtime.EventsOn('tab-deleted', () => {
-    tabsStore.refreshData()
-  })
-
-  window.runtime.EventsOn('tabs-deleted', () => {
-    tabsStore.refreshData()
-  })
+  // Tab deletion events are handled in-place by the store to preserve scroll position
+  // No need to listen for 'tab-deleted' or 'tabs-deleted' events here
 })
 
 function isViewActive(viewType: string): boolean {
