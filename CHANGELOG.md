@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-02-26
+
+### Added
+- **MusicXML Support:** Added support for MusicXML score files (.xml, .musicxml, .mxl) in the viewer using alphaTab
+- **Improved File Type Display:** Tab cards now show cleaner file type badges (PDF, XML, MXL, GP) instead of raw file extensions
+- **Better Visual Feedback:** Newly added tabs are now highlighted and automatically scrolled into view for better user awareness
+
+### Improved
+- **In-Place Tab Operations:** Tab additions and deletions now update the UI in-place without full page refresh, preserving scroll position and improving UX
+- **API Enhancement:** `SaveTab` now returns the saved tab object, enabling better frontend state management
+
+### Fixed
+- **Scroll Position Preservation:** Fixed issue where adding or deleting tabs would reset scroll position to the top
+- **Event Handling:** Removed redundant event listeners that could cause unnecessary data refreshes
+
 ## [2.0.1] - 2026-02-26
 
 ### Improved

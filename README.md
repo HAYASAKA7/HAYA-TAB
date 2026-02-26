@@ -3,12 +3,12 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-2.0.1-green)
+![Version](https://img.shields.io/badge/version-2.1.0-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
 
-- **Tab Management** - Organize your PDF and Guitar Pro (.gp, .gp5, .gpx) tabs in one place
+- **Tab Management** - Organize your PDF, Guitar Pro (.gp, .gp5, .gpx), and MusicXML (.xml, .musicxml, .mxl) tabs in one place
 - **Upload or Link** - Upload tabs to internal storage or link existing files from your filesystem
 - **Advanced Search** - **Instant Full-Text Search (FTS5)** across titles, artists, and albums with fuzzy matching
 - **Real-time Sync** - Automatically watches synced folders for changes; **Non-destructive** import (renames duplicates)
