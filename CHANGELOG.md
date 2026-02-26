@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-02-26
+
+### Added
+- **WebDAV Integration:** Full WebDAV support for cloud storage sync with any standard WebDAV server (Nextcloud, ownCloud, etc.)
+  - Browse and download files directly from your cloud library
+  - Upload local tabs to WebDAV server with folder selection
+  - Secure credential storage with encryption
+- **Online Viewer for Cloud Files:** View WebDAV files directly in the internal viewer without downloading to local storage
+- **Cloud Library Browser:** New modal for browsing, selecting, and downloading remote files
+
+### Improved
+- **Large File Handling:** Significantly improved loading performance for large files, especially when using Chinese cloud services (Baidu Netdisk, Alibaba Cloud, etc.)
+- **UI Polish:** Various UI improvements and refinements across the application
+
+### Fixed
+- Fixed folder icon display issues in cloud browser
+- Fixed WebDAV file adding and score loading issues
+- Fixed status update and locale synchronization issues
+- General stability improvements and bug fixes
+
 ## [1.5.6] - 2026-02-24
 
 ### Improved
