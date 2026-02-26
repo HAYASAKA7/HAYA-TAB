@@ -184,7 +184,7 @@ func (w *FileWatcher) IsRunning() bool {
 // isRelevantFile checks if the file is a tab file we care about
 func isRelevantFile(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
-	return ext == ".pdf" || ext == ".gp" || ext == ".gp5" || ext == ".gpx"
+	return ext == ".pdf" || ext == ".gp" || ext == ".gp3" || ext == ".gp4" || ext == ".gp5" || ext == ".gpx" || ext == ".xml" || ext == ".musicxml" || ext == ".mxl"
 }
 
 func (w *FileWatcher) watchLoop() {

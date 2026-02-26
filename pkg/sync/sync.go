@@ -236,7 +236,7 @@ func (s *SyncService) generateUniqueTitle(baseTitle string) string {
 // isSupportedExtension checks if the file extension is supported
 func (s *SyncService) isSupportedExtension(ext string) bool {
 	switch ext {
-	case ".pdf", ".gp", ".gp3", ".gp4", ".gp5", ".gpx":
+	case ".pdf", ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".xml", ".musicxml", ".mxl":
 		return true
 	default:
 		return false
@@ -248,7 +248,7 @@ func (s *SyncService) getFileType(ext string) string {
 	switch ext {
 	case ".pdf":
 		return "pdf"
-	case ".gp", ".gp3", ".gp4", ".gp5", ".gpx":
+	case ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".xml", ".musicxml", ".mxl":
 		return "gp"
 	default:
 		return "unknown"

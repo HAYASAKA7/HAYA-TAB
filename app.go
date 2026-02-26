@@ -878,7 +878,7 @@ func (a *App) SelectFiles() []string {
 	selection, err := wailsRuntime.OpenMultipleFilesDialog(a.ctx, wailsRuntime.OpenDialogOptions{
 		Title: "Select Tab Files",
 		Filters: []wailsRuntime.FileFilter{
-			{DisplayName: "Tabs (*.pdf;*.gp;*.gp5;*.gpx)", Pattern: "*.pdf;*.gp;*.gp5;*.gpx"},
+			{DisplayName: "Tabs (*.pdf;*.gp;*.gp3;*.gp4;*.gp5;*.gpx;*.xml;*.musicxml;*.mxl)", Pattern: "*.pdf;*.gp;*.gp3;*.gp4;*.gp5;*.gpx;*.xml;*.musicxml;*.mxl"},
 		},
 	})
 
@@ -1102,6 +1102,8 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 			fileType := "gp"
 			if ext == ".pdf" {
 				fileType = "pdf"
+			} else if ext == ".gp" || ext == ".gp3" || ext == ".gp4" || ext == ".gp5" || ext == ".gpx" || ext == ".xml" || ext == ".musicxml" || ext == ".mxl" {
+				fileType = "gp"
 			}
 
 			// Create tab record

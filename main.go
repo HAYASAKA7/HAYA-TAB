@@ -308,8 +308,12 @@ func (h *FileHandler) serveCloudFile(w http.ResponseWriter, r *http.Request, id 
 	switch ext {
 	case ".pdf":
 		contentType = "application/pdf"
-	case ".gp", ".gp5", ".gpx":
+	case ".gp", ".gp3", ".gp4", ".gp5", ".gpx":
 		contentType = "application/x-guitar-pro"
+	case ".xml", ".musicxml":
+		contentType = "application/vnd.recordare.musicxml+xml"
+	case ".mxl":
+		contentType = "application/vnd.recordare.musicxml"
 	}
 
 	// Set response headers

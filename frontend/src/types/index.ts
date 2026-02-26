@@ -5,7 +5,7 @@ export interface Tab {
   artist: string
   album: string
   filePath: string
-  type: 'pdf' | 'gp' | 'unknown'
+  type: 'pdf' | 'gp' | 'unknown' // 'gp' includes Guitar Pro and MusicXML formats
   isManaged: boolean
   isCloud: boolean
   coverPath: string
