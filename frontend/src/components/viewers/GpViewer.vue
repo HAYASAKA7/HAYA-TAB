@@ -33,6 +33,7 @@ const {
   isSoundFontLoaded,
   loadError,
   isServerError,
+  loadProgress,
   isPlaying,
   currentBpm,
   playbackSpeed,
@@ -537,6 +538,9 @@ watch(() => props.visible, async (newVal) => {
               <div class="sf-spinner"></div>
               <span v-if="!isLoaded">{{ t('library.loading') }}</span>
               <span v-else>Loading SoundFont...</span>
+              <div v-if="!isLoaded && loadProgress > 0" class="sf-progress-bar">
+                <div class="sf-progress-fill" :style="{ width: loadProgress + '%' }"></div>
+              </div>
             </div>
           </div>
         </Transition>
@@ -773,6 +777,22 @@ watch(() => props.visible, async (newVal) => {
 
 @keyframes sfSpin {
     to { transform: rotate(360deg); }
+}
+
+.sf-progress-bar {
+    width: 180px;
+    height: 4px;
+    background: rgba(150, 82, 51, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.sf-progress-fill {
+    height: 100%;
+    background: var(--primary-color, #965233);
+    border-radius: 2px;
+    transition: width 0.15s ease-out;
 }
 
 .fade-mask-enter-active {

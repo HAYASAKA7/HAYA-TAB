@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-02-26
+
+### Improved
+- **Download Progress Indicator:** Added a visual progress bar when loading Guitar Pro files, showing real-time download progress percentage
+
 ## [2.0.0] - 2026-02-26
 
 ### Added

@@ -9,6 +9,7 @@ export function useAlphaTab(t?: TranslateFunction) {
   const isSoundFontLoaded = ref(false)
   const loadError = ref<string | null>(null)
   const isServerError = ref(false) // True if error is server-side (500, etc.), download won't help
+  const loadProgress = ref(0) // Download progress 0-100
 
   // Playback State
   const isPlaying = ref(false)
@@ -129,6 +130,7 @@ export function useAlphaTab(t?: TranslateFunction) {
         isLoaded.value = false
         loadError.value = null
         isServerError.value = false
+        loadProgress.value = 0
 
         // Pre-check: fetch the URL to detect HTTP errors before AlphaTab tries to load
         const response = await fetch(url)
@@ -153,7 +155,40 @@ export function useAlphaTab(t?: TranslateFunction) {
           throw new Error(errorMsg)
         }
 
-        const arrayBuffer = await response.arrayBuffer()
+        // Track download progress
+        const contentLength = response.headers.get('content-length')
+        const total = contentLength ? parseInt(contentLength, 10) : 0
+
+        let arrayBuffer: ArrayBuffer
+        if (total > 0 && response.body) {
+          // Use ReadableStream to track progress
+          const reader = response.body.getReader()
+          const chunks: Uint8Array[] = []
+          let receivedLength = 0
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            chunks.push(value)
+            receivedLength += value.length
+            loadProgress.value = Math.round((receivedLength / total) * 100)
+          }
+
+          // Combine chunks into single array
+          const allChunks = new Uint8Array(receivedLength)
+          let position = 0
+          for (const chunk of chunks) {
+            allChunks.set(chunk, position)
+            position += chunk.length
+          }
+          arrayBuffer = allChunks.buffer
+        } else {
+          // Fallback for when content-length is not available
+          arrayBuffer = await response.arrayBuffer()
+          loadProgress.value = 100
+        }
+
         const unit8Array = new Uint8Array(arrayBuffer)
 
         if (trackIndex !== undefined) {
@@ -163,6 +198,7 @@ export function useAlphaTab(t?: TranslateFunction) {
     } catch(e) {
         console.error("AlphaTab Load Failed", e)
         loadError.value = e instanceof Error ? e.message : String(e)
+        loadProgress.value = 0
         throw e
     }
   }
@@ -408,6 +444,7 @@ export function useAlphaTab(t?: TranslateFunction) {
     isSoundFontLoaded,
     loadError,
     isServerError,
+    loadProgress,
     isPlaying,
     baseTempo,
     currentBpm,
