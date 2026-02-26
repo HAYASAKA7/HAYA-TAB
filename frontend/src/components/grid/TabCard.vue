@@ -29,6 +29,15 @@ const coverUrl = computed(() => {
 })
 const isSelected = computed(() => tabsStore.isTabSelected(props.tab.id))
 
+// Compute display label for file type badge
+const fileTypeLabel = computed(() => {
+  const ext = props.tab.filePath.toLowerCase().split('.').pop() || ''
+  if (props.tab.type === 'pdf') return 'PDF'
+  if (ext === 'xml' || ext === 'musicxml') return 'XML'
+  if (ext === 'mxl') return 'MXL'
+  return 'GP'
+})
+
 // Check if this is a cloud tab that's offline
 const isCloudOffline = computed(() =>
   props.tab.isCloud && !settingsStore.webdavConnected
@@ -196,7 +205,7 @@ function confirmDelete() {
   const btnText = props.tab.isManaged ? t('confirm.delete') : t('contextMenu.unlinkTab')
 
   uiStore.showConfirmModal(title, message, btnText, true, async () => {
-    await tabsStore.deleteTab(props.tab.id)
+    await tabsStore.deleteTabInPlace(props.tab.id)
   })
 }
 
@@ -265,7 +274,7 @@ function handleCheckboxClick(e: Event) {
     <div class="info">
       <div class="title" :title="tab.title">{{ tab.title }}</div>
       <div class="artist" :title="tab.artist">{{ tab.artist }}</div>
-      <div class="type-badge">{{ tab.type }}</div>
+      <div class="type-badge">{{ fileTypeLabel }}</div>
       <div v-if="tab.tag" class="tag-badge" :title="tab.tag">{{ tab.tag }}</div>
     </div>
   </div>

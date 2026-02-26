@@ -216,6 +216,22 @@ export const useTabsStore = defineStore('tabs', () => {
     await refreshData()
   }
 
+  // Delete tab and remove from local state without full refresh (preserves scroll position)
+  async function deleteTabInPlace(id: string) {
+    await window.go.main.App.DeleteTab(id)
+    // Remove from tabs array in-place
+    const tabIndex = tabs.value.findIndex(t => t.id === id)
+    if (tabIndex !== -1) {
+      tabs.value.splice(tabIndex, 1)
+      pagination.value.total = Math.max(0, pagination.value.total - 1)
+    }
+    // Also remove from recentTabs if present
+    const recentIndex = recentTabs.value.findIndex(t => t.id === id)
+    if (recentIndex !== -1) {
+      recentTabs.value.splice(recentIndex, 1)
+    }
+  }
+
   async function moveTab(id: string, categoryId: string) {
     await window.go.main.App.MoveTab(id, categoryId)
     await refreshData()
@@ -228,7 +244,14 @@ export const useTabsStore = defineStore('tabs', () => {
 
   async function removeTabFromCategory(id: string, categoryId: string) {
     await window.go.main.App.RemoveTabFromCategory(id, categoryId)
-    await refreshData()
+    // Remove tab from view in-place if we're in that category (preserves scroll position)
+    if (currentCategoryId.value === categoryId) {
+      const tabIndex = tabs.value.findIndex(t => t.id === id)
+      if (tabIndex !== -1) {
+        tabs.value.splice(tabIndex, 1)
+        pagination.value.total = Math.max(0, pagination.value.total - 1)
+      }
+    }
   }
 
   async function batchDeleteTabs() {
@@ -236,7 +259,10 @@ export const useTabsStore = defineStore('tabs', () => {
     const ids = Array.from(selectedTabIds.value)
     const deleted = await window.go.main.App.BatchDeleteTabs(ids)
     exitBatchSelectMode()
-    await refreshData()
+    // Remove deleted tabs in-place to preserve scroll position
+    tabs.value = tabs.value.filter(t => !ids.includes(t.id))
+    recentTabs.value = recentTabs.value.filter(t => !ids.includes(t.id))
+    pagination.value.total = Math.max(0, pagination.value.total - deleted)
     return deleted
   }
 
@@ -378,6 +404,7 @@ export const useTabsStore = defineStore('tabs', () => {
     addTab,
     updateTab,
     deleteTab,
+    deleteTabInPlace,
     moveTab,
     addTabToCategory,
     removeTabFromCategory,
