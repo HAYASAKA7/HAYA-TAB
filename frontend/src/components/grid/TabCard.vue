@@ -5,7 +5,6 @@ import type { Tab, ContextMenuItem } from '@/types'
 import { useTabsStore, useUIStore, useViewersStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
-import { useDragDrop } from '@/composables/useDragDrop'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 
 const props = defineProps<{
@@ -19,7 +18,6 @@ const viewersStore = useViewersStore()
 const settingsStore = useSettingsStore()
 const contextMenu = useContextMenu()
 const { showToast } = useToast()
-const { startDrag, endDrag } = useDragDrop()
 
 const fileServerPort = ref(0)
 const coverError = ref(false)
@@ -202,18 +200,6 @@ function confirmDelete() {
   })
 }
 
-function handleDragStart(e: DragEvent) {
-  if (tabsStore.isBatchSelectMode && !isSelected.value) return
-
-  startDrag({ type: 'tab', id: props.tab.id })
-  e.dataTransfer!.effectAllowed = 'move'
-  e.stopPropagation()
-}
-
-function handleDragEnd() {
-  endDrag()
-}
-
 function handleCheckboxClick(e: Event) {
   e.stopPropagation()
   tabsStore.toggleTabSelection(props.tab.id)
@@ -228,11 +214,8 @@ function handleCheckboxClick(e: Event) {
       'cloud-tab': tab.isCloud,
       'cloud-offline': isCloudOffline
     }"
-    :draggable="!tabsStore.isBatchSelectMode || isSelected"
     @click="handleClick"
     @contextmenu="handleContextMenu"
-    @dragstart="handleDragStart"
-    @dragend="handleDragEnd"
   >
     <!-- Offline overlay for cloud tabs -->
     <div v-if="isCloudOffline" class="offline-overlay">

@@ -16,7 +16,7 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 - **Smart Metadata** - Auto-parse info from filenames; **Bi-directional sync** with Guitar Pro internal metadata
 - **Tag Support** - Add version/part tags (e.g., "Lead Guitar", "Bass", "First Version")
 - **Album Artwork** - Automatic cover art fetching from iTunes; **High-performance** concurrent downloads
-- **Categories** - Organize tabs into virtual folders with drag-and-drop support
+- **Categories** - Organize tabs into virtual folders
 - **Batch Operations** - Select and move/delete multiple tabs at once
 - **Rich Internal Viewer**:
   - **PDF:** Built-in viewer with **Auto-Scroll** (variable speed)
@@ -57,7 +57,7 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 ## 🚀 Usage
 
 1. **Add Tabs**: Right-click on empty space → "Upload TAB" or "Link Local TAB"
-2. **Organize**: Create categories and drag tabs into them
+2. **Organize**: Create categories and move tabs into them
 3. **Sync Folders**: Go to Settings → Add sync paths to auto-import tabs from folders
 4. **Cloud Sync**: Configure WebDAV in Settings to access your cloud library. See [WebDAV Guide](docs/WEBDAV.md).
 5. **View Tabs**: Click a tab to open with system default, or right-click → "Open with Inner Viewer"

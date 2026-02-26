@@ -101,11 +101,5 @@ export interface Toast {
   type: ToastType
 }
 
-// DragItem represents an item being dragged
-export interface DragItem {
-  type: 'tab' | 'category'
-  id: string
-}
-
 // ViewType represents the current view
 export type ViewType = 'home' | 'library' | 'settings' | `pdf-${string}` | `gp-${string}`

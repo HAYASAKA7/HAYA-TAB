@@ -5,8 +5,6 @@ import type { Category } from '@/types'
 import { SYSTEM_CLOUD_CATEGORY_ID } from '@/types'
 import { useTabsStore, useUIStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
-import { useDragDrop } from '@/composables/useDragDrop'
-import { useToast } from '@/composables/useToast'
 
 const props = defineProps<{
   category: Category
@@ -17,10 +15,7 @@ const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
 const contextMenu = useContextMenu()
-const { draggedItem, startDrag, endDrag } = useDragDrop()
-const { showToast } = useToast()
 
-const isDragOver = ref(false)
 const coverUrl = ref('')
 
 // Check if this is the system cloud category
@@ -97,80 +92,16 @@ function confirmDelete() {
     }
   )
 }
-
-function handleDragStart(e: DragEvent) {
-  startDrag({ type: 'category', id: props.category.id })
-  e.dataTransfer!.effectAllowed = 'move'
-  e.stopPropagation()
-}
-
-function handleDragEnd() {
-  endDrag()
-}
-
-function handleDragOver(e: DragEvent) {
-  e.preventDefault()
-  if (!draggedItem.value) {
-    // Check for batch drag
-    if (tabsStore.isBatchSelectMode && tabsStore.selectedTabIds.size > 0) {
-      isDragOver.value = true
-      e.dataTransfer!.dropEffect = 'move'
-    }
-    return
-  }
-  if (draggedItem.value.type === 'category' && draggedItem.value.id === props.category.id) return
-  isDragOver.value = true
-  e.dataTransfer!.dropEffect = 'move'
-}
-
-function handleDragLeave() {
-  isDragOver.value = false
-}
-
-async function handleDrop(e: DragEvent) {
-  e.preventDefault()
-  isDragOver.value = false
-
-  // Handle batch drag
-  if (tabsStore.isBatchSelectMode && tabsStore.selectedTabIds.size > 0) {
-    const moved = await tabsStore.batchMoveTabs(props.category.id)
-    showToast(t('contextMenu.movedTabs', { count: moved }))
-    return
-  }
-
-  if (!draggedItem.value) return
-  if (draggedItem.value.type === 'category' && draggedItem.value.id === props.category.id) return
-
-  try {
-    if (draggedItem.value.type === 'tab') {
-      await tabsStore.moveTab(draggedItem.value.id, props.category.id)
-    } else {
-      await tabsStore.moveCategory(draggedItem.value.id, props.category.id)
-    }
-    showToast(t('contextMenu.movedSuccessfully'))
-  } catch (err) {
-    showToast(t('contextMenu.moveFailed') + ': ' + err, 'error')
-  }
-
-  endDrag()
-}
 </script>
 
 <template>
   <div
     class="tab-card folder"
     :class="{
-      'drag-over': isDragOver,
       'cloud-offline': isCloudOffline
     }"
-    :draggable="!isCloudCategory"
     @click="handleClick"
     @contextmenu="handleContextMenu"
-    @dragstart="handleDragStart"
-    @dragend="handleDragEnd"
-    @dragover="handleDragOver"
-    @dragleave="handleDragLeave"
-    @drop="handleDrop"
   >
     <!-- Offline indicator for cloud category -->
     <div v-if="isCloudOffline" class="offline-badge">
