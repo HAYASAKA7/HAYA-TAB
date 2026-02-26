@@ -571,6 +571,12 @@ func (a *App) RemoveTabFromCategory(tabID, categoryID string) error {
 		return fmt.Errorf("tab not found")
 	}
 
+	// Prevent removing cloud tabs from the cloud storage category
+	// Cloud tabs can only be removed from this category when downloaded to local
+	if tab.IsCloud && categoryID == store.SystemCloudCategoryID {
+		return fmt.Errorf("cannot remove cloud tab from cloud storage category")
+	}
+
 	newCats := []string{}
 	found := false
 	for _, c := range tab.CategoryIDs {

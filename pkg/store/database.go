@@ -622,14 +622,14 @@ func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, sea
 	}
 
 	query := fmt.Sprintf(`
-		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, 
-			   tabs.is_managed, tabs.cover_path, tabs.category_id, tabs.country, tabs.language, 
-			   COALESCE(tabs.tag, ''), tabs.added_at, tabs.last_opened 
-		FROM tabs 
+		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type,
+			   tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id, tabs.country, tabs.language,
+			   COALESCE(tabs.tag, ''), tabs.added_at, tabs.last_opened
+		FROM tabs
 		INNER JOIN tabs_fts ON tabs.rowid = tabs_fts.rowid
 		%s
 		WHERE tabs_fts MATCH ?%s
-		ORDER BY %s 
+		ORDER BY %s
 		LIMIT ? OFFSET ?
 	`, catJoin, catWhere, orderBy)
 

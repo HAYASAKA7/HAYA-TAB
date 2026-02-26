@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2026-02-26
+
+### Fixed
+- **Singles Search:** Fixed critical bug where search functionality in Singles view was completely broken due to missing `is_cloud` column in FTS query
+- **Cloud Category Protection:** Cloud tabs can no longer be manually removed from the "Cloud Storage" category - they are only removed automatically when downloaded to local storage
+
 ## [2.1.0] - 2026-02-26
 
 ### Added
