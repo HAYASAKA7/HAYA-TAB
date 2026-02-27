@@ -8,6 +8,7 @@ import (
 	"haya-tab/pkg/logger"
 	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
+	"haya-tab/pkg/worker"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,6 +37,7 @@ type SyncService struct {
 	coverPool *coverpool.CoverPool
 	emitter   EventEmitter
 	appDir    string
+	mbWorker  *worker.MBWorker
 }
 
 // NewSyncService creates a new SyncService instance
@@ -45,6 +47,7 @@ func NewSyncService(
 	coverPool *coverpool.CoverPool,
 	emitter EventEmitter,
 	appDir string,
+	mbWorker *worker.MBWorker,
 ) *SyncService {
 	return &SyncService{
 		store:     store,
@@ -52,6 +55,7 @@ func NewSyncService(
 		coverPool: coverPool,
 		emitter:   emitter,
 		appDir:    appDir,
+		mbWorker:  mbWorker,
 	}
 }
 
@@ -206,6 +210,14 @@ func (s *SyncService) FetchCoverAsync(tab store.Tab) {
 				currentTab.CoverPath = coverPath
 				s.store.AddTab(*currentTab)
 				s.emitter.Emit("tab-updated", *currentTab)
+
+				// After successful cover download, queue MusicBrainz lookup for origin country
+				if s.mbWorker != nil && currentTab.Artist != "" && currentTab.OriginCountry == "" {
+					s.mbWorker.Submit(worker.MBJob{
+						TabID:      tabID,
+						ArtistName: currentTab.Artist,
+					})
+				}
 			} else {
 				s.logger.Error("Failed to download cover: %v", err)
 			}

@@ -7,21 +7,22 @@ const (
 
 // Tab represents a guitar tab file and its metadata
 type Tab struct {
-	ID          string   `json:"id"`
-	Title       string   `json:"title"`
-	Artist      string   `json:"artist"`
-	Album       string   `json:"album"`
-	FilePath    string   `json:"filePath"`    // Absolute path or relative to app (or WebDAV path for cloud tabs)
-	Type        string   `json:"type"`        // "pdf" or "gp"
-	IsManaged   bool     `json:"isManaged"`
-	IsCloud     bool     `json:"isCloud"`     // True if this is a cloud/online tab (not downloaded)
-	CoverPath   string   `json:"coverPath"`
-	CategoryIDs []string `json:"categoryIds"` // List of Category IDs
-	Country     string   `json:"country"`     // e.g. "US", "JP"
-	Language    string   `json:"language"`    // e.g. "ja_jp"
-	Tag         string   `json:"tag"`         // e.g. "Lead Guitar", "First Version"
-	AddedAt     int64    `json:"addedAt"`     // Unix timestamp
-	LastOpened  int64    `json:"lastOpened"`  // Unix timestamp
+	ID            string   `json:"id"`
+	Title         string   `json:"title"`
+	Artist        string   `json:"artist"`
+	Album         string   `json:"album"`
+	FilePath      string   `json:"filePath"`      // Absolute path or relative to app (or WebDAV path for cloud tabs)
+	Type          string   `json:"type"`          // "pdf" or "gp"
+	IsManaged     bool     `json:"isManaged"`
+	IsCloud       bool     `json:"isCloud"`       // True if this is a cloud/online tab (not downloaded)
+	CoverPath     string   `json:"coverPath"`
+	CategoryIDs   []string `json:"categoryIds"`   // List of Category IDs
+	Country       string   `json:"country"`       // e.g. "US", "JP" (user's preferred search country)
+	Language      string   `json:"language"`      // e.g. "ja_jp"
+	OriginCountry string   `json:"originCountry"` // Artist's origin country from MusicBrainz (e.g. "JP", "CN", "US")
+	Tag           string   `json:"tag"`           // e.g. "Lead Guitar", "First Version"
+	AddedAt       int64    `json:"addedAt"`       // Unix timestamp
+	LastOpened    int64    `json:"lastOpened"`    // Unix timestamp
 }
 
 // Category represents a grouping of tabs

@@ -10,6 +10,7 @@ import (
 	"haya-tab/pkg/store"
 	syncpkg "haya-tab/pkg/sync"
 	"haya-tab/pkg/watcher"
+	"haya-tab/pkg/worker"
 	"io"
 	"os"
 	"os/exec"
@@ -97,6 +98,7 @@ type App struct {
 	fileServerPort int
 	coverPool      *coverpool.CoverPool
 	syncService    *syncpkg.SyncService
+	mbWorker       *worker.MBWorker
 }
 
 // NewApp creates a new App application struct
@@ -161,9 +163,14 @@ func (a *App) startup(ctx context.Context) {
 	a.coverPool.Start()
 	a.logger.Info("Cover download pool started with 3 workers")
 
+	// Initialize MusicBrainz worker (1 request per second rate limit)
+	a.mbWorker = worker.NewMBWorker(a.store, a.logger)
+	a.mbWorker.Start()
+	a.logger.Info("MusicBrainz worker started")
+
 	// Initialize SyncService
 	emitter := &WailsEventEmitter{ctx: a.ctx}
-	a.syncService = syncpkg.NewSyncService(a.store, a.logger, a.coverPool, emitter, appDir)
+	a.syncService = syncpkg.NewSyncService(a.store, a.logger, a.coverPool, emitter, appDir, a.mbWorker)
 	a.logger.Info("SyncService initialized")
 
 	// Auto Sync Logic
@@ -207,6 +214,38 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}()
 
+	// Background backfill for legacy data: fetch origin_country for tabs with covers but no origin_country
+	go func() {
+		// Wait a bit longer to ensure the app is fully initialized
+		time.Sleep(5 * time.Second)
+
+		tabs, err := a.store.GetTabsNeedingOriginCountry()
+		if err != nil {
+			a.logger.Error("Failed to get tabs needing origin country: %v", err)
+			return
+		}
+
+		if len(tabs) == 0 {
+			a.logger.Info("No tabs need origin country backfill")
+			return
+		}
+
+		a.logger.Info("Starting background backfill for %d tabs needing origin country", len(tabs))
+
+		// Submit all tabs to the MusicBrainz worker queue
+		// The worker will process them at 1 per second automatically
+		for _, tab := range tabs {
+			if tab.Artist != "" {
+				a.mbWorker.Submit(worker.MBJob{
+					TabID:      tab.ID,
+					ArtistName: tab.Artist,
+				})
+			}
+		}
+
+		a.logger.Info("Queued %d tabs for origin country backfill", len(tabs))
+	}()
+
 	// Initialize file watcher if sync paths are configured
 	settings := a.store.GetSettings()
 	if len(settings.SyncPaths) > 0 {
@@ -231,6 +270,11 @@ func (a *App) startup(ctx context.Context) {
 
 // shutdown is called when the app is closing
 func (a *App) shutdown(ctx context.Context) {
+	// Stop MusicBrainz worker
+	if a.mbWorker != nil {
+		a.mbWorker.Stop()
+	}
+
 	// Stop cover download pool
 	if a.coverPool != nil {
 		a.coverPool.Stop()

@@ -194,6 +194,7 @@ export namespace store {
 	    categoryIds: string[];
 	    country: string;
 	    language: string;
+	    originCountry: string;
 	    tag: string;
 	    addedAt: number;
 	    lastOpened: number;
@@ -216,6 +217,7 @@ export namespace store {
 	        this.categoryIds = source["categoryIds"];
 	        this.country = source["country"];
 	        this.language = source["language"];
+	        this.originCountry = source["originCountry"];
 	        this.tag = source["tag"];
 	        this.addedAt = source["addedAt"];
 	        this.lastOpened = source["lastOpened"];
