@@ -198,6 +198,8 @@ export namespace store {
 	    tag: string;
 	    addedAt: number;
 	    lastOpened: number;
+	    initialAz: string;
+	    initialKana: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Tab(source);
@@ -221,6 +223,8 @@ export namespace store {
 	        this.tag = source["tag"];
 	        this.addedAt = source["addedAt"];
 	        this.lastOpened = source["lastOpened"];
+	        this.initialAz = source["initialAz"];
+	        this.initialKana = source["initialKana"];
 	    }
 	}
 

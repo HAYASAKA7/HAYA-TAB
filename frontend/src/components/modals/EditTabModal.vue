@@ -71,7 +71,9 @@ async function handleSave() {
     language: formData.value.language || 'en_us',
     tag: formData.value.tag || '',
     addedAt: existing?.addedAt || 0,
-    lastOpened: existing?.lastOpened || 0
+    lastOpened: existing?.lastOpened || 0,
+    initialAz: existing?.initialAz || '#',   // Will be recalculated by backend
+    initialKana: existing?.initialKana || '#' // Will be recalculated by backend
   }
 
   try {

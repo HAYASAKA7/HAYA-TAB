@@ -23,6 +23,8 @@ type Tab struct {
 	Tag           string   `json:"tag"`           // e.g. "Lead Guitar", "First Version"
 	AddedAt       int64    `json:"addedAt"`       // Unix timestamp
 	LastOpened    int64    `json:"lastOpened"`    // Unix timestamp
+	InitialAZ     string   `json:"initialAz"`     // A-Z initial for EN/ZH UI (Pinyin/Romaji mapped to A-Z)
+	InitialKana   string   `json:"initialKana"`   // Kana initial for JA UI (あかさたな... or A-Z for Latin)
 }
 
 // Category represents a grouping of tabs

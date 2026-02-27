@@ -56,6 +56,24 @@ watch(() => tabsStore.currentCategoryId, async (newId) => {
   }
 })
 
+// Kana row order for Japanese UI Quick Jump Bar
+const KANA_ROWS = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ']
+const AZ_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+
+// Check if current UI is Japanese
+const isJapaneseUI = computed(() => settingsStore.settings.language === 'ja')
+
+// Get the initial key for a tab based on current UI language
+function getInitialKey(tab: typeof tabsStore.tabs[0]): string {
+  if (isJapaneseUI.value) {
+    // For JA UI: use initialKana (A-Z for Latin, Kana row for Japanese, # for others)
+    return tab.initialKana || '#'
+  } else {
+    // For EN/ZH UI: use initialAz (A-Z for all, # for special chars)
+    return tab.initialAz || '#'
+  }
+}
+
 const groupedTabs = computed(() => {
   const groups: Record<string, typeof tabsStore.tabs> = {}
 
@@ -63,9 +81,7 @@ const groupedTabs = computed(() => {
   const sorted = [...tabsStore.tabs].sort((a, b) => a.title.localeCompare(b.title))
 
   for (const tab of sorted) {
-    const letter = (tab.title[0] || '#').toUpperCase()
-    // Group special chars under '#'
-    const key = /[A-Z]/.test(letter) ? letter : '#'
+    const key = getInitialKey(tab)
 
     if (!groups[key]) {
       groups[key] = []
@@ -73,11 +89,23 @@ const groupedTabs = computed(() => {
     groups[key].push(tab)
   }
 
-  // Return sorted keys
+  // Define the order based on UI language
+  let order: string[]
+  if (isJapaneseUI.value) {
+    // JA UI: A-Z, then Kana rows, then #
+    order = [...AZ_LETTERS, ...KANA_ROWS, '#']
+  } else {
+    // EN/ZH UI: A-Z, then #
+    order = [...AZ_LETTERS, '#']
+  }
+
+  // Return groups in the defined order
   const orderedGroups: Record<string, typeof tabsStore.tabs> = {}
-  Object.keys(groups).sort().forEach(key => {
-    orderedGroups[key] = groups[key]
-  })
+  for (const key of order) {
+    if (groups[key]) {
+      orderedGroups[key] = groups[key]
+    }
+  }
 
   return orderedGroups
 })

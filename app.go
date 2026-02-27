@@ -246,6 +246,38 @@ func (a *App) startup(ctx context.Context) {
 		a.logger.Info("Queued %d tabs for origin country backfill", len(tabs))
 	}()
 
+	// Background backfill for legacy data: calculate initials for tabs without them
+	go func() {
+		// Wait a bit to ensure the app is fully initialized
+		time.Sleep(6 * time.Second)
+
+		tabs, err := a.store.GetTabsNeedingInitials()
+		if err != nil {
+			a.logger.Error("Failed to get tabs needing initials: %v", err)
+			return
+		}
+
+		if len(tabs) == 0 {
+			a.logger.Info("No tabs need initials backfill")
+			return
+		}
+
+		a.logger.Info("Starting background backfill for %d tabs needing initials", len(tabs))
+
+		// Calculate and update initials for each tab
+		updated := 0
+		for _, tab := range tabs {
+			az, kana := metadata.CalculateInitials(tab.Title, tab.OriginCountry)
+			if err := a.store.UpdateTabInitials(tab.ID, az, kana); err != nil {
+				a.logger.Error("Failed to update initials for tab %s: %v", tab.ID, err)
+				continue
+			}
+			updated++
+		}
+
+		a.logger.Info("Successfully backfilled initials for %d/%d tabs", updated, len(tabs))
+	}()
+
 	// Initialize file watcher if sync paths are configured
 	settings := a.store.GetSettings()
 	if len(settings.SyncPaths) > 0 {
@@ -743,6 +775,9 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) (*store.Tab, error) {
 		tab.AddedAt = time.Now().Unix()
 	}
 
+	// Calculate initials for Quick Jump Bar
+	tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
+
 	// Save initial version first
 	if err := a.store.AddTab(tab); err != nil {
 		return nil, err
@@ -756,6 +791,9 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) (*store.Tab, error) {
 
 // UpdateTab updates an existing tab's metadata
 func (a *App) UpdateTab(tab store.Tab) error {
+	// Recalculate initials in case title or origin country changed
+	tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
+
 	// Let's just update the store.
 	if err := a.store.AddTab(tab); err != nil {
 		return err
