@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.2] - 2026-02-27
+
+### Fixed
+- **Database Concurrency:** Removed over-synchronization in SQLite operations to fully leverage WAL mode
+  - Eliminated Go-level mutex locks from all pure database operations (CRUD methods)
+  - Database operations now rely solely on `database/sql` connection pool + SQLite WAL mode for concurrency
+  - Narrowed mutex scope to protect only in-memory Settings cache (using `sync.RWMutex`)
+  - Preserved lifecycle locks for `Initialize()` only; removed unnecessary lock from `Close()`
+- **Performance:** Background sync writes no longer block frontend read requests, significantly improving UI responsiveness during heavy sync operations
+
 ## [2.2.1] - 2026-02-27
 
 ### Changed

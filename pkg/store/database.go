@@ -12,7 +12,7 @@ import (
 )
 
 type DBStore struct {
-	mu       sync.Mutex
+	mu       sync.RWMutex // Protects Settings only; DB operations rely on database/sql pool + WAL
 	db       *sql.DB
 	dbPath   string
 	Settings Settings
@@ -277,6 +277,8 @@ func (s *DBStore) runMigrations() error {
 }
 
 func (s *DBStore) loadSettings() error {
+	// Note: This method is called from Initialize() which already holds the lock
+	// Do NOT acquire lock here to avoid deadlock (Go mutexes are not reentrant)
 	rows, err := s.db.Query("SELECT key, value FROM settings")
 	if err != nil {
 		return err
@@ -399,6 +401,7 @@ func (s *DBStore) loadSettings() error {
 
 // Close closes the database connection
 func (s *DBStore) Close() error {
+	// sql.DB.Close() is thread-safe, no mutex needed
 	if s.db != nil {
 		return s.db.Close()
 	}
@@ -408,9 +411,6 @@ func (s *DBStore) Close() error {
 // === Tab Operations ===
 
 func (s *DBStore) GetTabs() ([]Tab, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	rows, err := s.db.Query(`
 		SELECT id, title, artist, album, file_path, type, is_managed, is_cloud, cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs
@@ -459,9 +459,6 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 }
 
 func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) ([]Tab, int, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	// Use FTS5 for search if query is provided
 	if searchQuery != "" && len(filterBy) > 0 {
 		return s.getTabsPaginatedFTS(categoryId, page, pageSize, searchQuery, filterBy, isGlobal, sortBy, sortDesc)
@@ -601,7 +598,7 @@ func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, sea
 	var catWhere string
 	var catJoin string
 	var catArgs []interface{}
-	
+
 	if !isGlobal {
 		if categoryId != "" {
 			catJoin = " JOIN tab_categories tc ON tabs.id = tc.tab_id"
@@ -834,9 +831,6 @@ func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, se
 }
 
 func (s *DBStore) GetTab(id string) (*Tab, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var t Tab
 	var isManaged, isCloud int
 	var legacyCatID sql.NullString
@@ -870,9 +864,6 @@ func (s *DBStore) GetTab(id string) (*Tab, error) {
 }
 
 func (s *DBStore) AddTab(tab Tab) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	// Start transaction
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -932,17 +923,11 @@ func (s *DBStore) UpdateTab(tab Tab) error {
 }
 
 func (s *DBStore) DeleteTab(id string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	_, err := s.db.Exec("DELETE FROM tabs WHERE id = ?", id)
 	return err
 }
 
 func (s *DBStore) SetTabCategories(id string, categoryIDs []string, addedAt int64) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -980,9 +965,6 @@ func (s *DBStore) SetTabCategories(id string, categoryIDs []string, addedAt int6
 }
 
 func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var t Tab
 	var isManaged, isCloud int
 	var legacyCatID sql.NullString
@@ -1016,9 +998,6 @@ func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
 }
 
 func (s *DBStore) GetTabByTitle(title string) (*Tab, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var t Tab
 	var isManaged, isCloud int
 	var legacyCatID sql.NullString
@@ -1054,9 +1033,6 @@ func (s *DBStore) GetTabByTitle(title string) (*Tab, error) {
 // === Category Operations ===
 
 func (s *DBStore) GetCategories() ([]Category, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	rows, err := s.db.Query(`
 		SELECT c.id, c.name, c.parent_id, c.cover_path,
 		COALESCE(NULLIF(c.cover_path, ''), (SELECT cover_path FROM tabs WHERE category_id = c.id ORDER BY added_at ASC LIMIT 1), '') as effective_cover_path
@@ -1079,9 +1055,6 @@ func (s *DBStore) GetCategories() ([]Category, error) {
 }
 
 func (s *DBStore) GetRecentCategories(limit int) ([]Category, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if limit <= 0 {
 		limit = 10
 	}
@@ -1114,9 +1087,6 @@ func (s *DBStore) GetRecentCategories(limit int) ([]Category, error) {
 }
 
 func (s *DBStore) GetRecentTabs(limit int) ([]Tab, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if limit <= 0 {
 		limit = 20
 	}
@@ -1182,9 +1152,6 @@ func (s *DBStore) GetRecentTabs(limit int) ([]Tab, error) {
 // GetTabsNeedingOriginCountry returns tabs that have a cover but no origin_country set
 // Used for background backfill of MusicBrainz data
 func (s *DBStore) GetTabsNeedingOriginCountry() ([]Tab, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	rows, err := s.db.Query(`
 		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs
@@ -1215,9 +1182,6 @@ func (s *DBStore) GetTabsNeedingOriginCountry() ([]Tab, error) {
 
 // UpdateTabOriginCountry updates only the origin_country field for a tab
 func (s *DBStore) UpdateTabOriginCountry(tabID, originCountry string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	_, err := s.db.Exec("UPDATE tabs SET origin_country = ? WHERE id = ?", originCountry, tabID)
 	return err
 }
@@ -1225,9 +1189,6 @@ func (s *DBStore) UpdateTabOriginCountry(tabID, originCountry string) error {
 // GetTabsNeedingInitials returns tabs that need initial_az/initial_kana backfill
 // Used for background backfill of legacy data
 func (s *DBStore) GetTabsNeedingInitials() ([]Tab, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	rows, err := s.db.Query(`
 		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs
@@ -1258,17 +1219,11 @@ func (s *DBStore) GetTabsNeedingInitials() ([]Tab, error) {
 
 // UpdateTabInitials updates only the initial_az and initial_kana fields for a tab
 func (s *DBStore) UpdateTabInitials(tabID, initialAZ, initialKana string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	_, err := s.db.Exec("UPDATE tabs SET initial_az = ?, initial_kana = ? WHERE id = ?", initialAZ, initialKana, tabID)
 	return err
 }
 
 func (s *DBStore) AddCategory(cat Category) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	_, err := s.db.Exec(`
 		INSERT OR REPLACE INTO categories (id, name, parent_id, cover_path)
 		VALUES (?, ?, ?, ?)
@@ -1277,9 +1232,6 @@ func (s *DBStore) AddCategory(cat Category) error {
 }
 
 func (s *DBStore) DeleteCategory(id string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	// Start a transaction
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -1308,18 +1260,12 @@ func (s *DBStore) DeleteCategory(id string) error {
 }
 
 func (s *DBStore) MoveCategory(id, newParentID string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	_, err := s.db.Exec("UPDATE categories SET parent_id = ? WHERE id = ?", newParentID, id)
 	return err
 }
 
 // EnsureCloudCategory creates or updates the system cloud category
 func (s *DBStore) EnsureCloudCategory() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	_, err := s.db.Exec(`
 		INSERT OR REPLACE INTO categories (id, name, parent_id, cover_path)
 		VALUES (?, ?, '', '')
@@ -1329,9 +1275,6 @@ func (s *DBStore) EnsureCloudCategory() error {
 
 // GetCategory retrieves a single category by ID
 func (s *DBStore) GetCategory(id string) (*Category, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var c Category
 	err := s.db.QueryRow(`
 		SELECT c.id, c.name, c.parent_id, c.cover_path,
@@ -1350,21 +1293,19 @@ func (s *DBStore) GetCategory(id string) (*Category, error) {
 // === Settings Operations ===
 
 func (s *DBStore) GetSettings() Settings {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.Settings
 }
 
 func (s *DBStore) UpdateSettings(settings Settings) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.Settings = settings
-
+	// Encrypt password before DB operations
 	encryptedPass, err := Encrypt(settings.WebDAVPassword)
 	if err != nil {
 		return err
 	}
 
-	// Save each setting
+	// Save each setting to DB (no lock needed - relies on database/sql pool + WAL)
 	settingsMap := map[string]string{
 		"theme":                       settings.Theme,
 		"language":                    settings.Language,
@@ -1404,14 +1345,16 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 		}
 	}
 
+	// Lock only for memory assignment
+	s.mu.Lock()
+	s.Settings = settings
+	s.mu.Unlock()
+
 	return nil
 }
 
 // HasData checks if the database has any data
 func (s *DBStore) HasData() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM tabs").Scan(&count)
 	if err != nil {
