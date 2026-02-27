@@ -85,7 +85,7 @@ async function loadDirectory(path: string) {
   
   try {
     // Use the new non-recursive list method
-    const result = await window.go.main.App.WebDAVListDir(
+    const result = await window.go.app.App.WebDAVListDir(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,
@@ -157,7 +157,7 @@ async function handleDownload() {
 
   loading.value = true
   try {
-    await window.go.main.App.WebDAVDownloadFiles(
+    await window.go.app.App.WebDAVDownloadFiles(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,
@@ -175,7 +175,7 @@ async function handleAddOnline() {
 
   loading.value = true
   try {
-    await window.go.main.App.WebDAVAddOnlineFiles(
+    await window.go.app.App.WebDAVAddOnlineFiles(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,

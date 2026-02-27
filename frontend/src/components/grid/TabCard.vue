@@ -51,7 +51,7 @@ watch(() => props.tab.coverPath, () => {
 
 onMounted(async () => {
   try {
-    fileServerPort.value = await window.go.main.App.GetFileServerPort()
+    fileServerPort.value = await window.go.app.App.GetFileServerPort()
   } catch (e) {
     console.error('Failed to get file server port:', e)
   }
@@ -99,7 +99,7 @@ async function openTab() {
     openInternalTab()
   } else {
     try {
-      await window.go.main.App.OpenTab(props.tab.id)
+      await window.go.app.App.OpenTab(props.tab.id)
     } catch (err) {
       console.error(err)
       showToast(t('contextMenu.failedToOpen'), 'error')
@@ -110,7 +110,7 @@ async function openTab() {
 async function openInternalTab() {
   try {
     // Notify backend to update timestamp
-    await (window.go.main.App as any).MarkAsOpened(props.tab.id)
+    await (window.go.app.App as any).MarkAsOpened(props.tab.id)
   } catch (err) {
     console.warn('Failed to mark tab as opened:', err)
   }
@@ -151,7 +151,7 @@ function handleContextMenu(e: MouseEvent) {
   } else {
     // Regular local tab options
     items.push(
-      { label: t('contextMenu.openWithSystem'), action: () => window.go.main.App.OpenTab(props.tab.id) },
+      { label: t('contextMenu.openWithSystem'), action: () => window.go.app.App.OpenTab(props.tab.id) },
       { label: t('contextMenu.openWithInner'), action: () => openInternalTab() },
       { label: t('contextMenu.editMetadata'), action: () => uiStore.showEditModal(props.tab) },
       { label: t('contextMenu.addToCategory'), action: () => uiStore.showMoveModal(props.tab.id) }
@@ -181,7 +181,7 @@ function handleContextMenu(e: MouseEvent) {
 async function downloadToLocal() {
   try {
     showToast(t('cloud.downloadingToLocal'), 'info')
-    await window.go.main.App.DownloadCloudTabToLocal(props.tab.id)
+    await window.go.app.App.DownloadCloudTabToLocal(props.tab.id)
     // Success/error handling is done via cloud-download-single event listener
   } catch (err) {
     console.error('Failed to download cloud tab:', err)
@@ -190,9 +190,9 @@ async function downloadToLocal() {
 }
 
 async function exportTab() {
-  const dest = await window.go.main.App.SelectFolder()
+  const dest = await window.go.app.App.SelectFolder()
   if (dest) {
-    await window.go.main.App.ExportTab(props.tab.id, dest)
+    await window.go.app.App.ExportTab(props.tab.id, dest)
     showToast(t('contextMenu.exported'))
   }
 }

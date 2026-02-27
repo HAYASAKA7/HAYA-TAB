@@ -35,7 +35,7 @@ async function testConnection() {
   
   testing.value = true
   try {
-    await window.go.main.App.WebDAVTestConnection(url.value, user.value, password.value)
+    await window.go.app.App.WebDAVTestConnection(url.value, user.value, password.value)
     showToast(t('settings.connectionSuccess'), 'success')
   } catch (err) {
     showToast(t('settings.connectionFailed') + ': ' + err, 'error')

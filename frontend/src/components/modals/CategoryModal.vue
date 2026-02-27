@@ -27,7 +27,7 @@ watch(() => uiStore.categoryModalData, (data) => {
 }, { immediate: true })
 
 async function selectCover() {
-  const path = await window.go.main.App.SelectImage()
+  const path = await window.go.app.App.SelectImage()
   if (path) {
     coverPath.value = path
   }

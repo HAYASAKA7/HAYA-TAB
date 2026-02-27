@@ -92,14 +92,14 @@ async function fetchAudioDevices() {
 }
 
 async function handleAddSyncPath() {
-  const path = await window.go.main.App.SelectFolder()
+  const path = await window.go.app.App.SelectFolder()
   if (path) {
     settingsStore.addSyncPath(path)
   }
 }
 
 async function handleBrowseBg() {
-  const path = await window.go.main.App.SelectImage()
+  const path = await window.go.app.App.SelectImage()
   if (path) {
     settingsStore.settings.background = path
   }

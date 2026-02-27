@@ -51,7 +51,7 @@ function handleBlankContextMenu(e: MouseEvent) {
 }
 
 async function addTab(isUpload: boolean) {
-  const paths = await window.go.main.App.SelectFiles()
+  const paths = await window.go.app.App.SelectFiles()
   if (paths && paths.length > 0) {
     let added = 0
     let skipped = 0
@@ -59,8 +59,8 @@ async function addTab(isUpload: boolean) {
 
     for (const path of paths) {
       try {
-        const tabData = await window.go.main.App.ProcessFile(path)
-        const savedTab = await window.go.main.App.SaveTab(tabData, isUpload)
+        const tabData = await window.go.app.App.ProcessFile(path)
+        const savedTab = await window.go.app.App.SaveTab(tabData, isUpload)
         if (savedTab) {
           newTabs.push(savedTab)
         }

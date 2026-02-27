@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-2.2.0-green)
+![Version](https://img.shields.io/badge/version-2.2.1-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
@@ -66,27 +66,36 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 ## 📁 Project Structure
 
 ```
-├── app.go              # Backend bridge (Wails -> Go)
-├── main.go             # Application entry point
-├── frontend/           # UI (Vue 3 + Vite)
-│   ├── src/            # Frontend source code
-│   │   ├── components/ # UI Components
-│   │   ├── stores/     # State Management (Pinia)
-│   │   └── locales/    # i18n Translation files
-│   ├── index.html      # Entry point
-│   └── vite.config.ts  # Build config
-├── pkg/                # Internal packages
-│   ├── coverpool/      # Worker pool for cover downloads
-│   ├── logger/         # Logging infrastructure
-│   ├── metadata/       # Metadata parsing logic
-│   ├── store/          # SQLite database & migrations
-│   ├── sync/           # File synchronization engine
-│   └── watcher/        # File system watcher
-├── storage/            # Uploaded tabs (managed files)
-├── covers/             # Downloaded cover art
-├── data/               # SQLite database file
-├── logs/               # Application logs
-└── build/              # Wails build assets & config
+├── main.go                    # Application entry point
+├── internal/                  # Internal packages (not importable)
+│   └── app/                   # Core application logic
+│       ├── app.go             # App struct, lifecycle (Startup/Shutdown)
+│       ├── app_tabs.go        # Tab CRUD operations
+│       ├── app_categories.go  # Category management
+│       ├── app_files.go       # File dialogs & sync triggers
+│       ├── app_settings.go    # Settings management
+│       ├── app_webdav.go      # WebDAV cloud operations
+│       └── server.go          # HTTP file server
+├── frontend/                  # UI (Vue 3 + Vite)
+│   ├── src/                   # Frontend source code
+│   │   ├── components/        # UI Components
+│   │   ├── stores/            # State Management (Pinia)
+│   │   └── locales/           # i18n Translation files
+│   ├── index.html             # Entry point
+│   └── vite.config.ts         # Build config
+├── pkg/                       # Shared packages
+│   ├── coverpool/             # Worker pool for cover downloads
+│   ├── logger/                # Logging infrastructure
+│   ├── metadata/              # Metadata parsing logic
+│   ├── store/                 # SQLite database & migrations
+│   ├── sync/                  # File synchronization engine
+│   ├── watcher/               # File system watcher
+│   └── worker/                # Background workers (MusicBrainz)
+├── storage/                   # Uploaded tabs (managed files)
+├── covers/                    # Downloaded cover art
+├── data/                      # SQLite database file
+├── logs/                      # Application logs
+└── build/                     # Wails build assets & config
 ```
 
 ## 🛠️ Tech Stack

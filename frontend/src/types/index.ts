@@ -16,7 +16,7 @@ export interface Tab {
   addedAt: number
   lastOpened: number
   initialAz: string   // A-Z initial for EN/ZH UI (Pinyin/Romaji mapped to A-Z)
-  initialKana: string // Kana initial for JA UI (あかさたな... or A-Z for Latin)
+  initialKana: string // Kana initial for JA UI (あかさた�?.. or A-Z for Latin)
 }
 
 // System category IDs

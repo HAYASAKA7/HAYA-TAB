@@ -37,7 +37,7 @@ const displayName = computed(() => {
 async function loadCover(path: string) {
   if (!path) return
   try {
-    const b64 = await window.go.main.App.GetCover(path)
+    const b64 = await window.go.app.App.GetCover(path)
     if (b64) {
       coverUrl.value = `data:image/jpeg;base64,${b64}`
     }

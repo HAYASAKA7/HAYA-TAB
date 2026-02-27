@@ -206,7 +206,7 @@ function onQuickJump(bar: number) {
                 <span>Metronome</span>
               </div>
               <div class="shortcut-row">
-                <kbd>â†‘/â†“</kbd>
+                <kbd>â†?â†?/kbd>
                 <span>Scroll</span>
               </div>
               <div class="shortcut-row">

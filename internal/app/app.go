@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"context"
@@ -103,9 +103,9 @@ func (a *App) GetFileServerPort() int {
 	return a.fileServerPort
 }
 
-// startup is called when the app starts. The context is saved
+// Startup is called when the app starts. The context is saved
 // so we can call the runtime methods
-func (a *App) startup(ctx context.Context) {
+func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 	appDir := getAppDir()
 
@@ -301,8 +301,8 @@ func (a *App) initFileWatcher() {
 	}
 }
 
-// shutdown is called when the app is closing
-func (a *App) shutdown(ctx context.Context) {
+// Shutdown is called when the app is closing
+func (a *App) Shutdown(ctx context.Context) {
 	// Stop MusicBrainz worker
 	if a.mbWorker != nil {
 		a.mbWorker.Stop()

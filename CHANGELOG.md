@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.1] - 2026-02-27
+
+### Changed
+- **Code Architecture Refactor:** Reorganized backend code structure for better maintainability
+  - Moved `App` struct and all related methods from `package main` to `internal/app` package
+  - Split monolithic app.go into focused modules: `app.go`, `app_tabs.go`, `app_categories.go`, `app_files.go`, `app_settings.go`, `app_webdav.go`, `server.go`
+  - Extracted HTTP file server logic into dedicated `server.go`
+  - Updated Wails bindings from `window.go.main.App` to `window.go.app.App`
+- **No Logic Changes:** This is a pure structural refactor with no changes to application behavior
+
 ## [2.2.0] - 2026-02-27
 
 ### Added

@@ -56,7 +56,7 @@ export const useTabsStore = defineStore('tabs', () => {
   async function fetchTabs() {
     loading.value = true
     try {
-      tabs.value = await window.go.main.App.GetTabs() || []
+      tabs.value = await window.go.app.App.GetTabs() || []
     } catch (err) {
       console.error('Error fetching tabs:', err)
       tabs.value = []
@@ -68,7 +68,7 @@ export const useTabsStore = defineStore('tabs', () => {
   async function fetchTabsPaginated(categoryId?: string) {
     loading.value = true
     try {
-      const response: TabsResponse = await window.go.main.App.GetTabsPaginated(
+      const response: TabsResponse = await window.go.app.App.GetTabsPaginated(
         categoryId ?? currentCategoryId.value,
         pagination.value.page,
         pagination.value.pageSize,
@@ -95,7 +95,7 @@ export const useTabsStore = defineStore('tabs', () => {
     pagination.value.page++
     loading.value = true
     try {
-      const response: TabsResponse = await window.go.main.App.GetTabsPaginated(
+      const response: TabsResponse = await window.go.app.App.GetTabsPaginated(
         currentCategoryId.value,
         pagination.value.page,
         pagination.value.pageSize,
@@ -146,7 +146,7 @@ export const useTabsStore = defineStore('tabs', () => {
 
   async function fetchCategories() {
     try {
-      const result = await window.go.main.App.GetCategories() || []
+      const result = await window.go.app.App.GetCategories() || []
       // Sort categories: cloud category first, then alphabetically
       categories.value = result.sort((a: Category, b: Category) => {
         if (a.id === SYSTEM_CLOUD_CATEGORY_ID) return -1
@@ -162,7 +162,7 @@ export const useTabsStore = defineStore('tabs', () => {
   async function fetchRecentCategories(limit: number) {
     loading.value = true
     try {
-      recentCategories.value = await window.go.main.App.GetRecentCategories(limit) || []
+      recentCategories.value = await window.go.app.App.GetRecentCategories(limit) || []
     } catch (err) {
       console.error('Error fetching recent categories:', err)
       recentCategories.value = []
@@ -175,7 +175,7 @@ export const useTabsStore = defineStore('tabs', () => {
     loading.value = true
     try {
       // @ts-ignore
-      recentTabs.value = await window.go.main.App.GetRecentTabs(limit) || []
+      recentTabs.value = await window.go.app.App.GetRecentTabs(limit) || []
     } catch (err) {
       console.error('Error fetching recent tabs:', err)
       recentTabs.value = []
@@ -189,7 +189,7 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   async function addTab(tab: Tab, shouldCopy: boolean) {
-    const savedTab = await window.go.main.App.SaveTab(tab, shouldCopy)
+    const savedTab = await window.go.app.App.SaveTab(tab, shouldCopy)
     // Add in-place to preserve scroll position
     if (savedTab) {
       addTabsInPlace([savedTab])
@@ -208,7 +208,7 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   async function updateTab(tab: Tab) {
-    await window.go.main.App.UpdateTab(tab)
+    await window.go.app.App.UpdateTab(tab)
     // Update in-place to preserve scroll position
     updateTabInPlace(tab.id, tab)
     await fetchCategories()
@@ -228,13 +228,13 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   async function deleteTab(id: string) {
-    await window.go.main.App.DeleteTab(id)
+    await window.go.app.App.DeleteTab(id)
     await refreshData()
   }
 
   // Delete tab and remove from local state without full refresh (preserves scroll position)
   async function deleteTabInPlace(id: string) {
-    await window.go.main.App.DeleteTab(id)
+    await window.go.app.App.DeleteTab(id)
     // Remove from tabs array in-place
     const tabIndex = tabs.value.findIndex(t => t.id === id)
     if (tabIndex !== -1) {
@@ -249,14 +249,14 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   async function moveTab(id: string, categoryId: string) {
-    await window.go.main.App.MoveTab(id, categoryId)
+    await window.go.app.App.MoveTab(id, categoryId)
     // Update in-place to preserve scroll position
     updateTabInPlace(id, { categoryIds: [categoryId] })
     await fetchCategories()
   }
 
   async function addTabToCategory(id: string, categoryId: string) {
-    await window.go.main.App.AddTabToCategory(id, categoryId)
+    await window.go.app.App.AddTabToCategory(id, categoryId)
     // Update in-place to preserve scroll position
     const tab = tabs.value.find(t => t.id === id)
     if (tab && !tab.categoryIds?.includes(categoryId)) {
@@ -266,7 +266,7 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   async function removeTabFromCategory(id: string, categoryId: string) {
-    await window.go.main.App.RemoveTabFromCategory(id, categoryId)
+    await window.go.app.App.RemoveTabFromCategory(id, categoryId)
     // Remove tab from view in-place if we're in that category (preserves scroll position)
     if (currentCategoryId.value === categoryId) {
       const tabIndex = tabs.value.findIndex(t => t.id === id)
@@ -280,7 +280,7 @@ export const useTabsStore = defineStore('tabs', () => {
   async function batchDeleteTabs() {
     if (selectedTabIds.value.size === 0) return 0
     const ids = Array.from(selectedTabIds.value)
-    const deleted = await window.go.main.App.BatchDeleteTabs(ids)
+    const deleted = await window.go.app.App.BatchDeleteTabs(ids)
     exitBatchSelectMode()
     // Remove deleted tabs in-place to preserve scroll position
     tabs.value = tabs.value.filter(t => !ids.includes(t.id))
@@ -292,7 +292,7 @@ export const useTabsStore = defineStore('tabs', () => {
   async function batchMoveTabs(categoryId: string) {
     if (selectedTabIds.value.size === 0) return 0
     const ids = Array.from(selectedTabIds.value)
-    const moved = await window.go.main.App.BatchMoveTabs(ids, categoryId)
+    const moved = await window.go.app.App.BatchMoveTabs(ids, categoryId)
     exitBatchSelectMode()
     // Update in-place to preserve scroll position
     for (const id of ids) {
@@ -306,7 +306,7 @@ export const useTabsStore = defineStore('tabs', () => {
     if (selectedTabIds.value.size === 0) return 0
     const ids = Array.from(selectedTabIds.value)
     // @ts-ignore
-    const added = await window.go.main.App.BatchAddTabsToCategory(ids, categoryId)
+    const added = await window.go.app.App.BatchAddTabsToCategory(ids, categoryId)
     exitBatchSelectMode()
     // Update in-place to preserve scroll position
     for (const id of ids) {
@@ -320,12 +320,12 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   async function addCategory(category: Category) {
-    await window.go.main.App.AddCategory(category)
+    await window.go.app.App.AddCategory(category)
     await fetchCategories()
   }
 
   async function deleteCategory(id: string) {
-    await window.go.main.App.DeleteCategory(id)
+    await window.go.app.App.DeleteCategory(id)
     // Remove categoryId from tabs in-place to preserve scroll position
     for (const tab of tabs.value) {
       if (tab.categoryIds?.includes(id)) {
@@ -345,7 +345,7 @@ export const useTabsStore = defineStore('tabs', () => {
   }
 
   async function moveCategory(id: string, newParentId: string) {
-    await window.go.main.App.MoveCategory(id, newParentId)
+    await window.go.app.App.MoveCategory(id, newParentId)
     await fetchCategories()
   }
 

@@ -8,7 +8,7 @@ declare module '*.vue' {
 
 interface Window {
   go: {
-    main: {
+    app: {
       App: {
         GetTabs(): Promise<import('./types').Tab[]>
         GetTabsPaginated(categoryId: string, page: number, pageSize: number, searchQuery: string, filterBy: string[], isGlobal: boolean, sortBy: string, sortDesc: boolean): Promise<import('./types').TabsResponse>

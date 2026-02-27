@@ -48,7 +48,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function loadSettings() {
     loading.value = true
     try {
-      const loaded = await window.go.main.App.GetSettings()
+      const loaded = await window.go.app.App.GetSettings()
       if (loaded) {
         settings.value = {
           ...settings.value,
@@ -75,7 +75,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function saveSettings() {
     loading.value = true
     try {
-      await window.go.main.App.SaveSettings(settings.value)
+      await window.go.app.App.SaveSettings(settings.value)
       applyTheme()
       applyLanguage()
       await applyBackground()
@@ -116,7 +116,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
       if (settings.value.bgType === 'local' && !bgUrl.startsWith('http')) {
         try {
-          const b64 = await window.go.main.App.GetCover(bgUrl)
+          const b64 = await window.go.app.App.GetCover(bgUrl)
           if (b64) {
             bgUrl = `data:image/jpeg;base64,${b64}`
           }
@@ -142,8 +142,8 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   async function triggerSync() {
-    await window.go.main.App.SaveSettings(settings.value)
-    return await window.go.main.App.TriggerSync()
+    await window.go.app.App.SaveSettings(settings.value)
+    return await window.go.app.App.TriggerSync()
   }
 
   // WebDAV connection status check
@@ -160,7 +160,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
 
     try {
-      const connected = await window.go.main.App.WebDAVCheckStatus()
+      const connected = await window.go.app.App.WebDAVCheckStatus()
       webdavConnected.value = connected
       return connected
     } catch (err) {

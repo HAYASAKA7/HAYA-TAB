@@ -45,7 +45,7 @@ async function listDirectories(path: string) {
 
   loading.value = true
   try {
-    const result = await window.go.main.App.WebDAVListRemoteDirectories(
+    const result = await window.go.app.App.WebDAVListRemoteDirectories(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,
@@ -81,7 +81,7 @@ async function handleUpload() {
 
   loading.value = true
   try {
-    await window.go.main.App.WebDAVUploadFiles(
+    await window.go.app.App.WebDAVUploadFiles(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,

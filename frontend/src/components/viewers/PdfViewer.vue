@@ -165,7 +165,7 @@ function onIframeLoad() {
     // Prevent duplicate injection
     if (doc.getElementById('haya-metronome-container')) return
 
-    // Inject styles â€” use --ht-* variables from custom_viewer.css for theme consistency
+    // Inject styles â€?use --ht-* variables from custom_viewer.css for theme consistency
     const style = doc.createElement('style')
     style.textContent = `
       .haya-group {
@@ -335,7 +335,7 @@ async function loadPdf() {
   if (!tab.value) return
 
   try {
-    const port = await window.go.main.App.GetFileServerPort()
+    const port = await window.go.app.App.GetFileServerPort()
     // Use streaming endpoint from local server
     const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
 
