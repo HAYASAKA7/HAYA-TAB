@@ -403,6 +403,27 @@ func (a *App) GetTabs() []store.Tab {
 	return tabs
 }
 
+// RecalculateAllInitials forces recalculation of initials for all tabs
+func (a *App) RecalculateAllInitials() (int, error) {
+	tabs, err := a.store.GetTabs()
+	if err != nil {
+		return 0, err
+	}
+
+	updated := 0
+	for _, tab := range tabs {
+		az, kana := metadata.CalculateInitials(tab.Title, tab.OriginCountry)
+		if err := a.store.UpdateTabInitials(tab.ID, az, kana); err != nil {
+			a.logger.Error("Failed to update initials for tab %s: %v", tab.ID, err)
+			continue
+		}
+		updated++
+	}
+
+	a.logger.Info("Recalculated initials for %d/%d tabs", updated, len(tabs))
+	return updated, nil
+}
+
 // GetTabsPaginated returns a paginated list of tabs with optional search
 func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) TabsResponse {
 	if page < 1 {

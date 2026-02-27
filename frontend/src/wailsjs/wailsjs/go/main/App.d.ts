@@ -47,6 +47,8 @@ export function OpenTab(arg1:string):Promise<void>;
 
 export function ProcessFile(arg1:string):Promise<store.Tab>;
 
+export function RecalculateAllInitials():Promise<number>;
+
 export function RemoveTabFromCategory(arg1:string,arg2:string):Promise<void>;
 
 export function SaveSettings(arg1:store.Settings):Promise<void>;

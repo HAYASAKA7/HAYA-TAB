@@ -141,7 +141,10 @@ func CalculateInitials(title string, originCountry string) (az string, kana stri
 		return calculateLatinInitials(title)
 	default:
 		// Fallback: Heuristic detection
-		if isKana(firstChar) {
+		// Check if title contains any Kana - if so, it's likely Japanese
+		if containsKana(title) {
+			return calculateJapaneseInitials(title)
+		} else if isKana(firstChar) {
 			return calculateJapaneseInitials(title)
 		} else if isHanzi(firstChar) {
 			return calculateChineseInitials(title)
@@ -190,20 +193,31 @@ func calculateJapaneseInitials(title string) (az string, kana string) {
 		return calculateJapaneseInitialsFallback(title)
 	}
 
-	// Get the reading (yomi) of the first token
-	firstToken := tokens[0]
-	features := firstToken.Features()
+	// Find the first non-DUMMY token and extract its reading
+	var reading string
+	var surface string
+	for _, tok := range tokens {
+		// Skip DUMMY tokens (BOS/EOS markers)
+		if tok.Class == tokenizer.DUMMY {
+			continue
+		}
 
-	// IPA dict features: [品詞,品詞細分類1,品詞細分類2,品詞細分類3,活用型,活用形,原形,読み,発音]
-	// Reading is at index 7, but not all tokens have all features
-	if len(features) < 8 {
-		return calculateJapaneseInitialsFallback(title)
+		features := tok.Features()
+		surface = tok.Surface
+
+		// IPA dict features: [品詞,品詞細分類1,品詞細分類2,品詞細分類3,活用型,活用形,原形,読み,発音]
+		// Reading is at index 7
+		if len(features) >= 8 && features[7] != "*" && features[7] != "" {
+			reading = features[7] // e.g., "セイシュン" for "青春"
+			break
+		}
+
+		// Fallback: use surface for unknown words
+		reading = surface
+		break
 	}
 
-	reading := features[7]
-
-	if reading == "*" || reading == "" {
-		// No reading available, use fallback
+	if reading == "" {
 		return calculateJapaneseInitialsFallback(title)
 	}
 
@@ -213,48 +227,96 @@ func calculateJapaneseInitials(title string) (az string, kana string) {
 		return calculateJapaneseInitialsFallback(title)
 	}
 
-	firstKana := readingRunes[0]
+	firstChar := readingRunes[0]
 
-	// Map to Romaji for A-Z
-	if romaji, ok := kanaToRomaji[firstKana]; ok {
-		az = romaji
-	} else {
-		az = "#"
+	// Check if the first character is Kana (expected case)
+	if isKana(firstChar) {
+		// Map to Romaji for A-Z
+		if romaji, ok := kanaToRomaji[firstChar]; ok {
+			az = romaji
+		} else {
+			az = "#"
+		}
+
+		// Map to Gojūon row for Kana
+		if row, ok := kanaToRow[firstChar]; ok {
+			kana = row
+		} else {
+			kana = "#"
+		}
+
+		return az, kana
 	}
 
-	// Map to Gojūon row for Kana
-	if row, ok := kanaToRow[firstKana]; ok {
-		kana = row
-	} else {
-		kana = "#"
+	// Crucial fallback: If the first character is STILL a Kanji (unknown word),
+	// use Pinyin for A-Z and "#" for kana
+	if isHanzi(firstChar) {
+		args := pinyin.NewArgs()
+		args.Style = pinyin.FirstLetter
+		args.Fallback = func(r rune, a pinyin.Args) []string {
+			return []string{"#"}
+		}
+
+		pinyinResult := pinyin.Pinyin(string(firstChar), args)
+		if len(pinyinResult) > 0 && len(pinyinResult[0]) > 0 {
+			initial := strings.ToUpper(pinyinResult[0][0])
+			if len(initial) > 0 && initial[0] >= 'A' && initial[0] <= 'Z' {
+				return string(initial[0]), "#"
+			}
+		}
 	}
 
-	return az, kana
+	// Final fallback for other characters
+	return "#", "#"
 }
 
 // calculateJapaneseInitialsFallback uses direct character mapping when tokenizer fails
 func calculateJapaneseInitialsFallback(title string) (az string, kana string) {
 	firstChar := []rune(strings.TrimSpace(title))[0]
 
-	// Map to Romaji for A-Z
-	if romaji, ok := kanaToRomaji[firstChar]; ok {
-		az = romaji
-	} else if isLatin(firstChar) {
-		az = strings.ToUpper(string(firstChar))
-	} else {
-		az = "#"
+	// If it's Kana, map directly
+	if isKana(firstChar) {
+		// Map to Romaji for A-Z
+		if romaji, ok := kanaToRomaji[firstChar]; ok {
+			az = romaji
+		} else {
+			az = "#"
+		}
+
+		// Map to Gojūon row for Kana
+		if row, ok := kanaToRow[firstChar]; ok {
+			kana = row
+		} else {
+			kana = "#"
+		}
+
+		return az, kana
 	}
 
-	// Map to Gojūon row for Kana
-	if row, ok := kanaToRow[firstChar]; ok {
-		kana = row
-	} else if isLatin(firstChar) {
-		kana = strings.ToUpper(string(firstChar))
-	} else {
-		kana = "#"
+	// If it's Latin, use directly
+	if isLatin(firstChar) {
+		initial := strings.ToUpper(string(firstChar))
+		return initial, initial
 	}
 
-	return az, kana
+	// If it's Kanji, use Pinyin for A-Z and "#" for kana
+	if isHanzi(firstChar) {
+		args := pinyin.NewArgs()
+		args.Style = pinyin.FirstLetter
+		args.Fallback = func(r rune, a pinyin.Args) []string {
+			return []string{"#"}
+		}
+
+		pinyinResult := pinyin.Pinyin(string(firstChar), args)
+		if len(pinyinResult) > 0 && len(pinyinResult[0]) > 0 {
+			initial := strings.ToUpper(pinyinResult[0][0])
+			if len(initial) > 0 && initial[0] >= 'A' && initial[0] <= 'Z' {
+				return string(initial[0]), "#"
+			}
+		}
+	}
+
+	return "#", "#"
 }
 
 // calculateLatinInitials extracts uppercase initial for Latin/English titles
@@ -273,6 +335,16 @@ func calculateLatinInitials(title string) (az string, kana string) {
 func isKana(r rune) bool {
 	return (r >= 0x3040 && r <= 0x309F) || // Hiragana
 		(r >= 0x30A0 && r <= 0x30FF) // Katakana
+}
+
+// containsKana checks if a string contains any Hiragana or Katakana characters
+func containsKana(s string) bool {
+	for _, r := range s {
+		if isKana(r) {
+			return true
+		}
+	}
+	return false
 }
 
 // isHanzi checks if a character is a Chinese character (CJK Unified Ideographs)

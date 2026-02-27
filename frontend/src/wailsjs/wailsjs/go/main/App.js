@@ -90,6 +90,10 @@ export function ProcessFile(arg1) {
   return window['go']['main']['App']['ProcessFile'](arg1);
 }
 
+export function RecalculateAllInitials() {
+  return window['go']['main']['App']['RecalculateAllInitials']();
+}
+
 export function RemoveTabFromCategory(arg1, arg2) {
   return window['go']['main']['App']['RemoveTabFromCategory'](arg1, arg2);
 }
