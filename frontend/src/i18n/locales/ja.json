@@ -105,6 +105,7 @@
     "addOnline": "ライブラリに追加（オンライン）",
     "addOnlineTooltip": "ダウンロードせずにライブラリに追加、オンデマンドでストリーミング",
     "addOnlineFailed": "オンラインファイルの追加に失敗しました",
+    "addOnlineComplete": "ライブラリに追加しました",
     "downloadToLocal": "ローカルにダウンロード",
     "downloadingToLocal": "ローカルストレージにダウンロード中...",
     "downloadFailed": "ダウンロードに失敗しました",

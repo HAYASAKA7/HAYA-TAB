@@ -105,6 +105,7 @@
     "addOnline": "添加到曲库（在线）",
     "addOnlineTooltip": "添加到曲库但不下载，按需流式播放",
     "addOnlineFailed": "添加在线文件失败",
+    "addOnlineComplete": "已添加到曲库",
     "downloadToLocal": "下载到本地",
     "downloadingToLocal": "正在下载到本地存储...",
     "downloadFailed": "下载失败",

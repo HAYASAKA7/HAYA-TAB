@@ -105,6 +105,7 @@
     "addOnline": "新增至曲庫（線上）",
     "addOnlineTooltip": "新增至曲庫但不下載，按需串流播放",
     "addOnlineFailed": "新增線上檔案失敗",
+    "addOnlineComplete": "已新增至曲庫",
     "downloadToLocal": "下載到本機",
     "downloadingToLocal": "正在下載到本機儲存空間...",
     "downloadFailed": "下載失敗",

@@ -24,6 +24,7 @@ const loading = ref(false)
 const selectedFiles = ref<Set<string>>(new Set())
 const searchQuery = ref('')
 const progress = ref<{ status: string, current?: number, total?: number, filename?: string, success?: number, skipped?: number, errors?: number } | null>(null)
+const currentOperation = ref<'download' | 'addOnline'>('download')
 
 // Breadcrumbs computation
 const breadcrumbs = computed(() => {
@@ -50,12 +51,14 @@ watch(() => uiStore.cloudPickerModalVisible, (visible) => {
     progress.value = null
     selectedFiles.value.clear()
     searchQuery.value = ''
+    currentOperation.value = 'download'
     
     // Listen for progress events
     EventsOn('cloud-progress', (data: any) => {
       progress.value = data
       if (data.status === 'complete') {
-        let msg = t('cloud.downloadComplete') + ` (${data.success} success`
+        const completeKey = currentOperation.value === 'addOnline' ? 'cloud.addOnlineComplete' : 'cloud.downloadComplete'
+        let msg = t(completeKey) + ` (${data.success} success`
         if (data.skipped) msg += `, ${data.skipped} skipped`
         if (data.errors) msg += `, ${data.errors} errors`
         msg += ')'
@@ -156,6 +159,7 @@ async function handleDownload() {
   if (selectedFiles.value.size === 0) return
 
   loading.value = true
+  currentOperation.value = 'download'
   try {
     await window.go.app.App.WebDAVDownloadFiles(
       settingsStore.settings.webdavUrl,
@@ -174,6 +178,7 @@ async function handleAddOnline() {
   if (selectedFiles.value.size === 0) return
 
   loading.value = true
+  currentOperation.value = 'addOnline'
   try {
     await window.go.app.App.WebDAVAddOnlineFiles(
       settingsStore.settings.webdavUrl,

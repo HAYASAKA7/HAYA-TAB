@@ -105,6 +105,7 @@
     "addOnline": "Add to Library (Online)",
     "addOnlineTooltip": "Add to library without downloading. Stream on demand.",
     "addOnlineFailed": "Failed to add online files",
+    "addOnlineComplete": "Added to library",
     "downloadToLocal": "Download to Local",
     "downloadingToLocal": "Downloading to local storage...",
     "downloadFailed": "Download failed",

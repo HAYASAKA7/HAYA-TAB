@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.4] - 2026-02-27
+
+### Fixed
+- **Cloud Add-Online Toast:** Adding cloud tabs to library (online) now shows the correct success/error message instead of incorrectly displaying "Download failed" or "Download complete"
+- **i18n:** Added missing `addOnlineComplete` translation key for all supported languages (EN, ZH-CN, ZH-TW, JA)
+
 ## [2.2.3] - 2026-02-27
 
 ### Added
