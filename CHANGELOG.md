@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-02-27
+
+### Added
+- **A-Z Quick Jump Bar:** Alphabet index navigation on the right side of Singles view for quick scrolling to letter groups (similar to iOS contacts). Supports click and drag/touch to scroll.
+- **MusicBrainz Integration:** Automatic artist origin country lookup via MusicBrainz API with rate-limited background worker (1 req/sec).
+- **Multi-language Title Sorting:** Intelligent initial calculation based on artist origin country:
+  - Chinese (CN/TW/HK): Pinyin-based A-Z sorting
+  - Japanese (JP): Gojūon (あかさたな) rows for JA UI, Romaji A-Z for EN/ZH UI
+  - Latin/English: Standard A-Z sorting
+- **Japanese Reading Support:** Integrated Kagome tokenizer (IPA dictionary) for accurate Japanese title readings (e.g., "青春" → "セイシュン" → "S/さ行").
+- **Background Backfill:** Automatic migration for existing tabs to calculate initials and fetch origin countries on startup.
+
+### Improved
+- **Cloud Category Protection:** Tabs can no longer be manually added to the "Cloud Storage" category - only cloud-synced files appear there.
+
 ## [2.1.2] - 2026-02-27
 
 ### Added
