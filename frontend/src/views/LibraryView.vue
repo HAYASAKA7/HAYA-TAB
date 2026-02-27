@@ -82,6 +82,37 @@ const groupedTabs = computed(() => {
   return orderedGroups
 })
 
+// A-Z Quick Jump Bar - follows same order as groupedTabs
+const availableLetters = computed(() => {
+  return Object.keys(groupedTabs.value)
+})
+
+function scrollToLetter(letter: string) {
+  document.getElementById(`group-${letter}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// Drag/touch to scroll functionality
+const isDragging = ref(false)
+
+function handleAlphabetPointerDown(e: PointerEvent) {
+  isDragging.value = true
+  ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  handleAlphabetPointerMove(e)
+}
+
+function handleAlphabetPointerMove(e: PointerEvent) {
+  if (!isDragging.value) return
+  const target = document.elementFromPoint(e.clientX, e.clientY)
+  if (target?.classList.contains('alphabet-letter')) {
+    const letter = target.getAttribute('data-letter')
+    if (letter) scrollToLetter(letter)
+  }
+}
+
+function handleAlphabetPointerUp() {
+  isDragging.value = false
+}
+
 function switchMode(mode: 'singles' | 'categories') {
   viewMode.value = mode
   tabsStore.navigateToCategory('') // Reset category
@@ -234,12 +265,32 @@ async function addTab(isUpload: boolean) {
         <div v-if="tabsStore.loading" class="loading-state">{{ t('library.loading') }}</div>
         <div v-else-if="tabsStore.tabs.length === 0" class="empty-state">{{ t('library.noTabs') }}</div>
 
-        <div v-else v-for="(group, letter) in groupedTabs" :key="letter" class="letter-group">
-          <div class="group-header">{{ letter }}</div>
-          <div class="tab-grid">
-            <TabCard v-for="tab in group" :key="tab.id" :tab="tab" />
+        <template v-else>
+          <div v-for="(group, letter) in groupedTabs" :key="letter" class="letter-group">
+            <div :id="`group-${letter}`" class="group-header">{{ letter }}</div>
+            <div class="tab-grid">
+              <TabCard v-for="tab in group" :key="tab.id" :tab="tab" />
+            </div>
           </div>
-        </div>
+
+          <!-- A-Z Quick Jump Bar -->
+          <div
+            v-if="availableLetters.length > 1"
+            class="alphabet-bar"
+            @pointerdown="handleAlphabetPointerDown"
+            @pointermove="handleAlphabetPointerMove"
+            @pointerup="handleAlphabetPointerUp"
+            @pointercancel="handleAlphabetPointerUp"
+          >
+            <span
+              v-for="letter in availableLetters"
+              :key="letter"
+              :data-letter="letter"
+              class="alphabet-letter"
+              @click="scrollToLetter(letter)"
+            >{{ letter }}</span>
+          </div>
+        </template>
       </div>
 
       <!-- Categories View -->
@@ -348,6 +399,7 @@ async function addTab(isUpload: boolean) {
   position: relative;
   background: transparent;
   z-index: 1;
+  scroll-margin-top: 1rem;
 }
 
 .tab-grid {
@@ -355,6 +407,42 @@ async function addTab(isUpload: boolean) {
   flex-wrap: wrap;
   gap: 30px;
   justify-content: center;
+}
+
+.singles-container {
+  position: relative;
+}
+
+.alphabet-bar {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  user-select: none;
+  touch-action: none;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.alphabet-letter {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.6;
+  padding: 2px 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.alphabet-letter:hover {
+  color: var(--primary-color);
+  transform: scale(1.2);
 }
 
 .loading-state, .empty-state {

@@ -1,11 +1,9 @@
 GEMINI.md
-CLAUDE.md
 build/bin
 data/
 storage/
 covers/
 logs/
-RELEASE.md
 node_modules/
 frontend/dist/
 frontend/package.json.md5

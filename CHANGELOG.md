@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.2] - 2026-02-27
+
+### Added
+- **A-Z Quick Jump Bar:** Added alphabet index navigation on the right side of the Singles view for quick scrolling to letter groups (similar to iOS contacts). Supports click and drag/touch to scroll.
+
 ## [2.1.1] - 2026-02-26
 
 ### Fixed
