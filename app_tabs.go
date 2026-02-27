@@ -1,0 +1,548 @@
+package main
+
+import (
+	"fmt"
+	"haya-tab/pkg/metadata"
+	"haya-tab/pkg/store"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"time"
+
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+)
+
+// TabsResponse represents a paginated response for tabs
+type TabsResponse struct {
+	Tabs     []store.Tab `json:"tabs"`
+	Total    int         `json:"total"`
+	Page     int         `json:"page"`
+	PageSize int         `json:"pageSize"`
+	HasMore  bool        `json:"hasMore"`
+}
+
+// GetTabs returns the list of tabs (backward compatibility)
+func (a *App) GetTabs() []store.Tab {
+	tabs, err := a.store.GetTabs()
+	if err != nil {
+		a.logger.Error("Error getting tabs: %v", err)
+		return []store.Tab{}
+	}
+	return tabs
+}
+
+// GetTabsPaginated returns a paginated list of tabs with optional search
+func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) TabsResponse {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 200 {
+		pageSize = 50
+	}
+
+	if len(filterBy) == 0 {
+		filterBy = []string{"title"}
+	}
+	searchQuery = strings.ToLower(strings.TrimSpace(searchQuery))
+
+	tabs, total, err := a.store.GetTabsPaginated(categoryId, page, pageSize, searchQuery, filterBy, isGlobal, sortBy, sortDesc)
+	if err != nil {
+		a.logger.Error("Error getting paginated tabs: %v", err)
+		return TabsResponse{
+			Tabs:     []store.Tab{},
+			Total:    0,
+			Page:     page,
+			PageSize: pageSize,
+			HasMore:  false,
+		}
+	}
+
+	return TabsResponse{
+		Tabs:     tabs,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+		HasMore:  (page * pageSize) < total,
+	}
+}
+
+// GetRecentTabs returns the list of recently accessed tabs
+func (a *App) GetRecentTabs(limit int) []store.Tab {
+	tabs, err := a.store.GetRecentTabs(limit)
+	if err != nil {
+		a.logger.Error("Error getting recent tabs: %v", err)
+		return []store.Tab{}
+	}
+	return tabs
+}
+
+// SaveTab saves the tab. copyFile determines if we import it to internal storage.
+// The passed tab should have the user-confirmed Metadata.
+// Returns the saved tab on success.
+func (a *App) SaveTab(tab store.Tab, shouldCopy bool) (*store.Tab, error) {
+	// Check for duplicate file path before adding (for linked files)
+	existingByPath, err := a.store.GetTabByPath(tab.FilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for duplicate path: %w", err)
+	}
+	if existingByPath != nil {
+		return nil, fmt.Errorf("a tab with this file already exists: %s", existingByPath.Title)
+	}
+
+	// Check for duplicate title globally (catches uploaded files with same content)
+	existingByTitle, err := a.store.GetTabByTitle(tab.Title)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for duplicate title: %w", err)
+	}
+	if existingByTitle != nil {
+		return nil, fmt.Errorf("a tab with title '%s' already exists", existingByTitle.Title)
+	}
+
+	appDir := getAppDir()
+
+	// Handle File Copy
+	if shouldCopy {
+		ext := filepath.Ext(tab.FilePath)
+		newFilename := tab.ID + ext
+		destPath := filepath.Join(appDir, "storage", newFilename)
+
+		src, err := os.Open(tab.FilePath)
+		if err != nil {
+			return nil, err
+		}
+		defer src.Close()
+
+		dst, err := os.Create(destPath)
+		if err != nil {
+			return nil, err
+		}
+		defer dst.Close()
+
+		if _, err = io.Copy(dst, src); err != nil {
+			return nil, err
+		}
+
+		tab.FilePath = destPath
+		tab.IsManaged = true
+	} else {
+		tab.IsManaged = false
+	}
+
+	if tab.AddedAt == 0 {
+		tab.AddedAt = time.Now().Unix()
+	}
+
+	// Calculate initials for Quick Jump Bar
+	tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
+
+	// Save initial version first
+	if err := a.store.AddTab(tab); err != nil {
+		return nil, err
+	}
+
+	// Handle Cover (Async)
+	a.fetchCoverAsync(tab)
+
+	return &tab, nil
+}
+
+// UpdateTab updates an existing tab's metadata
+func (a *App) UpdateTab(tab store.Tab) error {
+	// Recalculate initials in case title or origin country changed
+	tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
+
+	if err := a.store.AddTab(tab); err != nil {
+		return err
+	}
+
+	// Notify frontend about the update
+	wailsRuntime.EventsEmit(a.ctx, "tab-updated", tab)
+
+	// Trigger Cover Update (Async)
+	a.fetchCoverAsync(tab)
+
+	return nil
+}
+
+// UpdateTabMetadata updates only the metadata fields (title, artist, album) for a tab.
+// This is called by the frontend after AlphaTab parses the file's internal metadata.
+// It implements a "smart update" strategy:
+// - If no cover exists: prefer AlphaTab's data (more authoritative than filename parsing)
+// - If cover exists: only update placeholder fields (existing data was good enough for cover search)
+func (a *App) UpdateTabMetadata(id string, title string, artist string, album string) error {
+	// Get current tab
+	currentTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
+	}
+	if currentTab == nil {
+		return fmt.Errorf("tab not found: %s", id)
+	}
+
+	needsUpdate := false
+	noCoverYet := currentTab.CoverPath == ""
+
+	// Helper to check if existing value is "placeholder" (empty or "Unknown")
+	isPlaceholder := func(s string) bool {
+		trimmed := strings.TrimSpace(s)
+		return trimmed == "" || strings.EqualFold(trimmed, "Unknown")
+	}
+
+	// Helper to check if new value is meaningful
+	isMeaningful := func(s string) bool {
+		trimmed := strings.TrimSpace(s)
+		if trimmed == "" {
+			return false
+		}
+		// Skip generic placeholders
+		lower := strings.ToLower(trimmed)
+		if lower == "untitled" || lower == "unknown" || lower == "no title" {
+			return false
+		}
+		return true
+	}
+
+	// Helper to check if values are different (case-insensitive)
+	isDifferent := func(old, new string) bool {
+		return !strings.EqualFold(strings.TrimSpace(old), strings.TrimSpace(new))
+	}
+
+	// Update title: if no cover AND AlphaTab has meaningful different data, prefer it
+	// Otherwise only update if current is placeholder
+	if isMeaningful(title) {
+		if noCoverYet && isDifferent(currentTab.Title, title) {
+			currentTab.Title = strings.TrimSpace(title)
+			needsUpdate = true
+			a.logger.Info("Updating title for tab %s (no cover, prefer AlphaTab): %s", id, title)
+		} else if isPlaceholder(currentTab.Title) {
+			currentTab.Title = strings.TrimSpace(title)
+			needsUpdate = true
+			a.logger.Info("Updating title for tab %s: %s", id, title)
+		}
+	}
+
+	// Update artist: same logic
+	if isMeaningful(artist) {
+		if noCoverYet && isDifferent(currentTab.Artist, artist) {
+			currentTab.Artist = strings.TrimSpace(artist)
+			needsUpdate = true
+			a.logger.Info("Updating artist for tab %s (no cover, prefer AlphaTab): %s", id, artist)
+		} else if isPlaceholder(currentTab.Artist) {
+			currentTab.Artist = strings.TrimSpace(artist)
+			needsUpdate = true
+			a.logger.Info("Updating artist for tab %s: %s", id, artist)
+		}
+	}
+
+	// Update album: same logic
+	if isMeaningful(album) {
+		if noCoverYet && isDifferent(currentTab.Album, album) {
+			currentTab.Album = strings.TrimSpace(album)
+			needsUpdate = true
+			a.logger.Info("Updating album for tab %s (no cover, prefer AlphaTab): %s", id, album)
+		} else if isPlaceholder(currentTab.Album) {
+			currentTab.Album = strings.TrimSpace(album)
+			needsUpdate = true
+			a.logger.Info("Updating album for tab %s: %s", id, album)
+		}
+	}
+
+	if needsUpdate {
+		if err := a.store.UpdateTab(*currentTab); err != nil {
+			return fmt.Errorf("failed to update tab metadata: %w", err)
+		}
+
+		// Notify frontend about the update
+		wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab)
+
+		// If artist was updated and we have enough info, try fetching cover again
+		if currentTab.Artist != "" && currentTab.CoverPath == "" {
+			a.fetchCoverAsync(*currentTab)
+		}
+	}
+
+	return nil
+}
+
+// DeleteTab deletes a tab and its managed file if applicable
+func (a *App) DeleteTab(id string) error {
+	// Find tab first to check for managed file
+	targetTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
+	}
+	if targetTab == nil {
+		return fmt.Errorf("tab not found")
+	}
+
+	if targetTab.IsManaged {
+		// Try to delete the file, log error but proceed with DB deletion
+		if err := os.Remove(targetTab.FilePath); err != nil {
+			a.logger.Error("Warning: Failed to delete managed file %s: %v", targetTab.FilePath, err)
+		}
+		// Also delete cover
+		if targetTab.CoverPath != "" {
+			os.Remove(targetTab.CoverPath)
+		}
+	}
+
+	if err := a.store.DeleteTab(id); err != nil {
+		return err
+	}
+
+	// Emit event to notify frontend
+	wailsRuntime.EventsEmit(a.ctx, "tab-deleted", id)
+	return nil
+}
+
+// BatchDeleteTabs deletes multiple tabs at once
+func (a *App) BatchDeleteTabs(ids []string) (int, error) {
+	deleted := 0
+	deletedIds := []string{}
+	for _, id := range ids {
+		targetTab, err := a.store.GetTab(id)
+		if err != nil || targetTab == nil {
+			continue
+		}
+
+		if targetTab.IsManaged {
+			// Try to delete the file
+			if err := os.Remove(targetTab.FilePath); err != nil {
+				a.logger.Error("Warning: Failed to delete managed file %s: %v", targetTab.FilePath, err)
+			}
+			// Also delete cover
+			if targetTab.CoverPath != "" {
+				os.Remove(targetTab.CoverPath)
+			}
+		}
+
+		if err := a.store.DeleteTab(id); err == nil {
+			deleted++
+			deletedIds = append(deletedIds, id)
+		}
+	}
+
+	// Emit event to notify frontend
+	if deleted > 0 {
+		wailsRuntime.EventsEmit(a.ctx, "tabs-deleted", deletedIds)
+	}
+
+	return deleted, nil
+}
+
+// BatchMoveTabs moves multiple tabs to a category at once (replaces existing categories)
+func (a *App) BatchMoveTabs(ids []string, categoryID string) (int, error) {
+	moved := 0
+	baseTime := time.Now().Unix()
+	for i, id := range ids {
+		// Increment added time slightly to preserve order
+		// For backward compatibility, "Move" implies setting the single category
+		cats := []string{}
+		if categoryID != "" {
+			cats = append(cats, categoryID)
+		}
+		if err := a.store.SetTabCategories(id, cats, baseTime+int64(i)); err == nil {
+			moved++
+		}
+	}
+	return moved, nil
+}
+
+// BatchAddTabsToCategory adds multiple tabs to a category
+func (a *App) BatchAddTabsToCategory(ids []string, categoryID string) (int, error) {
+	added := 0
+	baseTime := time.Now().Unix()
+	for i, id := range ids {
+		// Get existing tab to check for duplicates
+		tab, err := a.store.GetTab(id)
+		if err != nil || tab == nil {
+			continue
+		}
+
+		// Check if already in category
+		exists := false
+		for _, c := range tab.CategoryIDs {
+			if c == categoryID {
+				exists = true
+				break
+			}
+		}
+		if exists {
+			continue
+		}
+
+		newCats := append(tab.CategoryIDs, categoryID)
+		if err := a.store.SetTabCategories(id, newCats, baseTime+int64(i)); err == nil {
+			added++
+		}
+	}
+	return added, nil
+}
+
+// MoveTab updates the category of a tab (replaces existing categories with this one)
+func (a *App) MoveTab(tabID, categoryID string) error {
+	cats := []string{}
+	if categoryID != "" {
+		cats = append(cats, categoryID)
+	}
+	return a.store.SetTabCategories(tabID, cats, time.Now().Unix())
+}
+
+// UpdateTabCategories updates the categories for a tab
+func (a *App) UpdateTabCategories(tabID string, categoryIDs []string) error {
+	return a.store.SetTabCategories(tabID, categoryIDs, time.Now().Unix())
+}
+
+// AddTabToCategory adds a tab to a category without removing it from others
+func (a *App) AddTabToCategory(tabID, categoryID string) error {
+	tab, err := a.store.GetTab(tabID)
+	if err != nil {
+		return err
+	}
+	if tab == nil {
+		return fmt.Errorf("tab not found")
+	}
+
+	// Check if already in category
+	for _, c := range tab.CategoryIDs {
+		if c == categoryID {
+			return nil // Already in category
+		}
+	}
+
+	newCats := append(tab.CategoryIDs, categoryID)
+	return a.store.SetTabCategories(tabID, newCats, time.Now().Unix())
+}
+
+// RemoveTabFromCategory removes a tab from a category
+func (a *App) RemoveTabFromCategory(tabID, categoryID string) error {
+	tab, err := a.store.GetTab(tabID)
+	if err != nil {
+		return err
+	}
+	if tab == nil {
+		return fmt.Errorf("tab not found")
+	}
+
+	// Prevent removing cloud tabs from the cloud storage category
+	// Cloud tabs can only be removed from this category when downloaded to local
+	if tab.IsCloud && categoryID == store.SystemCloudCategoryID {
+		return fmt.Errorf("cannot remove cloud tab from cloud storage category")
+	}
+
+	newCats := []string{}
+	found := false
+	for _, c := range tab.CategoryIDs {
+		if c == categoryID {
+			found = true
+			continue
+		}
+		newCats = append(newCats, c)
+	}
+
+	if !found {
+		return nil
+	}
+
+	return a.store.SetTabCategories(tabID, newCats, time.Now().Unix())
+}
+
+// OpenTab opens the file using system default
+func (a *App) OpenTab(id string) error {
+	targetTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
+	}
+	if targetTab == nil {
+		return fmt.Errorf("tab not found")
+	}
+
+	// Update LastOpened
+	targetTab.LastOpened = time.Now().Unix()
+	a.store.UpdateTab(*targetTab)
+
+	var cmd *exec.Cmd
+	path := targetTab.FilePath
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", path)
+	case "darwin":
+		cmd = exec.Command("open", path)
+	default: // linux
+		cmd = exec.Command("xdg-open", path)
+	}
+	return cmd.Start()
+}
+
+// MarkAsOpened updates the LastOpened timestamp for a tab without opening it
+func (a *App) MarkAsOpened(id string) error {
+	targetTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
+	}
+	if targetTab == nil {
+		return fmt.Errorf("tab not found")
+	}
+
+	targetTab.LastOpened = time.Now().Unix()
+	return a.store.UpdateTab(*targetTab)
+}
+
+// RecalculateAllInitials forces recalculation of initials for all tabs
+func (a *App) RecalculateAllInitials() (int, error) {
+	tabs, err := a.store.GetTabs()
+	if err != nil {
+		return 0, err
+	}
+
+	updated := 0
+	for _, tab := range tabs {
+		az, kana := metadata.CalculateInitials(tab.Title, tab.OriginCountry)
+		if err := a.store.UpdateTabInitials(tab.ID, az, kana); err != nil {
+			a.logger.Error("Failed to update initials for tab %s: %v", tab.ID, err)
+			continue
+		}
+		updated++
+	}
+
+	a.logger.Info("Recalculated initials for %d/%d tabs", updated, len(tabs))
+	return updated, nil
+}
+
+// ExportTab copies the tab file to a destination folder
+func (a *App) ExportTab(id string, destFolder string) error {
+	targetTab, err := a.store.GetTab(id)
+	if err != nil {
+		return fmt.Errorf("failed to get tab: %w", err)
+	}
+	if targetTab == nil {
+		return fmt.Errorf("tab not found")
+	}
+
+	srcFile, err := os.Open(targetTab.FilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer srcFile.Close()
+
+	fileName := filepath.Base(targetTab.FilePath)
+	destPath := filepath.Join(destFolder, fileName)
+
+	destFile, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, srcFile)
+	return err
+}
+
+// ProcessFile delegates to SyncService for file processing
+func (a *App) ProcessFile(path string) store.Tab {
+	return a.syncService.ProcessFile(path)
+}
