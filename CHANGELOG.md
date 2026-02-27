@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.3] - 2026-02-27
+
+### Added
+- **Auto-detect System Language:** The app now initializes with the user's OS language on first launch, instead of defaulting to English
+  - Supports Windows (via `GetUserDefaultLocaleName` API), macOS, and Linux (via `LANG`/`LC_ALL` env vars)
+  - Maps system locale to the nearest supported language: English, 简体中文, 繁體中文, 日本語
+  - Falls back to English if the system language is not in the supported set
+  - Existing users are unaffected — their saved language preference is preserved
+
 ## [2.2.2] - 2026-02-27
 
 ### Fixed

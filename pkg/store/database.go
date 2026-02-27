@@ -23,7 +23,7 @@ func NewDBStore(dbPath string) *DBStore {
 		dbPath: dbPath,
 		Settings: Settings{
 			Theme:        "system",
-			Language:     "en",
+			Language:     DetectSystemLocale(),
 			OpenMethod:   "inner",
 			OpenGpMethod: "inner",
 			SyncStrategy: "skip",
