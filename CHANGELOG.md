@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.7] - 2026-02-28
+
+### Fixed
+- **Toast Notifications:** Unified toast styling for consistent appearance across all notification types
+  - Toast boxes now size themselves based on content (max-width: 400px, min-width: 200px)
+  - Removed excessive height and fixed dimensions for better visual consistency
+  - All toast types (info, success, warning) use theme color; only error toasts display red
+  - Added hover effect for better user interaction feedback
+
 ## [2.2.6] - 2026-02-28
 
 ### Added
