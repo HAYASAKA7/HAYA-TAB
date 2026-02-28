@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.10] - 2026-02-28
+
+### Added
+- **Category Management:** Enhanced context menu for tab cards with category operations
+  - "Add to Category" option to move tabs between categories
+  - "Remove from Category" option to remove tabs from non-system categories
+  - Backend protection prevents removal from cloud storage category
+
 ## [2.2.9] - 2026-02-28
 
 ### Changed

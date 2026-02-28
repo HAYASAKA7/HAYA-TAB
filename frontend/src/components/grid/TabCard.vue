@@ -147,6 +147,21 @@ function handleContextMenu(e: MouseEvent) {
 
     items.push(
       { label: t('contextMenu.editMetadata'), action: () => uiStore.showEditModal(props.tab) },
+      { label: t('contextMenu.addToCategory'), action: () => uiStore.showMoveModal(props.tab.id) }
+    )
+
+    // Allow removing from non-system categories (backend will block removal from cloud storage)
+    if (tabsStore.currentCategoryId && tabsStore.currentCategoryId !== 'sys_cloud') {
+      items.push({
+        label: t('contextMenu.removeFromCategory'),
+        action: async () => {
+          await tabsStore.removeTabFromCategory(props.tab.id, tabsStore.currentCategoryId)
+          showToast(t('contextMenu.removedFromCategory'))
+        }
+      })
+    }
+
+    items.push(
       { type: 'separator' },
       { label: t('contextMenu.removeTab'), action: () => confirmDelete() }
     )
