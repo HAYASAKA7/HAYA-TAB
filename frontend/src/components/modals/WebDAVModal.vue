@@ -31,14 +31,19 @@ watch(() => uiStore.webdavModalVisible, (visible) => {
 })
 
 async function testConnection() {
-  if (!url.value) return
-  
+  if (!url.value) {
+    showToast(t('settings.pleaseEnterUrl', 'Please enter WebDAV URL'), 'warning')
+    return
+  }
+
   testing.value = true
   try {
     await window.go.app.App.WebDAVTestConnection(url.value, user.value, password.value)
     showToast(t('settings.connectionSuccess'), 'success')
   } catch (err) {
-    showToast(t('settings.connectionFailed') + ': ' + err, 'error')
+    // Extract error message
+    const errorMsg = String(err)
+    showToast(t('settings.connectionFailed') + ': ' + errorMsg, 'error')
   } finally {
     testing.value = false
   }
@@ -52,16 +57,21 @@ async function save() {
   settingsStore.settings.webdavUrl = url.value
   settingsStore.settings.webdavUser = user.value
   settingsStore.settings.webdavPassword = password.value
-  
+
   if (oldUrl !== url.value || oldUser !== user.value || oldPass !== password.value) {
     try {
       await settingsStore.saveSettings()
       showToast(t('settings.settingsSaved'))
+
+      // If WebDAV is enabled, immediately check connection status
+      if (settingsStore.settings.webdavEnabled) {
+        await settingsStore.checkWebDAVStatus()
+      }
     } catch (err) {
       showToast(t('settings.errorSaving') + ': ' + err, 'error')
     }
   }
-  
+
   uiStore.hideWebdavModal()
 }
 

@@ -81,6 +81,14 @@ export const useSettingsStore = defineStore('settings', () => {
       applyTheme()
       applyLanguage()
       await applyBackground()
+
+      // Start or stop WebDAV status check based on webdavEnabled
+      if (settings.value.webdavEnabled) {
+        startWebDAVStatusCheck()
+      } else {
+        stopWebDAVStatusCheck()
+        webdavConnected.value = false
+      }
     } catch (err) {
       console.error('Error saving settings:', err)
       throw err

@@ -82,6 +82,7 @@
     "testConnection": "接続テスト",
     "connectionSuccess": "接続に成功しました！",
     "connectionFailed": "接続に失敗しました",
+    "pleaseEnterUrl": "WebDAVのURLを入力してください",
     "configureWebdav": "WebDAVを設定",
     "webdavAddress": "WebDAVアドレス",
     "dataStorage": "データストレージ",

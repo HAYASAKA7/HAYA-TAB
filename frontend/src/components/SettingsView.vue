@@ -148,7 +148,11 @@ function handleWebDAVToggle() {
     // If enabled, check if URL is set. If not, open modal.
     if (!settingsStore.settings.webdavUrl) {
       uiStore.showWebdavModal()
+    } else {
+      settingsStore.startWebDAVStatusCheck()
     }
+  } else {
+    settingsStore.stopWebDAVStatusCheck()
   }
 }
 

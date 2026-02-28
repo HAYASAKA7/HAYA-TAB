@@ -20,11 +20,12 @@ type MigrationStatus struct {
 // CheckMigration checks if a directory needs migration and returns the number of files and total size
 func (a *App) CheckMigration(target string) (MigrationStatus, error) {
 	var currentPath string
-	if target == "storage" {
+	switch target {
+	case "storage":
 		currentPath = a.GetStorageDir()
-	} else if target == "covers" {
+	case "covers":
 		currentPath = a.GetCoversDir()
-	} else {
+	default:
 		return MigrationStatus{}, fmt.Errorf("invalid target: %s", target)
 	}
 
@@ -58,12 +59,13 @@ func (a *App) CheckMigration(target string) (MigrationStatus, error) {
 func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 	var currentPath string
 	settings := a.GetSettings()
-	
-	if target == "storage" {
+
+	switch target {
+	case "storage":
 		currentPath = a.GetStorageDir()
-	} else if target == "covers" {
+	case "covers":
 		currentPath = a.GetCoversDir()
-	} else {
+	default:
 		return fmt.Errorf("invalid target: %s", target)
 	}
 
@@ -103,11 +105,11 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 			a.fileWatcher.Stop()
 			defer a.initFileWatcher() // Restart after migration
 		}
-		
+
 		// Stop sync tasks or mbworker if necessary, or just rely on file-level locks
-		
+
 		copiedFiles := []string{}
-		
+
 		// Copy files
 		entries, err := os.ReadDir(currentPath)
 		if err != nil {
@@ -147,7 +149,8 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 		// or relies on the current GetStorageDir/GetCoversDir.
 		// Wait, if it's `isManaged`, we store relative path (filename).
 		// But OLD tabs might have absolute paths! We need to convert them to relative!
-		if target == "storage" {
+		switch target {
+		case "storage":
 			tabs, _ := a.store.GetTabs()
 			for _, t := range tabs {
 				if t.IsManaged && filepath.IsAbs(t.FilePath) {
@@ -156,7 +159,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 					a.store.UpdateTab(t)
 				}
 			}
-		} else if target == "covers" {
+		case "covers":
 			tabs, _ := a.store.GetTabs()
 			for _, t := range tabs {
 				if t.CoverPath != "" && filepath.IsAbs(t.CoverPath) {
@@ -174,7 +177,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 				}
 				os.Remove(filepath.Join(currentPath, entry.Name()))
 			}
-			
+
 			// Try to remove the old directory if it's empty
 			os.Remove(currentPath)
 		}
@@ -186,7 +189,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 	} else {
 		settings.CoversPath = newPath
 	}
-	
+
 	if err := a.SaveSettings(settings); err != nil {
 		return fmt.Errorf("failed to save settings: %w", err)
 	}

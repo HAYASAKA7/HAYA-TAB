@@ -82,6 +82,7 @@
     "testConnection": "测试连接",
     "connectionSuccess": "连接成功！",
     "connectionFailed": "连接失败",
+    "pleaseEnterUrl": "请输入 WebDAV 地址",
     "configureWebdav": "配置 WebDAV",
     "webdavAddress": "WebDAV 地址",
     "dataStorage": "数据存储",

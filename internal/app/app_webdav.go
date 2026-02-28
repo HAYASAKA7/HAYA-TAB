@@ -15,8 +15,33 @@ import (
 // WebDAVTestConnection tests the WebDAV connection
 func (a *App) WebDAVTestConnection(url, user, password string) error {
 	url = strings.TrimRight(url, "/")
+
+	// Validate URL format
+	if url == "" {
+		return fmt.Errorf("WebDAV URL cannot be empty")
+	}
+
 	client := syncpkg.NewWebDAVClient(url, user, password)
-	return client.TestConnection()
+	err := client.TestConnection()
+
+	if err != nil {
+		// Provide more user-friendly error messages
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "401") || strings.Contains(errMsg, "Unauthorized") {
+			return fmt.Errorf("authentication failed: invalid username or password")
+		} else if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "Not Found") {
+			return fmt.Errorf("WebDAV endpoint not found: please check the URL")
+		} else if strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "Timeout") {
+			return fmt.Errorf("connection timeout: server is not responding")
+		} else if strings.Contains(errMsg, "no such host") || strings.Contains(errMsg, "cannot resolve") {
+			return fmt.Errorf("cannot resolve hostname: please check the URL")
+		} else if strings.Contains(errMsg, "connection refused") {
+			return fmt.Errorf("connection refused: server is not accessible")
+		}
+		return fmt.Errorf("connection failed: %v", err)
+	}
+
+	return nil
 }
 
 // WebDAVScanRemoteFiles scans a remote directory
@@ -200,9 +225,10 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 			// Determine file type
 			ext := strings.ToLower(filepath.Ext(fileName))
 			fileType := "gp"
-			if ext == ".pdf" {
+			switch ext {
+			case ".pdf":
 				fileType = "pdf"
-			} else if ext == ".gp" || ext == ".gp3" || ext == ".gp4" || ext == ".gp5" || ext == ".gpx" || ext == ".xml" || ext == ".musicxml" || ext == ".mxl" {
+			case ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".xml", ".musicxml", ".mxl":
 				fileType = "gp"
 			}
 

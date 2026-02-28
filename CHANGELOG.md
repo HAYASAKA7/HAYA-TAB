@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.6] - 2026-02-28
+
+### Added
+- **WebDAV Improvements:** Enhanced WebDAV functionality with improved settings integration and user experience
+- **Settings UI Updates:** Refined settings interface for better WebDAV configuration
+- **i18n:** Updated translations for WebDAV-related features across all supported languages
+
+### Improved
+- **WebDAV Modal:** Better error handling and user feedback in cloud file operations
+- **Settings Persistence:** Improved settings storage and migration for WebDAV credentials
+
 ## [2.2.5] - 2026-02-28
 
 ### Added

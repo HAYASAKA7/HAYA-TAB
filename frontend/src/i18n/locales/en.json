@@ -82,6 +82,7 @@
     "testConnection": "Test Connection",
     "connectionSuccess": "Connection successful!",
     "connectionFailed": "Connection failed",
+    "pleaseEnterUrl": "Please enter WebDAV URL",
     "configureWebdav": "Configure WebDAV",
     "webdavAddress": "WebDAV Address",
     "dataStorage": "Data Storage",
