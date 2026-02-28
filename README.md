@@ -67,36 +67,98 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 ## 📁 Project Structure
 
 ```
-├── main.go                    # Application entry point
-├── internal/                  # Internal packages (not importable)
-│   └── app/                   # Core application logic
-│       ├── app.go             # App struct, lifecycle (Startup/Shutdown)
-│       ├── app_tabs.go        # Tab CRUD operations
-│       ├── app_categories.go  # Category management
-│       ├── app_files.go       # File dialogs & sync triggers
-│       ├── app_settings.go    # Settings management
-│       ├── app_webdav.go      # WebDAV cloud operations
-│       └── server.go          # HTTP file server
-├── frontend/                  # UI (Vue 3 + Vite)
-│   ├── src/                   # Frontend source code
-│   │   ├── components/        # UI Components
-│   │   ├── stores/            # State Management (Pinia)
-│   │   └── locales/           # i18n Translation files
-│   ├── index.html             # Entry point
-│   └── vite.config.ts         # Build config
-├── pkg/                       # Shared packages
-│   ├── coverpool/             # Worker pool for cover downloads
-│   ├── logger/                # Logging infrastructure
-│   ├── metadata/              # Metadata parsing logic
-│   ├── store/                 # SQLite database & migrations
-│   ├── sync/                  # File synchronization engine
-│   ├── watcher/               # File system watcher
-│   └── worker/                # Background workers (MusicBrainz)
-├── storage/                   # Uploaded tabs (managed files)
-├── covers/                    # Downloaded cover art
-├── data/                      # SQLite database file
-├── logs/                      # Application logs
-└── build/                     # Wails build assets & config
+├── main.go                           # Application entry point
+├── go.mod & go.sum                   # Go module dependencies
+├── wails.json                        # Wails framework configuration
+│
+├── internal/                         # Internal packages (not importable)
+│   └── app/                          # Core application logic
+│       ├── app.go                    # App struct, lifecycle management
+│       ├── app_tabs.go               # Tab CRUD operations
+│       ├── app_categories.go         # Category management
+│       ├── app_files.go              # File dialogs & sync triggers
+│       ├── app_settings.go           # Settings persistence
+│       ├── app_migration.go          # Data migration utilities
+│       ├── app_webdav.go             # WebDAV cloud operations
+│       ├── server.go                 # HTTP file server
+│       ├── disk_unix.go              # Unix disk operations
+│       └── disk_windows.go           # Windows disk operations
+│
+├── frontend/                         # Vue 3 + TypeScript + Vite frontend
+│   ├── src/
+│   │   ├── App.vue                   # Root component
+│   │   ├── main.ts                   # Frontend entry point
+│   │   ├── vite-env.d.ts             # Vite type definitions
+│   │   ├── assets/                   # Styles & icons
+│   │   ├── components/               # Reusable UI components
+│   │   │   ├── BatchActionBar.vue    # Batch operation controls
+│   │   │   ├── SettingsView.vue      # Settings panel
+│   │   │   ├── common/               # Generic components (ContextMenu, SearchBar, Toast)
+│   │   │   ├── grid/                 # Grid view components (TabCard, CategoryCard, TabGrid)
+│   │   │   ├── layout/               # Layout components (AppSidebar, SidebarTabItem)
+│   │   │   ├── modals/               # Modal dialogs (CloudPicker, WebDAV, Category, etc.)
+│   │   │   └── viewers/              # File viewers (PDF, Guitar Pro, MusicXML)
+│   │   ├── composables/              # Vue composables (useAlphaTab, useContextMenu, useToast)
+│   │   ├── stores/                   # Pinia state management
+│   │   │   ├── tabs.ts               # Tab state
+│   │   │   ├── settings.ts           # Application settings
+│   │   │   ├── ui.ts                 # UI state
+│   │   │   ├── viewers.ts            # Viewer state
+│   │   │   └── index.ts              # Store configuration
+│   │   ├── views/                    # Page-level components
+│   │   │   ├── HomeView.vue          # Landing page
+│   │   │   └── LibraryView.vue       # Main library interface
+│   │   ├── types/                    # TypeScript type definitions
+│   │   ├── i18n/                     # Internationalization setup
+│   │   │   └── locales/              # Translation files (EN, ZH-CN, ZH-TW, JA)
+│   │   └── wailsjs/                  # Auto-generated Wails bindings
+│   ├── public/                       # Static assets
+│   │   ├── alphatab/                 # alphaTab library & soundfonts
+│   │   └── pdfjs/                    # PDF.js library & viewer
+│   ├── index.html                    # HTML entry point
+│   ├── package.json                  # Frontend dependencies
+│   ├── tsconfig.json                 # TypeScript configuration
+│   └── vite.config.ts                # Vite build configuration
+│
+├── pkg/                              # Shared packages
+│   ├── coverpool/                    # Concurrent download worker pool
+│   ├── logger/                       # Structured logging
+│   ├── metadata/                     # Tab metadata parsing
+│   │   ├── metadata.go               # Core metadata operations
+│   │   ├── parser_gpx.go             # Guitar Pro file parser
+│   │   ├── musicbrainz.go            # MusicBrainz API client
+│   │   ├── initial.go                # Title initial calculation
+│   │   └── gp_binary.go              # Binary format handlers
+│   ├── store/                        # SQLite database layer
+│   │   ├── database.go               # DB connection & management
+│   │   ├── models.go                 # Data models
+│   │   ├── migration.go              # Schema migrations
+│   │   ├── crypto.go                 # Encryption utilities
+│   │   └── locale_*.go               # Platform-specific locale detection
+│   ├── sync/                         # File synchronization
+│   │   ├── sync.go                   # Sync engine
+│   │   └── webdav.go                 # WebDAV operations
+│   ├── watcher/                      # File system watcher
+│   │   └── watcher.go                # Watch folders for changes
+│   └── worker/                       # Background workers
+│       └── mb_worker.go              # MusicBrainz async worker
+│
+├── build/                            # Wails build output & assets
+│   ├── darwin/                       # macOS build resources
+│   └── windows/                      # Windows build resources
+│
+├── docs/                             # Documentation
+│   └── WEBDAV.md                     # WebDAV setup guide
+│
+├── README.md                         # This file
+├── CHANGELOG.md                      # Version history
+├── LICENSE                           # Apache 2.0 License
+├── NOTICE                            # Attribution notices
+│
+├── .github/                          # GitHub configuration (workflows, etc.)
+├── .git/                             # Git repository metadata
+├── .gitignore & .gitattributes       # Version control settings
+└── frontend/package-lock.json        # Frozen frontend dependencies
 ```
 
 ## 🛠️ Tech Stack
