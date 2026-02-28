@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.11] - 2026-02-28
+
+### Changed
+- **Wails Info:** Updated wails.json with Windows executable version information
+  - Added companyName, productName, productVersion, copyright, and comments fields
+  - Windows builds now display proper version details in file properties
+
 ## [2.2.10] - 2026-02-28
 
 ### Added
