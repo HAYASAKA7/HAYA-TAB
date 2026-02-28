@@ -7,6 +7,8 @@ import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 
+import { safeHtml } from '@/utils/html'
+
 const props = defineProps<{
   tab: Tab
 }>()
@@ -199,9 +201,10 @@ async function exportTab() {
 
 function confirmDelete() {
   const title = props.tab.isManaged ? t('contextMenu.deleteTab') : t('contextMenu.unlinkTab')
+  // Use safeHtml to escape user-controlled tab title and prevent XSS
   const message = props.tab.isManaged
-    ? `${t('contextMenu.confirmDeleteTab', { title: props.tab.title })}<br><br><span class="warning-text">${t('contextMenu.confirmDeleteTabWarning')}</span>`
-    : `${t('contextMenu.confirmUnlinkTab', { title: props.tab.title })}<br><br>${t('contextMenu.confirmUnlinkTabInfo')}`
+    ? safeHtml`${t('contextMenu.confirmDeleteTab', { title: props.tab.title })}<br><br><span class="warning-text">${t('contextMenu.confirmDeleteTabWarning')}</span>`
+    : safeHtml`${t('contextMenu.confirmUnlinkTab', { title: props.tab.title })}<br><br>${t('contextMenu.confirmUnlinkTabInfo')}`
   const btnText = props.tab.isManaged ? t('confirm.delete') : t('contextMenu.unlinkTab')
 
   uiStore.showConfirmModal(title, message, btnText, true, async () => {

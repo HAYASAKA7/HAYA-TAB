@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.8] - 2026-02-28
+
+### Added
+- **XSS Prevention:** Added `safeHtml` utility function to sanitize user-controlled data in dialog messages
+  - CategoryCard.vue and TabCard.vue now use `safeHtml` to prevent XSS attacks in confirmation dialogs
+  - Dialog messages with user-provided category names and tab titles are now properly escaped
+
+### Improved
+- **Encryption Security:** Replaced hardcoded encryption key with machine-specific PBKDF2-derived key
+  - Encryption key is now derived from machine hostname and username using PBKDF2 (100,000 iterations)
+  - Different machines and users will have different encryption keys
+  - Provides better security than hardcoded key while maintaining backward compatibility
+  - Uses fixed salt to ensure consistent decryption across app restarts
+- **Dependencies:** Moved `golang.org/x/crypto` from indirect to direct dependency for explicit security support
+
 ## [2.2.7] - 2026-02-28
 
 ### Fixed

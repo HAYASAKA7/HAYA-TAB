@@ -6,6 +6,8 @@ import { SYSTEM_CLOUD_CATEGORY_ID } from '@/types'
 import { useTabsStore, useUIStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 
+import { safeHtml } from '@/utils/html'
+
 const props = defineProps<{
   category: Category
 }>()
@@ -84,7 +86,8 @@ function handleContextMenu(e: MouseEvent) {
 function confirmDelete() {
   uiStore.showConfirmModal(
     t('contextMenu.deleteCategory'),
-    `${t('contextMenu.confirmDeleteCategory', { name: props.category.name })}<br><br>${t('contextMenu.confirmDeleteCategoryInfo')}`,
+    // Use safeHtml to escape user-controlled category name and prevent XSS
+    safeHtml`${t('contextMenu.confirmDeleteCategory', { name: props.category.name })}<br><br>${t('contextMenu.confirmDeleteCategoryInfo')}`,
     t('confirm.delete'),
     true,
     async () => {
