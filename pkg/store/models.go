@@ -69,6 +69,8 @@ type Settings struct {
 	AutoSyncFrequency string      `json:"autoSyncFrequency"` // "startup", "weekly", "monthly", "yearly"
 	LastSyncTime      int64       `json:"lastSyncTime"`      // Unix timestamp
 	KeyBindings       KeyBindings `json:"keyBindings"`
+	StoragePath       string      `json:"storagePath"`       // Custom storage path
+	CoversPath        string      `json:"coversPath"`        // Custom covers path
 
 	// WebDAV Settings
 	WebDAVEnabled  bool   `json:"webdavEnabled"`

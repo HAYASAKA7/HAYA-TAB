@@ -83,7 +83,19 @@
     "connectionSuccess": "连接成功！",
     "connectionFailed": "连接失败",
     "configureWebdav": "配置 WebDAV",
-    "webdavAddress": "WebDAV 地址"
+    "webdavAddress": "WebDAV 地址",
+    "dataStorage": "数据存储",
+    "storagePath": "受管曲谱路径",
+    "coversPath": "封面路径",
+    "defaultPath": "默认（用户目录）",
+    "change": "更改",
+    "migrateTitle": "目录已更改",
+    "migrateMsg": "所选目录已更改。当前目录中有 {count} 个文件（{size} MB）。<br><br>您想将所有现有文件迁移（MIGRATE）到新目录，还是仅应用（ONLY APPLY）新路径（将旧文件留在原地）？",
+    "migrateBtn": "迁移所有文件",
+    "applyBtn": "仅应用路径",
+    "migrating": "正在迁移数据，请稍候...",
+    "migrateSuccess": "迁移成功完成",
+    "pathApplied": "路径应用成功"
   },
   "cloud": {
     "title": "云端曲库",

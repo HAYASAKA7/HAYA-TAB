@@ -16,6 +16,7 @@ const syncStatus = ref('')
 const syncFilename = ref('')
 const syncCount = ref(0)
 const isSyncing = ref(false)
+const isMigrating = ref(false)
 
 // Auto-save when settings change (excluding keyBindings which saves on modal close)
 watch(
@@ -150,11 +151,111 @@ function handleWebDAVToggle() {
     }
   }
 }
+
+async function handleChangePath(target: 'storage' | 'covers') {
+  if (isMigrating.value) return
+  const currentPath = target === 'storage' ? settingsStore.settings.storagePath : settingsStore.settings.coversPath
+  let selectedPath = await window.go.app.App.SelectFolder()
+  if (!selectedPath) return
+  
+  // Clean up path by removing trailing slashes
+  selectedPath = selectedPath.replace(/[/\\]$/, '')
+  const separator = selectedPath.includes('\\') ? '\\' : '/'
+  
+  // Ensure we append HAYA-TAB/target, avoiding duplicates if they selected the exact folder
+  let targetSuffix = 'HAYA-TAB' + separator + target
+  let newPath = selectedPath
+  
+  if (!selectedPath.endsWith(targetSuffix)) {
+    // Check if they selected a folder ending in HAYA-TAB
+    if (selectedPath.endsWith('HAYA-TAB')) {
+      newPath = selectedPath + separator + target
+    } else {
+      newPath = selectedPath + separator + targetSuffix
+    }
+  }
+
+  if (newPath === currentPath) return
+
+  isMigrating.value = true
+  try {
+    const status = await window.go.app.App.CheckMigration(target)
+    const count = status.count
+    const size = status.size
+    if (count > 0) {
+      const sizeMB = (size / 1024 / 1024).toFixed(2)
+      uiStore.showConfirmModal(
+        t('settings.migrateTitle', 'Directory Changed'),
+        t('settings.migrateMsg', `The selected directory has changed. There are ${count} files (${sizeMB} MB) in the current directory.<br><br>Do you want to MIGRATE all existing files to the new directory, or ONLY APPLY the new path (leaving old files where they are)?`),
+        t('settings.migrateBtn', 'Migrate All Files'),
+        false,
+        async () => {
+          // Migrate
+          try {
+            showToast(t('settings.migrating', 'Migrating data, please wait...'), 'info')
+            await window.go.app.App.MigrateData(target, newPath, false)
+            if (target === 'storage') settingsStore.settings.storagePath = newPath
+            else settingsStore.settings.coversPath = newPath
+            await settingsStore.saveSettings()
+            showToast(t('settings.migrateSuccess', 'Migration completed successfully'), 'success')
+          } catch (e) {
+            showToast(String(e), 'error')
+          } finally {
+            isMigrating.value = false
+          }
+        },
+        t('settings.applyBtn', 'Only Apply Path'),
+        async () => {
+          // Only Apply
+          try {
+            await window.go.app.App.MigrateData(target, newPath, true)
+            if (target === 'storage') settingsStore.settings.storagePath = newPath
+            else settingsStore.settings.coversPath = newPath
+            await settingsStore.saveSettings()
+            showToast(t('settings.pathApplied', 'Path applied successfully'), 'success')
+          } catch (e) {
+            showToast(String(e), 'error')
+          } finally {
+            isMigrating.value = false
+          }
+        }
+      )
+    } else {
+      // No files to migrate
+      if (target === 'storage') settingsStore.settings.storagePath = newPath
+      else settingsStore.settings.coversPath = newPath
+      await settingsStore.saveSettings()
+      showToast(t('settings.pathApplied', 'Path applied successfully'), 'success')
+      isMigrating.value = false
+    }
+  } catch (err) {
+    showToast(String(err), 'error')
+    isMigrating.value = false
+  }
+}
 </script>
 
 <template>
   <header><h1>{{ t('settings.title') }}</h1></header>
   <div class="settings-container">
+    <section class="settings-section">
+      <h3><span class="icon-folder"></span> {{ t('settings.dataStorage', 'Data Storage') }}</h3>
+      <div class="form-group">
+        <label>{{ t('settings.storagePath', 'Managed Tabs Path') }}</label>
+        <div class="input-with-button">
+          <input type="text" :value="settingsStore.settings.storagePath || t('settings.defaultPath', 'Default (User Directory)')" disabled readonly>
+          <button class="btn" @click="handleChangePath('storage')" :disabled="isMigrating">{{ t('settings.change', 'Change') }}</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{{ t('settings.coversPath', 'Covers Path') }}</label>
+        <div class="input-with-button">
+          <input type="text" :value="settingsStore.settings.coversPath || t('settings.defaultPath', 'Default (User Directory)')" disabled readonly>
+          <button class="btn" @click="handleChangePath('covers')" :disabled="isMigrating">{{ t('settings.change', 'Change') }}</button>
+        </div>
+      </div>
+    </section>
+
     <section class="settings-section">
       <h3><span class="icon-palette"></span> {{ t('settings.appearance') }}</h3>
       <div class="form-group">

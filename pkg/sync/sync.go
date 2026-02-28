@@ -189,7 +189,15 @@ func (s *SyncService) FetchCoverAsync(tab store.Tab) {
 	}
 
 	coverFilename := tab.ID + ".jpg"
-	coverPath := filepath.Join(s.appDir, "covers", coverFilename)
+	
+	settings := s.store.GetSettings()
+	coversDir := filepath.Join(s.appDir, "covers")
+	if settings.CoversPath != "" {
+		coversDir = settings.CoversPath
+	}
+	os.MkdirAll(coversDir, 0755)
+	
+	coverPath := filepath.Join(coversDir, coverFilename)
 
 	s.coverPool.Submit(coverpool.CoverJob{
 		TabID:     tab.ID,
@@ -199,15 +207,16 @@ func (s *SyncService) FetchCoverAsync(tab store.Tab) {
 		Country:   tab.Country,
 		Language:  tab.Language,
 		CoverPath: coverPath,
-		OnComplete: func(tabID, coverPath string, err error) {
+		OnComplete: func(tabID, downloadedCoverPath string, err error) {
 			if err == nil {
-				s.logger.Info("Cover downloaded successfully to: %s", coverPath)
+				s.logger.Info("Cover downloaded successfully to: %s", downloadedCoverPath)
 				currentTab, getErr := s.store.GetTab(tabID)
 				if getErr != nil || currentTab == nil {
 					s.logger.Error("Failed to get tab after cover download: %v", getErr)
 					return
 				}
-				currentTab.CoverPath = coverPath
+				// Store relative path in DB
+				currentTab.CoverPath = filepath.Base(downloadedCoverPath)
 				s.store.AddTab(*currentTab)
 				s.emitter.Emit("tab-updated", *currentTab)
 

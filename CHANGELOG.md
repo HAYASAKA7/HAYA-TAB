@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.5] - 2026-02-28
+
+### Added
+- **Customizable Data Path**: Users can now change the storage directory for managed tabs and covers via Settings
+- **Data Migration**: Automatically prompts users to migrate existing files to the new directory when changing paths
+- **i18n**: Added translation keys related to data storage and data migration features across all supported languages
+
 ## [2.2.4] - 2026-02-27
 
 ### Fixed

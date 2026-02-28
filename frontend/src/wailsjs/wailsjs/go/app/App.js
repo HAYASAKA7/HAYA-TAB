@@ -22,6 +22,10 @@ export function BatchMoveTabs(arg1, arg2) {
   return window['go']['app']['App']['BatchMoveTabs'](arg1, arg2);
 }
 
+export function CheckMigration(arg1) {
+  return window['go']['app']['App']['CheckMigration'](arg1);
+}
+
 export function DeleteCategory(arg1) {
   return window['go']['app']['App']['DeleteCategory'](arg1);
 }
@@ -46,6 +50,10 @@ export function GetCover(arg1) {
   return window['go']['app']['App']['GetCover'](arg1);
 }
 
+export function GetCoversDir() {
+  return window['go']['app']['App']['GetCoversDir']();
+}
+
 export function GetFileServerPort() {
   return window['go']['app']['App']['GetFileServerPort']();
 }
@@ -62,6 +70,10 @@ export function GetSettings() {
   return window['go']['app']['App']['GetSettings']();
 }
 
+export function GetStorageDir() {
+  return window['go']['app']['App']['GetStorageDir']();
+}
+
 export function GetTabs() {
   return window['go']['app']['App']['GetTabs']();
 }
@@ -72,6 +84,10 @@ export function GetTabsPaginated(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 
 export function MarkAsOpened(arg1) {
   return window['go']['app']['App']['MarkAsOpened'](arg1);
+}
+
+export function MigrateData(arg1, arg2, arg3) {
+  return window['go']['app']['App']['MigrateData'](arg1, arg2, arg3);
 }
 
 export function MoveCategory(arg1, arg2) {
@@ -96,6 +112,14 @@ export function RecalculateAllInitials() {
 
 export function RemoveTabFromCategory(arg1, arg2) {
   return window['go']['app']['App']['RemoveTabFromCategory'](arg1, arg2);
+}
+
+export function ResolveCoverPath(arg1) {
+  return window['go']['app']['App']['ResolveCoverPath'](arg1);
+}
+
+export function ResolveTabPath(arg1, arg2) {
+  return window['go']['app']['App']['ResolveTabPath'](arg1, arg2);
 }
 
 export function SaveSettings(arg1) {

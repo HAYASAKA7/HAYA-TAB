@@ -34,6 +34,8 @@ export const useSettingsStore = defineStore('settings', () => {
       scrollSpeedUp: '.',
       scrollSpeedDown: ','
     },
+    storagePath: '',
+    coversPath: '',
     webdavEnabled: false,
     webdavUrl: '',
     webdavUser: '',

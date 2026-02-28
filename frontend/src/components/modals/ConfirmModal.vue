@@ -11,6 +11,13 @@ function handleConfirm() {
   }
   uiStore.hideConfirmModal()
 }
+
+function handleAlt() {
+  if (uiStore.confirmModalData?.onAlt) {
+    uiStore.confirmModalData.onAlt()
+  }
+  uiStore.hideConfirmModal()
+}
 </script>
 
 <template>
@@ -23,7 +30,12 @@ function handleConfirm() {
     <div class="modal confirm-modal">
       <h2 id="confirm-title">{{ uiStore.confirmModalData?.title }}</h2>
       <p id="confirm-message" class="selectable" v-html="uiStore.confirmModalData?.message"></p>
-      <div class="modal-actions">
+      <div class="modal-actions" style="justify-content: flex-end;">
+        <div style="margin-right: auto;" v-if="uiStore.confirmModalData?.altText">
+          <button class="btn primary" @click="handleAlt">
+            {{ uiStore.confirmModalData?.altText }}
+          </button>
+        </div>
         <button
           id="confirm-cancel-btn"
           class="btn"

@@ -51,6 +51,8 @@ interface Window {
         WebDAVAddOnlineFiles(url: string, user: string, pass: string, remotePaths: string[]): Promise<void>
         WebDAVCheckStatus(): Promise<boolean>
         DownloadCloudTabToLocal(tabId: string): Promise<void>
+        CheckMigration(target: string): Promise<{ count: number, size: number }>
+        MigrateData(target: string, newPath: string, copyOnly: boolean): Promise<void>
       }
     }
   }

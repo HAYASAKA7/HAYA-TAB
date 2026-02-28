@@ -83,7 +83,19 @@
     "connectionSuccess": "Connection successful!",
     "connectionFailed": "Connection failed",
     "configureWebdav": "Configure WebDAV",
-    "webdavAddress": "WebDAV Address"
+    "webdavAddress": "WebDAV Address",
+    "dataStorage": "Data Storage",
+    "storagePath": "Managed Tabs Path",
+    "coversPath": "Covers Path",
+    "defaultPath": "Default (User Directory)",
+    "change": "Change",
+    "migrateTitle": "Directory Changed",
+    "migrateMsg": "The selected directory has changed. There are {count} files ({size} MB) in the current directory.<br><br>Do you want to MIGRATE all existing files to the new directory, or ONLY APPLY the new path (leaving old files where they are)?",
+    "migrateBtn": "Migrate All Files",
+    "applyBtn": "Only Apply Path",
+    "migrating": "Migrating data, please wait...",
+    "migrateSuccess": "Migration completed successfully",
+    "pathApplied": "Path applied successfully"
   },
   "cloud": {
     "title": "Cloud Library",

@@ -124,12 +124,20 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
-	fmt.Printf("[ServeTabFile] Found tab: %s, Path: %s\n", tab.Title, tab.FilePath)
+	fullPath := h.app.ResolveTabPath(tab.FilePath, tab.IsManaged)
+	fmt.Printf("[ServeTabFile] Found tab: %s, Path: %s\n", tab.Title, fullPath)
+
+	// Check if file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		fmt.Printf("[ServeTabFile] File not found: %s\n", fullPath)
+		http.Error(w, "File not found: the path is invalid or the file has been moved", http.StatusNotFound)
+		return
+	}
 
 	// Open the file
-	file, err := os.Open(tab.FilePath)
+	file, err := os.Open(fullPath)
 	if err != nil {
-		fmt.Printf("[ServeTabFile] Failed to open file %s: %v\n", tab.FilePath, err)
+		fmt.Printf("[ServeTabFile] Failed to open file %s: %v\n", fullPath, err)
 		http.Error(w, "File not found", http.StatusInternalServerError)
 		return
 	}
@@ -144,7 +152,7 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 	}
 
 	// Set content type based on file extension
-	ext := strings.ToLower(filepath.Ext(tab.FilePath))
+	ext := strings.ToLower(filepath.Ext(fullPath))
 	contentType := "application/octet-stream"
 	switch ext {
 	case ".pdf":
@@ -184,10 +192,18 @@ func (h *FileHandler) serveCoverFile(w http.ResponseWriter, r *http.Request, id 
 		return
 	}
 
-	fmt.Printf("[ServeCoverFile] Opening cover: %s\n", tab.CoverPath)
+	fullCoverPath := h.app.ResolveCoverPath(tab.CoverPath)
+	fmt.Printf("[ServeCoverFile] Opening cover: %s\n", fullCoverPath)
+
+	// Check if file exists
+	if _, err := os.Stat(fullCoverPath); os.IsNotExist(err) {
+		fmt.Printf("[ServeCoverFile] Cover not found: %s\n", fullCoverPath)
+		http.Error(w, "Cover not found", http.StatusNotFound)
+		return
+	}
 
 	// Open the cover file
-	file, err := os.Open(tab.CoverPath)
+	file, err := os.Open(fullCoverPath)
 	if err != nil {
 		fmt.Printf("[ServeCoverFile] Failed to open cover: %v\n", err)
 		http.Error(w, "Cover not found", http.StatusNotFound)
@@ -203,7 +219,7 @@ func (h *FileHandler) serveCoverFile(w http.ResponseWriter, r *http.Request, id 
 	}
 
 	// Determine content type
-	ext := strings.ToLower(filepath.Ext(tab.CoverPath))
+	ext := strings.ToLower(filepath.Ext(fullCoverPath))
 	contentType := "image/jpeg"
 	switch ext {
 	case ".png":

@@ -83,7 +83,19 @@
     "connectionSuccess": "接続に成功しました！",
     "connectionFailed": "接続に失敗しました",
     "configureWebdav": "WebDAVを設定",
-    "webdavAddress": "WebDAVアドレス"
+    "webdavAddress": "WebDAVアドレス",
+    "dataStorage": "データストレージ",
+    "storagePath": "管理対象タブのパス",
+    "coversPath": "カバーのパス",
+    "defaultPath": "デフォルト（ユーザーディレクトリ）",
+    "change": "変更",
+    "migrateTitle": "ディレクトリが変更されました",
+    "migrateMsg": "選択されたディレクトリが変更されました。現在のディレクトリには {count} 個のファイル（{size} MB）があります。<br><br>既存のすべてのファイルを新しいディレクトリに移行（MIGRATE）しますか、それとも新しいパスのみを適用（ONLY APPLY）しますか（古いファイルはそのまま残します）？",
+    "migrateBtn": "すべてのファイルを移行",
+    "applyBtn": "パスのみを適用",
+    "migrating": "データを移行しています。お待ちください...",
+    "migrateSuccess": "移行が正常に完了しました",
+    "pathApplied": "パスが正常に適用されました"
   },
   "cloud": {
     "title": "クラウドライブラリ",

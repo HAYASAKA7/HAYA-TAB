@@ -62,6 +62,14 @@ onMounted(async () => {
     showToast(msg + ' - ' + t('toast.clickSyncToUpdate'), 'info')
   })
 
+  window.runtime.EventsOn('migration-completed', (target: string) => {
+    tabsStore.refreshData()
+    // For covers migration, we might need to clear browser cache, but simple reload is enough
+    if (target === 'covers') {
+      window.location.reload()
+    }
+  })
+
   // Listen for cloud download completion (handle toast globally to avoid duplicates)
   window.runtime.EventsOn('cloud-download-single', (data: any) => {
     if (data.status === 'complete') {

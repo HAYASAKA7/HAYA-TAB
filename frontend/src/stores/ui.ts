@@ -29,6 +29,8 @@ export const useUIStore = defineStore('ui', () => {
     okText: string
     isDanger: boolean
     onConfirm: () => void
+    altText?: string
+    onAlt?: () => void
   } | null>(null)
 
   // Context menu
@@ -89,9 +91,11 @@ export const useUIStore = defineStore('ui', () => {
     message: string,
     okText: string,
     isDanger: boolean,
-    onConfirm: () => void
+    onConfirm: () => void,
+    altText?: string,
+    onAlt?: () => void
   ) {
-    confirmModalData.value = { title, message, okText, isDanger, onConfirm }
+    confirmModalData.value = { title, message, okText, isDanger, onConfirm, altText, onAlt }
     confirmModalVisible.value = true
   }
 

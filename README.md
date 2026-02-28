@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-2.2.4-green)
+![Version](https://img.shields.io/badge/version-2.2.5-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
@@ -15,6 +15,7 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 - **Cloud Sync** - **WebDAV** integration for on-demand cloud file access and uploads
 - **Smart Metadata** - Auto-parse info from filenames; **Bi-directional sync** with Guitar Pro internal metadata
 - **Tag Support** - Add version/part tags (e.g., "Lead Guitar", "Bass", "First Version")
+- **Customizable Environment** - Change storage locations for managed tabs and covers to customize your setup
 - **Album Artwork** - Automatic cover art fetching from iTunes; **High-performance** concurrent downloads
 - **Categories** - Organize tabs into virtual folders
 - **Batch Operations** - Select and move/delete multiple tabs at once

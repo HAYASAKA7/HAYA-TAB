@@ -18,30 +18,79 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// getAppDir returns the directory where the executable is located
-// This is more reliable than os.Getwd() for built applications
+// getAppDir returns the directory where the database and logs should be stored.
+// It is forced to the user's config directory so that it's accessible even if a custom storage drive is offline.
 func getAppDir() string {
-	// Check if running in Dev mode (project root contains wails.json)
-	if cwd, err := os.Getwd(); err == nil {
-		if _, err := os.Stat(filepath.Join(cwd, "wails.json")); err == nil {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			cwd, _ := os.Getwd()
+			appDataDir := filepath.Join(cwd, "data")
+			os.MkdirAll(appDataDir, 0755)
 			return cwd
 		}
+		appDataDir := filepath.Join(homeDir, ".haya-tab")
+		os.MkdirAll(appDataDir, 0755)
+		return appDataDir
 	}
+	appDataDir := filepath.Join(configDir, "HAYA-TAB")
 
-	exePath, err := os.Executable()
-	if err != nil {
-		// Fallback to working directory
-		cwd, _ := os.Getwd()
-		return cwd
-	}
-	// Resolve symlinks to get the real path
-	exePath, err = filepath.EvalSymlinks(exePath)
-	if err != nil {
-		cwd, _ := os.Getwd()
-		return cwd
-	}
-	return filepath.Dir(exePath)
+	os.MkdirAll(appDataDir, 0755)
+
+	return appDataDir
 }
+
+// GetStorageDir returns the directory for managed tabs.
+func (a *App) GetStorageDir() string {
+	if a.store != nil {
+		settings := a.store.GetSettings()
+		if settings.StoragePath != "" {
+			os.MkdirAll(settings.StoragePath, 0755)
+			return settings.StoragePath
+		}
+	}
+	dir := filepath.Join(getAppDir(), "storage")
+	os.MkdirAll(dir, 0755)
+	return dir
+}
+
+// GetCoversDir returns the directory for cover images.
+func (a *App) GetCoversDir() string {
+	if a.store != nil {
+		settings := a.store.GetSettings()
+		if settings.CoversPath != "" {
+			os.MkdirAll(settings.CoversPath, 0755)
+			return settings.CoversPath
+		}
+	}
+	dir := filepath.Join(getAppDir(), "covers")
+	os.MkdirAll(dir, 0755)
+	return dir
+}
+
+// ResolveTabPath converts a relative path to absolute using GetStorageDir.
+func (a *App) ResolveTabPath(path string, isManaged bool) string {
+	if !isManaged || path == "" {
+		return path
+	}
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(a.GetStorageDir(), path)
+}
+
+// ResolveCoverPath converts a relative path to absolute using GetCoversDir.
+func (a *App) ResolveCoverPath(path string) string {
+	if path == "" {
+		return ""
+	}
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(a.GetCoversDir(), path)
+}
+
 
 // generateID generates a unique ID for tabs
 func generateID() string {
@@ -114,11 +163,9 @@ func (a *App) Startup(ctx context.Context) {
 	a.logger.SetContext(ctx)
 	a.logger.Info("App starting in directory: %s", appDir)
 
-	// Ensure required directories exist
+	// Ensure required directories exist for DB and logger
 	requiredDirs := []string{
 		filepath.Join(appDir, "data"),
-		filepath.Join(appDir, "storage"),
-		filepath.Join(appDir, "covers"),
 	}
 	for _, dir := range requiredDirs {
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -137,6 +184,10 @@ func (a *App) Startup(ctx context.Context) {
 		a.logger.Error("Error initializing database: %v", err)
 		return
 	}
+
+	// Now that store is initialized, ensure storage and cover directories exist based on settings
+	a.GetStorageDir()
+	a.GetCoversDir()
 
 	// Migrate from JSON if database is empty and JSON exists
 	if !a.store.HasData() {

@@ -1,5 +1,19 @@
 export namespace app {
 	
+	export class MigrationStatus {
+	    count: number;
+	    size: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new MigrationStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.count = source["count"];
+	        this.size = source["size"];
+	    }
+	}
 	export class TabsResponse {
 	    tabs: store.Tab[];
 	    total: number;
@@ -133,6 +147,8 @@ export namespace store {
 	    autoSyncFrequency: string;
 	    lastSyncTime: number;
 	    keyBindings: KeyBindings;
+	    storagePath: string;
+	    coversPath: string;
 	    webdavEnabled: boolean;
 	    webdavUrl: string;
 	    webdavUser: string;
@@ -157,6 +173,8 @@ export namespace store {
 	        this.autoSyncFrequency = source["autoSyncFrequency"];
 	        this.lastSyncTime = source["lastSyncTime"];
 	        this.keyBindings = this.convertValues(source["keyBindings"], KeyBindings);
+	        this.storagePath = source["storagePath"];
+	        this.coversPath = source["coversPath"];
 	        this.webdavEnabled = source["webdavEnabled"];
 	        this.webdavUrl = source["webdavUrl"];
 	        this.webdavUser = source["webdavUser"];

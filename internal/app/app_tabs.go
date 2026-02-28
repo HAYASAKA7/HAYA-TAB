@@ -101,13 +101,12 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) (*store.Tab, error) {
 		return nil, fmt.Errorf("a tab with title '%s' already exists", existingByTitle.Title)
 	}
 
-	appDir := getAppDir()
-
 	// Handle File Copy
 	if shouldCopy {
 		ext := filepath.Ext(tab.FilePath)
 		newFilename := tab.ID + ext
-		destPath := filepath.Join(appDir, "storage", newFilename)
+		storageDir := a.GetStorageDir()
+		destPath := filepath.Join(storageDir, newFilename)
 
 		src, err := os.Open(tab.FilePath)
 		if err != nil {
@@ -125,7 +124,8 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) (*store.Tab, error) {
 			return nil, err
 		}
 
-		tab.FilePath = destPath
+		// Store relative path in DB for managed tabs to support portable storage directories
+		tab.FilePath = newFilename
 		tab.IsManaged = true
 	} else {
 		tab.IsManaged = false
@@ -279,13 +279,15 @@ func (a *App) DeleteTab(id string) error {
 	}
 
 	if targetTab.IsManaged {
+		fullPath := a.ResolveTabPath(targetTab.FilePath, targetTab.IsManaged)
 		// Try to delete the file, log error but proceed with DB deletion
-		if err := os.Remove(targetTab.FilePath); err != nil {
-			a.logger.Error("Warning: Failed to delete managed file %s: %v", targetTab.FilePath, err)
+		if err := os.Remove(fullPath); err != nil {
+			a.logger.Error("Warning: Failed to delete managed file %s: %v", fullPath, err)
 		}
 		// Also delete cover
 		if targetTab.CoverPath != "" {
-			os.Remove(targetTab.CoverPath)
+			fullCoverPath := a.ResolveCoverPath(targetTab.CoverPath)
+			os.Remove(fullCoverPath)
 		}
 	}
 
@@ -309,13 +311,15 @@ func (a *App) BatchDeleteTabs(ids []string) (int, error) {
 		}
 
 		if targetTab.IsManaged {
+			fullPath := a.ResolveTabPath(targetTab.FilePath, targetTab.IsManaged)
 			// Try to delete the file
-			if err := os.Remove(targetTab.FilePath); err != nil {
-				a.logger.Error("Warning: Failed to delete managed file %s: %v", targetTab.FilePath, err)
+			if err := os.Remove(fullPath); err != nil {
+				a.logger.Error("Warning: Failed to delete managed file %s: %v", fullPath, err)
 			}
 			// Also delete cover
 			if targetTab.CoverPath != "" {
-				os.Remove(targetTab.CoverPath)
+				fullCoverPath := a.ResolveCoverPath(targetTab.CoverPath)
+				os.Remove(fullCoverPath)
 			}
 		}
 
@@ -465,7 +469,11 @@ func (a *App) OpenTab(id string) error {
 	a.store.UpdateTab(*targetTab)
 
 	var cmd *exec.Cmd
-	path := targetTab.FilePath
+	path := a.ResolveTabPath(targetTab.FilePath, targetTab.IsManaged)
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("file not found: the path is invalid or the file has been moved")
+	}
 
 	switch runtime.GOOS {
 	case "windows":
@@ -523,13 +531,14 @@ func (a *App) ExportTab(id string, destFolder string) error {
 		return fmt.Errorf("tab not found")
 	}
 
-	srcFile, err := os.Open(targetTab.FilePath)
+	srcPath := a.ResolveTabPath(targetTab.FilePath, targetTab.IsManaged)
+	srcFile, err := os.Open(srcPath)
 	if err != nil {
 		return fmt.Errorf("failed to open source file: %w", err)
 	}
 	defer srcFile.Close()
 
-	fileName := filepath.Base(targetTab.FilePath)
+	fileName := filepath.Base(srcPath)
 	destPath := filepath.Join(destFolder, fileName)
 
 	destFile, err := os.Create(destPath)

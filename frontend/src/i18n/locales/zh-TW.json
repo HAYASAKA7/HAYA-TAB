@@ -83,7 +83,19 @@
     "connectionSuccess": "連線成功！",
     "connectionFailed": "連線失敗",
     "configureWebdav": "設定 WebDAV",
-    "webdavAddress": "WebDAV 位址"
+    "webdavAddress": "WebDAV 位址",
+    "dataStorage": "資料儲存",
+    "storagePath": "受管樂譜路徑",
+    "coversPath": "封面路徑",
+    "defaultPath": "預設（使用者目錄）",
+    "change": "變更",
+    "migrateTitle": "目錄已變更",
+    "migrateMsg": "所選目錄已變更。目前目錄中有 {count} 個檔案（{size} MB）。<br><br>您想將所有現有檔案遷移（MIGRATE）到新目錄，還是僅套用（ONLY APPLY）新路徑（將舊檔案留在原地）？",
+    "migrateBtn": "遷移所有檔案",
+    "applyBtn": "僅套用路徑",
+    "migrating": "正在遷移資料，請稍候...",
+    "migrateSuccess": "遷移成功完成",
+    "pathApplied": "路徑套用成功"
   },
   "cloud": {
     "title": "雲端曲庫",

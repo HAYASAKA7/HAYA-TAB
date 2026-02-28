@@ -332,6 +332,12 @@ func (s *DBStore) loadSettings() error {
 	if v, ok := settings["syncPaths"]; ok && v != "" {
 		s.Settings.SyncPaths = strings.Split(v, "|")
 	}
+	if v, ok := settings["storagePath"]; ok {
+		s.Settings.StoragePath = v
+	}
+	if v, ok := settings["coversPath"]; ok {
+		s.Settings.CoversPath = v
+	}
 
 	// WebDAV Settings
 	if v, ok := settings["webdavEnabled"]; ok {
@@ -1319,6 +1325,8 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 		"lastSyncTime":                fmt.Sprintf("%d", settings.LastSyncTime),
 		"syncStrategy":                settings.SyncStrategy,
 		"syncPaths":                   strings.Join(settings.SyncPaths, "|"),
+		"storagePath":                 settings.StoragePath,
+		"coversPath":                  settings.CoversPath,
 		"webdavEnabled":               fmt.Sprintf("%v", settings.WebDAVEnabled),
 		"webdavUrl":                   settings.WebDAVURL,
 		"webdavUser":                  settings.WebDAVUser,
