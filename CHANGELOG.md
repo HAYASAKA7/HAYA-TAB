@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.9] - 2026-02-28
+
+### Changed
+- **Database Package Refactor:** Split monolithic `database.go` into focused modules for better maintainability
+  - `database_tabs.go`: Tab CRUD operations and search functions (FTS5, pagination)
+  - `database_categories.go`: Category management and relationships
+  - `database_settings.go`: Settings CRUD and persistence
+  - Core database initialization, connection management, and shared utilities remain in `database.go`
+  - No logic changes; purely organizational improvement
+
+### Fixed
+- **Whitespace:** Removed trailing whitespace in FTS5 trigger definitions for cleaner SQL formatting
+
 ## [2.2.8] - 2026-02-28
 
 ### Added
