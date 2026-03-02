@@ -87,8 +87,7 @@ jobs:
       - name: Build application
         run: |
           if [ "${{ matrix.platform }}" = "linux" ]; then
-            export GOFLAGS="-tags=webkit2_41"
-            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -tags webkit2_41 -clean
           else
             wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
           fi
