@@ -452,6 +452,31 @@ func TestCalculateLatinInitials_EdgeCases(t *testing.T) {
 	}
 }
 
+func TestCalculateInitials_LatinWithJapaneseOrigin(t *testing.T) {
+	testCases := []struct {
+		title          string
+		originCountry  string
+		expectedAZ     string
+		expectedKana   string
+	}{
+		{"Distortion!!", "JP", "D", "D"},
+		{"Final Distortion", "JP", "F", "F"},
+		{"Rock", "JP", "R", "R"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.title, func(t *testing.T) {
+			az, kana := CalculateInitials(tc.title, tc.originCountry)
+			if az != tc.expectedAZ {
+				t.Errorf("CalculateInitials(%q, %q) az = %q, want %q", tc.title, tc.originCountry, az, tc.expectedAZ)
+			}
+			if kana != tc.expectedKana {
+				t.Errorf("CalculateInitials(%q, %q) kana = %q, want %q", tc.title, tc.originCountry, kana, tc.expectedKana)
+			}
+		})
+	}
+}
+
 func TestCalculateInitials_AllLanguages(t *testing.T) {
 	testCases := []struct {
 		title         string

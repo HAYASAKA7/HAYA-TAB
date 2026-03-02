@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.13] - 2026-03-02
+
+### Added
+- **Comprehensive Test Coverage:** Added extensive test suites across multiple packages
+  - `pkg/coverpool`: Worker pool concurrency and error handling tests
+  - `pkg/logger`: Structured logging functionality tests
+  - `pkg/metadata`: Metadata parsing and initial calculation tests
+  - `pkg/store`: Database operations, encryption, and migration tests
+  - `pkg/sync`: File synchronization and WebDAV integration tests
+  - `pkg/watcher`: File system watcher tests
+  - `pkg/worker`: MusicBrainz worker tests
+  - `internal/app`: Application logic tests for tabs, categories, settings, WebDAV, and migration
+- **Developer Documentation:** Added comprehensive documentation for contributors
+  - `docs/API.md`: Complete API reference for backend methods
+  - `docs/ARCHITECTURE.md`: System architecture and design patterns
+  - `docs/CONTRIBUTING.md`: Contribution guidelines and development workflow
+
+### Improved
+- **Code Quality:** Achieved significantly higher test coverage across the codebase
+- **Maintainability:** Better documentation makes it easier for new contributors to understand the project
+
+### Removed
+- **Dead Code Cleanup:** Removed unused code to improve maintainability
+  - Removed `pkg/metadata/gp_binary.go` (legacy binary parsing)
+  - Removed `pkg/metadata/parser_gpx.go` (unused GPX parser)
+  - Cleaned up unused WebDAV functions in `pkg/sync/webdav.go`
+
 ## [2.2.12] - 2026-03-02
 
 ### Fixed

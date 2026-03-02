@@ -266,6 +266,12 @@ func calculateJapaneseInitials(title string) (az string, kana string) {
 		}
 	}
 
+	// If it's Latin, use directly (for Japanese artists with Latin titles)
+	if isLatin(firstChar) {
+		initial := strings.ToUpper(string(firstChar))
+		return initial, initial
+	}
+
 	// Final fallback for other characters
 	return "#", "#"
 }

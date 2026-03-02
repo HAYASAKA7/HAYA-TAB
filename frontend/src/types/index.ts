@@ -12,6 +12,7 @@ export interface Tab {
   categoryIds: string[]
   country: string
   language: string
+  originCountry: string // Artist's origin country from MusicBrainz (e.g. "JP", "CN", "US")
   tag: string
   addedAt: number
   lastOpened: number

@@ -69,6 +69,7 @@ async function handleSave() {
     categoryIds: existing?.categoryIds || (tabsStore.currentCategoryId ? [tabsStore.currentCategoryId] : []),
     country: formData.value.country || 'US',
     language: formData.value.language || 'en_us',
+    originCountry: existing?.originCountry || '',
     tag: formData.value.tag || '',
     addedAt: existing?.addedAt || 0,
     lastOpened: existing?.lastOpened || 0,

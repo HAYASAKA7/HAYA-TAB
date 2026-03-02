@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-2.2.12-green)
+![Version](https://img.shields.io/badge/version-2.2.13-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
@@ -148,7 +148,10 @@ Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAY
 │   └── windows/                      # Windows build resources
 │
 ├── docs/                             # Documentation
-│   └── WEBDAV.md                     # WebDAV setup guide
+│   ├── WEBDAV.md                     # WebDAV setup guide
+│   ├── API.md                        # Backend API reference
+│   ├── ARCHITECTURE.md               # System architecture overview
+│   └── CONTRIBUTING.md               # Contribution guidelines
 │
 ├── README.md                         # This file
 ├── CHANGELOG.md                      # Version history
