@@ -11,8 +11,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // TabsResponse represents a paginated response for tabs
@@ -159,7 +157,7 @@ func (a *App) UpdateTab(tab store.Tab) error {
 	}
 
 	// Notify frontend about the update
-	wailsRuntime.EventsEmit(a.ctx, "tab-updated", tab)
+	a.emitEvent("tab-updated", tab)
 
 	// Trigger Cover Update (Async)
 	a.fetchCoverAsync(tab)
@@ -259,7 +257,7 @@ func (a *App) UpdateTabMetadata(id string, title string, artist string, album st
 		}
 
 		// Notify frontend about the update
-		wailsRuntime.EventsEmit(a.ctx, "tab-updated", *currentTab)
+		a.emitEvent("tab-updated", *currentTab)
 
 		// If artist was updated and we have enough info, try fetching cover again
 		if currentTab.Artist != "" && currentTab.CoverPath == "" {
@@ -299,7 +297,7 @@ func (a *App) DeleteTab(id string) error {
 	}
 
 	// Emit event to notify frontend
-	wailsRuntime.EventsEmit(a.ctx, "tab-deleted", id)
+	a.emitEvent("tab-deleted", id)
 	return nil
 }
 
@@ -334,7 +332,7 @@ func (a *App) BatchDeleteTabs(ids []string) (int, error) {
 
 	// Emit event to notify frontend
 	if deleted > 0 {
-		wailsRuntime.EventsEmit(a.ctx, "tabs-deleted", deletedIds)
+		a.emitEvent("tabs-deleted", deletedIds)
 	}
 
 	return deleted, nil
@@ -514,13 +512,17 @@ func (a *App) RecalculateAllInitials() (int, error) {
 	for _, tab := range tabs {
 		az, kana := metadata.CalculateInitials(tab.Title, tab.OriginCountry)
 		if err := a.store.UpdateTabInitials(tab.ID, az, kana); err != nil {
-			a.logger.Error("Failed to update initials for tab %s: %v", tab.ID, err)
+			if a.logger != nil {
+				a.logger.Error("Failed to update initials for tab %s: %v", tab.ID, err)
+			}
 			continue
 		}
 		updated++
 	}
 
-	a.logger.Info("Recalculated initials for %d/%d tabs", updated, len(tabs))
+	if a.logger != nil {
+		a.logger.Info("Recalculated initials for %d/%d tabs", updated, len(tabs))
+	}
 	return updated, nil
 }
 

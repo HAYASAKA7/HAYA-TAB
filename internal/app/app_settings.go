@@ -3,8 +3,6 @@ package app
 import (
 	"haya-tab/pkg/store"
 	"haya-tab/pkg/watcher"
-
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // GetSettings returns the current settings
@@ -20,12 +18,12 @@ func (a *App) SaveSettings(s store.Settings) error {
 		return err
 	}
 
-	// Update file watcher if sync paths changed
-	if len(s.SyncPaths) > 0 {
+	// Update file watcher if sync paths changed (only in app context with logger)
+	if len(s.SyncPaths) > 0 && a.logger != nil {
 		if a.fileWatcher == nil {
-			// Create new watcher
+			// Create new watcher with context-aware callback
 			a.fileWatcher = watcher.NewFileWatcher(func() {
-				wailsRuntime.EventsEmit(a.ctx, "file-changes-detected", "Files have changed in sync directories")
+				a.emitEvent("file-changes-detected", "Files have changed in sync directories")
 			})
 			a.fileWatcher.SetLogger(a.logger)
 
@@ -57,7 +55,7 @@ func (a *App) SaveSettings(s store.Settings) error {
 		}
 	}
 
-	if pathsChanged && len(s.SyncPaths) > 0 {
+	if pathsChanged && len(s.SyncPaths) > 0 && a.logger != nil {
 		a.logger.Info("File watcher updated with %d paths", len(s.SyncPaths))
 	}
 

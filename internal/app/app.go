@@ -13,10 +13,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+// idCounter is used to ensure unique IDs even when called in rapid succession
+var idCounter uint64
 
 // getAppDir returns the directory where the database and logs should be stored.
 // It is forced to the user's config directory so that it's accessible even if a custom storage drive is offline.
@@ -91,10 +95,10 @@ func (a *App) ResolveCoverPath(path string) string {
 	return filepath.Join(a.GetCoversDir(), path)
 }
 
-
 // generateID generates a unique ID for tabs
 func generateID() string {
-	return fmt.Sprintf("tab_%d", time.Now().UnixNano())
+	counter := atomic.AddUint64(&idCounter, 1)
+	return fmt.Sprintf("tab_%d%d", time.Now().UnixNano(), counter)
 }
 
 // copyFile copies a file from src to dst
@@ -122,7 +126,17 @@ type WailsEventEmitter struct {
 
 // Emit sends an event to the frontend via wails runtime
 func (e *WailsEventEmitter) Emit(eventName string, data interface{}) {
-	wailsRuntime.EventsEmit(e.ctx, eventName, data)
+	if e.ctx != nil {
+		wailsRuntime.EventsEmit(e.ctx, eventName, data)
+	}
+}
+
+// emitEvent safely emits an event through the Wails runtime
+// It checks if context is valid before emitting
+func (a *App) emitEvent(eventName string, data interface{}) {
+	if a.ctx != nil {
+		wailsRuntime.EventsEmit(a.ctx, eventName, data)
+	}
 }
 
 // App struct holds all application dependencies and state
@@ -335,7 +349,7 @@ func (a *App) initFileWatcher() {
 	if len(settings.SyncPaths) > 0 {
 		a.fileWatcher = watcher.NewFileWatcher(func() {
 			// Emit event to frontend when changes detected
-			wailsRuntime.EventsEmit(a.ctx, "file-changes-detected", "Files have changed in sync directories")
+			a.emitEvent("file-changes-detected", "Files have changed in sync directories")
 		})
 		a.fileWatcher.SetLogger(a.logger)
 

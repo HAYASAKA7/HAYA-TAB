@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // MigrationStatus holds information about a directory migration
@@ -194,9 +192,9 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 		return fmt.Errorf("failed to save settings: %w", err)
 	}
 
-	// Notify frontend to reload view
+	// Notify frontend to reload view (only in real app context)
 	time.Sleep(1 * time.Second) // Let file system settle
-	wailsRuntime.EventsEmit(a.ctx, "migration-completed", target)
+	a.emitEvent("migration-completed", target)
 
 	return nil
 }

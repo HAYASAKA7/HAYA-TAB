@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // WebDAVTestConnection tests the WebDAV connection
@@ -71,7 +69,7 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 	url = strings.TrimRight(url, "/")
 	client := syncpkg.NewWebDAVClient(url, user, password)
 
-	wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+	a.emitEvent("cloud-progress", map[string]interface{}{
 		"status": "start",
 		"total":  len(remotePaths),
 	})
@@ -129,7 +127,7 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 				os.Remove(tempPath)
 			}
 
-			wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+			a.emitEvent("cloud-progress", map[string]interface{}{
 				"status":   "progress",
 				"current":  i + 1,
 				"total":    len(remotePaths),
@@ -137,7 +135,7 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 			})
 		}
 
-		wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+		a.emitEvent("cloud-progress", map[string]interface{}{
 			"status":  "complete",
 			"success": successCount,
 			"skipped": skippedCount,
@@ -153,7 +151,7 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 	url = strings.TrimRight(url, "/")
 	client := syncpkg.NewWebDAVClient(url, user, password)
 
-	wailsRuntime.EventsEmit(a.ctx, "cloud-upload-progress", map[string]interface{}{
+	a.emitEvent("cloud-upload-progress", map[string]interface{}{
 		"status": "start",
 		"total":  len(localPaths),
 	})
@@ -167,7 +165,7 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 				successCount++
 			}
 
-			wailsRuntime.EventsEmit(a.ctx, "cloud-upload-progress", map[string]interface{}{
+			a.emitEvent("cloud-upload-progress", map[string]interface{}{
 				"status":   "progress",
 				"current":  i + 1,
 				"total":    len(localPaths),
@@ -175,7 +173,7 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 			})
 		}
 
-		wailsRuntime.EventsEmit(a.ctx, "cloud-upload-progress", map[string]interface{}{
+		a.emitEvent("cloud-upload-progress", map[string]interface{}{
 			"status":  "complete",
 			"success": successCount,
 		})
@@ -193,7 +191,7 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 		a.logger.Error("Failed to ensure cloud category: %v", err)
 	}
 
-	wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+	a.emitEvent("cloud-progress", map[string]interface{}{
 		"status": "start",
 		"total":  len(remotePaths),
 	})
@@ -210,7 +208,7 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 			if existingTab != nil {
 				a.logger.Info("Skipping duplicate cloud file %s", fileName)
 				skippedCount++
-				wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+				a.emitEvent("cloud-progress", map[string]interface{}{
 					"status":   "progress",
 					"current":  i + 1,
 					"total":    len(remotePaths),
@@ -251,7 +249,7 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				successCount++
 			}
 
-			wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+			a.emitEvent("cloud-progress", map[string]interface{}{
 				"status":   "progress",
 				"current":  i + 1,
 				"total":    len(remotePaths),
@@ -259,7 +257,7 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 			})
 		}
 
-		wailsRuntime.EventsEmit(a.ctx, "cloud-progress", map[string]interface{}{
+		a.emitEvent("cloud-progress", map[string]interface{}{
 			"status":  "complete",
 			"success": successCount,
 			"skipped": skippedCount,
@@ -312,7 +310,7 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		settings.WebDAVPassword,
 	)
 
-	wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+	a.emitEvent("cloud-download-single", map[string]interface{}{
 		"status": "start",
 		"tabId":  tabID,
 	})
@@ -325,7 +323,7 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		tempFile, err := os.CreateTemp("", "haya-tab-download-*.tmp")
 		if err != nil {
 			a.logger.Error("Failed to create temp file: %v", err)
-			wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+			a.emitEvent("cloud-download-single", map[string]interface{}{
 				"status": "error",
 				"tabId":  tabID,
 				"error":  err.Error(),
@@ -339,7 +337,7 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		if err := client.DownloadFile(remotePath, tempPath); err != nil {
 			a.logger.Error("Failed to download %s: %v", remotePath, err)
 			os.Remove(tempPath)
-			wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+			a.emitEvent("cloud-download-single", map[string]interface{}{
 				"status": "error",
 				"tabId":  tabID,
 				"error":  err.Error(),
@@ -355,7 +353,7 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		if err := copyFile(tempPath, localPath); err != nil {
 			a.logger.Error("Failed to copy to storage: %v", err)
 			os.Remove(tempPath)
-			wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+			a.emitEvent("cloud-download-single", map[string]interface{}{
 				"status": "error",
 				"tabId":  tabID,
 				"error":  err.Error(),
@@ -381,7 +379,7 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 
 		if err := a.store.UpdateTab(*tab); err != nil {
 			a.logger.Error("Failed to update tab: %v", err)
-			wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+			a.emitEvent("cloud-download-single", map[string]interface{}{
 				"status": "error",
 				"tabId":  tabID,
 				"error":  err.Error(),
@@ -394,7 +392,7 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 			a.fetchCoverAsync(*tab)
 		}
 
-		wailsRuntime.EventsEmit(a.ctx, "cloud-download-single", map[string]interface{}{
+		a.emitEvent("cloud-download-single", map[string]interface{}{
 			"status": "complete",
 			"tabId":  tabID,
 			"tab":    tab,
