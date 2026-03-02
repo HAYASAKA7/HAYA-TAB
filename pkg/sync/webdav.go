@@ -145,29 +145,6 @@ func sanitizePath(remotePath string) string {
 	return remotePath
 }
 
-// encodePathForURL encodes path segments for direct HTTP requests (not gowebdav)
-func encodePathForURL(remotePath string) string {
-	// Split path into segments
-	segments := strings.Split(remotePath, "/")
-
-	// Escape each segment individually
-	for i, segment := range segments {
-		if segment != "" {
-			segments[i] = url.PathEscape(segment)
-		}
-	}
-
-	// Rejoin with slashes
-	encoded := strings.Join(segments, "/")
-
-	// Ensure leading slash is preserved
-	if strings.HasPrefix(remotePath, "/") && !strings.HasPrefix(encoded, "/") {
-		encoded = "/" + encoded
-	}
-
-	return encoded
-}
-
 // ScanRemoteFiles recursively scans the remote directory for supported files
 func (c *WebDAVClient) ScanRemoteFiles(dir string) ([]store.RemoteFile, error) {
 	return c.scanRecursive(dir, 0)
@@ -327,11 +304,6 @@ func (c *WebDAVClient) ReadStream(remotePath string) (io.ReadCloser, error) {
 func (c *WebDAVClient) GetFileInfo(remotePath string) (os.FileInfo, error) {
 	sanitizedPath := sanitizePath(remotePath)
 	return c.client.Stat(sanitizedPath)
-}
-
-// EncodePathForURL encodes path for direct HTTP requests (exported for main.go)
-func EncodePathForURL(remotePath string) string {
-	return encodePathForURL(remotePath)
 }
 
 // GetHTTPClient returns the underlying HTTP client for advanced operations
