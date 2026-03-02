@@ -345,3 +345,145 @@ func TestCalculateInitials_MixedContent(t *testing.T) {
 		})
 	}
 }
+
+func TestCalculateJapaneseInitialsFallback(t *testing.T) {
+	testCases := []struct {
+		title        string
+		expectedAZ   string
+		expectedKana string
+		desc         string
+	}{
+		{"あいうえお", "A", "あ", "Hiragana starting with あ"},
+		{"かきくけこ", "K", "か", "Hiragana starting with か"},
+		{"さしすせそ", "S", "さ", "Hiragana starting with さ"},
+		{"カタカナ", "K", "か", "Katakana starting with カ"},
+		{"アイウエオ", "A", "あ", "Katakana starting with ア"},
+		{"ABC", "A", "A", "Latin starting with A"},
+		{"XYZ", "X", "X", "Latin starting with X"},
+		{"桜", "Y", "#", "Kanji (uses pinyin, 桜 = yīng)"},
+		{"中国", "Z", "#", "Chinese characters"},
+		{"123", "#", "#", "Number"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			az, kana := calculateJapaneseInitialsFallback(tc.title)
+			if az != tc.expectedAZ {
+				t.Errorf("calculateJapaneseInitialsFallback(%q) az = %q, want %q", tc.title, az, tc.expectedAZ)
+			}
+			if kana != tc.expectedKana {
+				t.Errorf("calculateJapaneseInitialsFallback(%q) kana = %q, want %q", tc.title, kana, tc.expectedKana)
+			}
+		})
+	}
+}
+
+func TestCalculateJapaneseInitials_EdgeCases(t *testing.T) {
+	testCases := []struct {
+		title string
+		desc  string
+	}{
+		{"  さくら", "Leading spaces"},
+		{"さくら  ", "Trailing spaces"},
+		{"  さくら  ", "Both spaces"},
+		{"さ", "Single character"},
+		{"桜花月夜", "Multiple Kanji"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			az, kana := calculateJapaneseInitials(tc.title)
+			// Should not panic and return valid initials
+			if az == "" || kana == "" {
+				t.Errorf("calculateJapaneseInitials(%q) returned empty strings", tc.title)
+			}
+		})
+	}
+}
+
+func TestCalculateChineseInitials_EdgeCases(t *testing.T) {
+	testCases := []struct {
+		title string
+		desc  string
+	}{
+		{"  中国", "Leading spaces"},
+		{"中国  ", "Trailing spaces"},
+		{"中", "Single character"},
+		{"123中国", "Starting with number"},
+		{"@#$中国", "Starting with special chars"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			az, kana := calculateChineseInitials(tc.title)
+			// Should not panic
+			if az == "" || kana == "" {
+				t.Errorf("calculateChineseInitials(%q) returned empty strings", tc.title)
+			}
+		})
+	}
+}
+
+func TestCalculateLatinInitials_EdgeCases(t *testing.T) {
+	testCases := []struct {
+		title        string
+		expectedAZ   string
+		expectedKana string
+		desc         string
+	}{
+		{"  ABC", "A", "A", "Leading spaces"},
+		{"abc", "A", "A", "Lowercase"},
+		{"Z", "Z", "Z", "Single character"},
+		{"123", "#", "#", "Number"},
+		{"@#$", "#", "#", "Special characters"},
+		{"中国", "#", "#", "Chinese characters"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			az, kana := calculateLatinInitials(tc.title)
+			if az != tc.expectedAZ {
+				t.Errorf("calculateLatinInitials(%q) az = %q, want %q", tc.title, az, tc.expectedAZ)
+			}
+			if kana != tc.expectedKana {
+				t.Errorf("calculateLatinInitials(%q) kana = %q, want %q", tc.title, kana, tc.expectedKana)
+			}
+		})
+	}
+}
+
+func TestCalculateInitials_AllLanguages(t *testing.T) {
+	testCases := []struct {
+		title         string
+		originCountry string
+		desc          string
+	}{
+		{"Test", "US", "US English"},
+		{"Test", "GB", "GB English"},
+		{"Test", "CA", "CA English"},
+		{"Test", "AU", "AU English"},
+		{"测试", "CN", "China"},
+		{"測試", "TW", "Taiwan"},
+		{"測試", "HK", "Hong Kong"},
+		{"テスト", "JP", "Japan"},
+		{"테스트", "KR", "Korea"},
+		{"Test", "DE", "Germany"},
+		{"Test", "FR", "France"},
+		{"Test", "ES", "Spain"},
+		{"Test", "IT", "Italy"},
+		{"Test", "RU", "Russia"},
+		{"Test", "BR", "Brazil"},
+		{"Test", "MX", "Mexico"},
+		{"Test", "UNKNOWN", "Unknown country"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			az, kana := CalculateInitials(tc.title, tc.originCountry)
+			// Should not panic and return valid initials
+			if az == "" || kana == "" {
+				t.Errorf("CalculateInitials(%q, %q) returned empty strings", tc.title, tc.originCountry)
+			}
+		})
+	}
+}

@@ -218,3 +218,114 @@ func TestLogger_SetContext(t *testing.T) {
 	// Should still be able to log
 	logger.Info("Test message after SetContext")
 }
+
+func TestLogger_EmptyMessage(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "logger-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	logger := NewLogger(tmpDir)
+	defer logger.Close()
+
+	// Log empty messages (should not panic)
+	logger.Info("")
+	logger.Error("")
+	logger.Debug("")
+}
+
+func TestLogger_LongMessage(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "logger-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	logger := NewLogger(tmpDir)
+	defer logger.Close()
+
+	// Log a very long message
+	longMsg := strings.Repeat("A", 10000)
+	logger.Info("%s", longMsg)
+
+	// Read log file
+	dateStr := time.Now().Format("2006-01-02")
+	logPath := filepath.Join(tmpDir, "logs", "app-"+dateStr+".log")
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("Failed to read log file: %v", err)
+	}
+
+	if !strings.Contains(string(content), longMsg) {
+		t.Error("Log should contain the long message")
+	}
+}
+
+func TestLogger_SpecialCharacters(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "logger-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	logger := NewLogger(tmpDir)
+	defer logger.Close()
+
+	// Log messages with special characters
+	logger.Info("Message with newline\n")
+	logger.Info("Message with tab\t")
+	logger.Info("Message with unicode: 你好世界 🎸")
+
+	// Read log file
+	dateStr := time.Now().Format("2006-01-02")
+	logPath := filepath.Join(tmpDir, "logs", "app-"+dateStr+".log")
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("Failed to read log file: %v", err)
+	}
+
+	logContent := string(content)
+	if !strings.Contains(logContent, "你好世界") {
+		t.Error("Log should contain unicode characters")
+	}
+}
+
+func TestLogger_ConcurrentWrites(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "logger-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	logger := NewLogger(tmpDir)
+	defer logger.Close()
+
+	// Write from multiple goroutines concurrently
+	done := make(chan bool)
+	for i := 0; i < 10; i++ {
+		go func(id int) {
+			for j := 0; j < 10; j++ {
+				logger.Info("Goroutine %d message %d", id, j)
+			}
+			done <- true
+		}(i)
+	}
+
+	// Wait for all goroutines to finish
+	for i := 0; i < 10; i++ {
+		<-done
+	}
+
+	// Verify log file exists and has content
+	dateStr := time.Now().Format("2006-01-02")
+	logPath := filepath.Join(tmpDir, "logs", "app-"+dateStr+".log")
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("Failed to read log file: %v", err)
+	}
+
+	if len(content) == 0 {
+		t.Error("Log file should have content from concurrent writes")
+	}
+}

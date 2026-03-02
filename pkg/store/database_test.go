@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -475,3 +476,385 @@ func TestDBStore_Close(t *testing.T) {
 		t.Errorf("Second Close() error = %v", err)
 	}
 }
+
+func TestDBStore_GetRecentCategories(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add categories
+	cat1 := Category{ID: "cat-1", Name: "Rock"}
+	cat2 := Category{ID: "cat-2", Name: "Jazz"}
+	store.AddCategory(cat1)
+	store.AddCategory(cat2)
+
+	// Add tabs with categories
+	tab1 := Tab{ID: "tab-1", Title: "Song 1", LastOpened: time.Now().Unix()}
+	tab1.CategoryIDs = []string{"cat-1"}
+	store.AddTab(tab1)
+	store.SetTabCategories("tab-1", []string{"cat-1"}, time.Now().Unix())
+
+	tab2 := Tab{ID: "tab-2", Title: "Song 2", LastOpened: time.Now().Unix() - 100}
+	tab2.CategoryIDs = []string{"cat-2"}
+	store.AddTab(tab2)
+	store.SetTabCategories("tab-2", []string{"cat-2"}, time.Now().Unix())
+
+	// Get recent categories
+	categories, err := store.GetRecentCategories(10)
+	if err != nil {
+		t.Fatalf("GetRecentCategories() error = %v", err)
+	}
+
+	// Should return categories that have tabs
+	if len(categories) == 0 {
+		t.Error("Expected categories with tabs, got 0")
+	}
+}
+
+func TestDBStore_MoveCategory(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add categories
+	cat1 := Category{ID: "cat-1", Name: "Rock"}
+	cat2 := Category{ID: "cat-2", Name: "Jazz"}
+	store.AddCategory(cat1)
+	store.AddCategory(cat2)
+
+	// Move category
+	err := store.MoveCategory("cat-1", "cat-2")
+	if err != nil {
+		t.Fatalf("MoveCategory() error = %v", err)
+	}
+
+	// Verify parent changed
+	retrieved, _ := store.GetCategory("cat-1")
+	if retrieved.ParentID != "cat-2" {
+		t.Errorf("ParentID = %v, want cat-2", retrieved.ParentID)
+	}
+}
+
+func TestDBStore_EnsureCloudCategory(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Ensure cloud category
+	err := store.EnsureCloudCategory()
+	if err != nil {
+		t.Fatalf("EnsureCloudCategory() error = %v", err)
+	}
+
+	// Verify cloud category exists
+	cloudCat, err := store.GetCategory(SystemCloudCategoryID)
+	if err != nil {
+		t.Fatalf("GetCategory() error = %v", err)
+	}
+	if cloudCat == nil {
+		t.Error("Cloud category was not created")
+	}
+	if cloudCat != nil && cloudCat.Name != "Cloud Storage" {
+		t.Errorf("Cloud category name = %v, want Cloud Storage", cloudCat.Name)
+	}
+
+	// Calling again should not error
+	err = store.EnsureCloudCategory()
+	if err != nil {
+		t.Errorf("Second EnsureCloudCategory() error = %v", err)
+	}
+}
+
+func TestDBStore_GetCategory(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add category
+	cat := Category{ID: "cat-1", Name: "Rock"}
+	store.AddCategory(cat)
+
+	// Get category
+	retrieved, err := store.GetCategory("cat-1")
+	if err != nil {
+		t.Fatalf("GetCategory() error = %v", err)
+	}
+	if retrieved == nil {
+		t.Fatal("GetCategory() returned nil")
+	}
+	if retrieved.Name != "Rock" {
+		t.Errorf("Name = %v, want Rock", retrieved.Name)
+	}
+
+	// Get non-existent category (returns nil, not error)
+	nonExistent, err := store.GetCategory("nonexistent")
+	if err != nil {
+		t.Errorf("GetCategory() for non-existent should not error, got: %v", err)
+	}
+	if nonExistent != nil {
+		t.Error("Expected nil for non-existent category")
+	}
+}
+
+func TestDBStore_GetTabsPaginated(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add test tabs
+	for i := 0; i < 25; i++ {
+		tab := Tab{
+			ID:     fmt.Sprintf("tab-%d", i),
+			Title:  fmt.Sprintf("Song %d", i),
+			Artist: "Test Artist",
+		}
+		store.AddTab(tab)
+	}
+
+	// Test pagination
+	tabs, total, err := store.GetTabsPaginated("", 1, 10, "", []string{"title"}, false, "title", false)
+	if err != nil {
+		t.Fatalf("GetTabsPaginated() error = %v", err)
+	}
+
+	if len(tabs) != 10 {
+		t.Errorf("Expected 10 tabs, got %d", len(tabs))
+	}
+	if total != 25 {
+		t.Errorf("Total = %d, want 25", total)
+	}
+
+	// Test second page
+	tabs, _, err = store.GetTabsPaginated("", 2, 10, "", []string{"title"}, false, "title", false)
+	if err != nil {
+		t.Fatalf("GetTabsPaginated() page 2 error = %v", err)
+	}
+	if len(tabs) != 10 {
+		t.Errorf("Expected 10 tabs on page 2, got %d", len(tabs))
+	}
+
+	// Test search
+	tabs, total, err = store.GetTabsPaginated("", 1, 10, "Song 1", []string{"title"}, false, "title", false)
+	if err != nil {
+		t.Fatalf("GetTabsPaginated() with search error = %v", err)
+	}
+	if total == 0 {
+		t.Error("Search should return results")
+	}
+}
+
+func TestDBStore_UpdateTab2(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add tab
+	tab := Tab{
+		ID:     "tab-1",
+		Title:  "Original",
+		Artist: "Artist",
+	}
+	store.AddTab(tab)
+
+	// Update tab
+	tab.Title = "Updated"
+	err := store.UpdateTab(tab)
+	if err != nil {
+		t.Fatalf("UpdateTab() error = %v", err)
+	}
+
+	// Verify update
+	retrieved, _ := store.GetTab("tab-1")
+	if retrieved.Title != "Updated" {
+		t.Errorf("Title = %v, want Updated", retrieved.Title)
+	}
+}
+
+func TestDBStore_SetTabCategories(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add tab and categories
+	tab := Tab{ID: "tab-1", Title: "Song"}
+	store.AddTab(tab)
+
+	cat1 := Category{ID: "cat-1", Name: "Rock"}
+	cat2 := Category{ID: "cat-2", Name: "Jazz"}
+	store.AddCategory(cat1)
+	store.AddCategory(cat2)
+
+	// Set categories
+	err := store.SetTabCategories("tab-1", []string{"cat-1", "cat-2"}, time.Now().Unix())
+	if err != nil {
+		t.Fatalf("SetTabCategories() error = %v", err)
+	}
+
+	// Verify categories were set
+	retrieved, _ := store.GetTab("tab-1")
+	if len(retrieved.CategoryIDs) != 2 {
+		t.Errorf("Expected 2 categories, got %d", len(retrieved.CategoryIDs))
+	}
+}
+
+func TestDBStore_GetRecentTabs(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add tabs with different last opened times
+	for i := 0; i < 5; i++ {
+		tab := Tab{
+			ID:         fmt.Sprintf("tab-%d", i),
+			Title:      fmt.Sprintf("Song %d", i),
+			LastOpened: time.Now().Unix() - int64(i*100),
+		}
+		store.AddTab(tab)
+	}
+
+	// Get recent tabs
+	tabs, err := store.GetRecentTabs(3)
+	if err != nil {
+		t.Fatalf("GetRecentTabs() error = %v", err)
+	}
+
+	if len(tabs) != 3 {
+		t.Errorf("Expected 3 tabs, got %d", len(tabs))
+	}
+
+	// Verify they are sorted by last opened (most recent first)
+	if len(tabs) >= 2 && tabs[0].LastOpened < tabs[1].LastOpened {
+		t.Error("Tabs are not sorted by last opened time")
+	}
+}
+
+func TestDBStore_GetTabsNeedingOriginCountry(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add tab with cover but no origin country
+	tab := Tab{
+		ID:        "tab-1",
+		Title:     "Song",
+		Artist:    "Artist",
+		CoverPath: "cover.jpg",
+	}
+	store.AddTab(tab)
+
+	// Get tabs needing origin country
+	tabs, err := store.GetTabsNeedingOriginCountry()
+	if err != nil {
+		t.Fatalf("GetTabsNeedingOriginCountry() error = %v", err)
+	}
+
+	if len(tabs) != 1 {
+		t.Errorf("Expected 1 tab, got %d", len(tabs))
+	}
+}
+
+func TestDBStore_GetTabsNeedingInitials(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add tab without initials
+	tab := Tab{
+		ID:    "tab-1",
+		Title: "Song",
+	}
+	store.AddTab(tab)
+
+	// Get tabs needing initials
+	tabs, err := store.GetTabsNeedingInitials()
+	if err != nil {
+		t.Fatalf("GetTabsNeedingInitials() error = %v", err)
+	}
+
+	if len(tabs) != 1 {
+		t.Errorf("Expected 1 tab, got %d", len(tabs))
+	}
+}
+
+func TestDBStore_SearchTabs_MultipleResults(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add test tabs
+	tabs := []Tab{
+		{ID: "tab-1", Title: "Stairway to Heaven", Artist: "Led Zeppelin"},
+		{ID: "tab-2", Title: "Hotel California", Artist: "Eagles"},
+		{ID: "tab-3", Title: "Bohemian Rhapsody", Artist: "Queen"},
+	}
+
+	for _, tab := range tabs {
+		store.AddTab(tab)
+	}
+
+	// Search for "Heaven"
+	results, err := store.SearchTabs("Heaven")
+	if err != nil {
+		t.Fatalf("SearchTabs() error = %v", err)
+	}
+
+	if len(results) == 0 {
+		t.Error("Expected search results")
+	}
+}
+
+func TestDBStore_GetTabsPaginated_Sorting(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add tabs with different timestamps
+	now := time.Now().Unix()
+	tabs := []Tab{
+		{ID: "tab-1", Title: "A Song", AddedAt: now - 100},
+		{ID: "tab-2", Title: "B Song", AddedAt: now - 50},
+		{ID: "tab-3", Title: "C Song", AddedAt: now},
+	}
+
+	for _, tab := range tabs {
+		store.AddTab(tab)
+	}
+
+	// Sort by added_at descending
+	results, _, err := store.GetTabsPaginated("", 1, 10, "", []string{"title"}, false, "added_at", true)
+	if err != nil {
+		t.Fatalf("GetTabsPaginated() error = %v", err)
+	}
+
+	if len(results) < 3 {
+		t.Fatalf("Expected at least 3 results, got %d", len(results))
+	}
+}
+
+func TestDBStore_HasData_AfterAdding(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add a tab
+	tab := Tab{ID: "tab-1", Title: "Song"}
+	store.AddTab(tab)
+
+	// Now should have data
+	hasData := store.HasData()
+	if !hasData {
+		t.Error("Expected to have data after adding tab")
+	}
+}
+
+func TestDBStore_DeleteCategory_WithSubcategories(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add parent and child categories
+	parent := Category{ID: "parent", Name: "Parent"}
+	child := Category{ID: "child", Name: "Child", ParentID: "parent"}
+	store.AddCategory(parent)
+	store.AddCategory(child)
+
+	// Delete parent
+	err := store.DeleteCategory("parent")
+	if err != nil {
+		t.Fatalf("DeleteCategory() error = %v", err)
+	}
+
+	// Child should now have empty parent
+	childCat, _ := store.GetCategory("child")
+	if childCat != nil && childCat.ParentID != "" {
+		t.Errorf("Child category should have empty parent, got %v", childCat.ParentID)
+	}
+}
+
+
