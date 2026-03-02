@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // === Tab Operations ===
@@ -757,6 +758,80 @@ func (s *DBStore) GetTabsNeedingInitials() ([]Tab, error) {
 // UpdateTabInitials updates only the initial_az and initial_kana fields for a tab
 func (s *DBStore) UpdateTabInitials(tabID, initialAZ, initialKana string) error {
 	_, err := s.db.Exec("UPDATE tabs SET initial_az = ?, initial_kana = ? WHERE id = ?", initialAZ, initialKana, tabID)
+	return err
+}
+
+// GetAllTabs is an alias for GetTabs for backward compatibility
+func (s *DBStore) GetAllTabs() ([]Tab, error) {
+	return s.GetTabs()
+}
+
+// SearchTabs performs a simple search across title, artist, album, and tag fields
+func (s *DBStore) SearchTabs(query string) ([]Tab, error) {
+	// Use FTS5 for better search performance
+	searchTerm := "%" + query + "%"
+
+	rows, err := s.db.Query(`
+		SELECT DISTINCT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type,
+		       tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id,
+		       tabs.country, tabs.language, COALESCE(tabs.tag, ''), COALESCE(tabs.origin_country, ''),
+		       tabs.added_at, tabs.last_opened, COALESCE(tabs.initial_az, '#'), COALESCE(tabs.initial_kana, '#')
+		FROM tabs
+		WHERE tabs.title LIKE ? OR tabs.artist LIKE ? OR tabs.album LIKE ? OR tabs.tag LIKE ?
+		ORDER BY tabs.title ASC
+	`, searchTerm, searchTerm, searchTerm, searchTerm)
+
+	if err != nil {
+		return []Tab{}, err
+	}
+	defer rows.Close()
+
+	tabs := []Tab{}
+	tabMap := make(map[string]*Tab)
+
+	for rows.Next() {
+		var t Tab
+		var isManaged, isCloud int
+		var legacyCatID sql.NullString
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
+			return nil, err
+		}
+		t.IsManaged = isManaged == 1
+		t.IsCloud = isCloud == 1
+		t.CategoryIDs = []string{}
+		tabs = append(tabs, t)
+		tabMap[t.ID] = &tabs[len(tabs)-1]
+	}
+
+	// Fetch categories for these tabs
+	if len(tabs) > 0 {
+		placeholders := strings.Repeat("?,", len(tabs))
+		placeholders = placeholders[:len(placeholders)-1]
+		ids := make([]interface{}, len(tabs))
+		for i, t := range tabs {
+			ids[i] = t.ID
+		}
+
+		catRows, err := s.db.Query(fmt.Sprintf("SELECT tab_id, category_id FROM tab_categories WHERE tab_id IN (%s)", placeholders), ids...)
+		if err == nil {
+			defer catRows.Close()
+			for catRows.Next() {
+				var tID, cID string
+				if err := catRows.Scan(&tID, &cID); err == nil {
+					if tab, ok := tabMap[tID]; ok {
+						tab.CategoryIDs = append(tab.CategoryIDs, cID)
+					}
+				}
+			}
+		}
+	}
+
+	return tabs, nil
+}
+
+// UpdateLastOpened updates the last_opened timestamp for a tab
+func (s *DBStore) UpdateLastOpened(tabID string) error {
+	_, err := s.db.Exec("UPDATE tabs SET last_opened = ? WHERE id = ?", sql.NullInt64{Int64: int64(time.Now().Unix()), Valid: true}, tabID)
 	return err
 }
 
