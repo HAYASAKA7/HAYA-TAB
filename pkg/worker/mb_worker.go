@@ -157,7 +157,24 @@ func (w *MBWorker) processJob(job MBJob) {
 		return
 	}
 
+	// Recalculate initials after origin_country update
+	tab, err := w.store.GetTab(job.TabID)
+	if err != nil || tab == nil {
+		if w.logger != nil {
+			w.logger.Error("Failed to get tab %s for initial recalculation: %v", job.TabID, err)
+		}
+		return
+	}
+
+	az, kana := metadata.CalculateInitials(tab.Title, country)
+	if err := w.store.UpdateTabInitials(job.TabID, az, kana); err != nil {
+		if w.logger != nil {
+			w.logger.Error("Failed to update initials for tab %s: %v", job.TabID, err)
+		}
+		return
+	}
+
 	if w.logger != nil {
-		w.logger.Info("Updated origin_country for '%s': %s", job.ArtistName, country)
+		w.logger.Info("Updated origin_country for '%s': %s (initials: %s/%s)", job.ArtistName, country, az, kana)
 	}
 }

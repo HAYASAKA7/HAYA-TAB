@@ -251,6 +251,9 @@ func (a *App) UpdateTabMetadata(id string, title string, artist string, album st
 	}
 
 	if needsUpdate {
+		// Recalculate initials in case title changed
+		currentTab.InitialAZ, currentTab.InitialKana = metadata.CalculateInitials(currentTab.Title, currentTab.OriginCountry)
+
 		if err := a.store.UpdateTab(*currentTab); err != nil {
 			return fmt.Errorf("failed to update tab metadata: %w", err)
 		}

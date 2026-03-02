@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.12] - 2026-03-02
+
+### Fixed
+- **Initial Letter Sorting:** Fixed issue where title initial letters were not recalculated when metadata was updated through backfill mechanisms
+  - Manual metadata updates now correctly recalculate initials when title changes
+  - MusicBrainz worker now recalculates initials after updating origin_country
+  - Ensures consistent sorting in Quick Jump Bar across all metadata update paths
+
 ## [2.2.11] - 2026-02-28
 
 ### Changed
