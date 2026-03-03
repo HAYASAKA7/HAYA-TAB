@@ -1,6 +1,11 @@
 package store
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
+	"io"
 	"strings"
 	"testing"
 )
@@ -31,6 +36,11 @@ func TestEncryptDecrypt(t *testing.T) {
 
 			if encrypted == plaintext {
 				t.Error("Encrypted text should not equal plaintext")
+			}
+
+			// Check for v2 prefix
+			if !strings.HasPrefix(encrypted, "v2:") {
+				t.Error("Encrypted text should have v2: prefix")
 			}
 
 			// Decrypt
@@ -124,10 +134,10 @@ func TestEncryptionKeyConsistency(t *testing.T) {
 		t.Fatalf("Encrypt() error = %v", err)
 	}
 
-	// Clear the key cache to force re-derivation
+	// Clear the key cache to force re-retrieval from keyring
 	encryptionKeyCache = nil
 
-	// Decrypt should still work (key should be re-derived consistently)
+	// Decrypt should still work (key should be retrieved from keyring)
 	decrypted, err := Decrypt(encrypted)
 	if err != nil {
 		t.Fatalf("Decrypt() after cache clear error = %v", err)
@@ -138,10 +148,62 @@ func TestEncryptionKeyConsistency(t *testing.T) {
 	}
 }
 
-func TestDeriveEncryptionKey(t *testing.T) {
-	key1, err := deriveEncryptionKey()
+func TestLegacyDecryption(t *testing.T) {
+	// Simulate legacy encrypted data (without v2: prefix)
+	plaintext := "legacy password"
+
+	// Get legacy key and encrypt manually
+	key, err := deriveEncryptionKeyLegacy()
 	if err != nil {
-		t.Fatalf("deriveEncryptionKey() error = %v", err)
+		t.Fatalf("deriveEncryptionKeyLegacy() error = %v", err)
+	}
+
+	// Manually encrypt using legacy method
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		t.Fatalf("aes.NewCipher() error = %v", err)
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		t.Fatalf("cipher.NewGCM() error = %v", err)
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		t.Fatalf("rand.Reader error = %v", err)
+	}
+
+	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
+	legacyEncrypted := base64.StdEncoding.EncodeToString(ciphertext)
+
+	// Should be able to decrypt legacy data
+	decrypted, err := Decrypt(legacyEncrypted)
+	if err != nil {
+		t.Fatalf("Decrypt(legacy) error = %v", err)
+	}
+
+	if decrypted != plaintext {
+		t.Errorf("Decrypt(legacy) = %v, want %v", decrypted, plaintext)
+	}
+}
+
+func TestEncryptionVersionPrefix(t *testing.T) {
+	plaintext := "test password"
+	encrypted, err := Encrypt(plaintext)
+	if err != nil {
+		t.Fatalf("Encrypt() error = %v", err)
+	}
+
+	if !strings.HasPrefix(encrypted, "v2:") {
+		t.Errorf("Encrypted data should have v2: prefix, got: %s", encrypted[:min(len(encrypted), 10)])
+	}
+}
+
+func TestDeriveEncryptionKey(t *testing.T) {
+	key1, err := deriveEncryptionKeyLegacy()
+	if err != nil {
+		t.Fatalf("deriveEncryptionKeyLegacy() error = %v", err)
 	}
 
 	if len(key1) != 32 {
@@ -149,13 +211,13 @@ func TestDeriveEncryptionKey(t *testing.T) {
 	}
 
 	// Derive again - should be the same
-	key2, err := deriveEncryptionKey()
+	key2, err := deriveEncryptionKeyLegacy()
 	if err != nil {
-		t.Fatalf("Second deriveEncryptionKey() error = %v", err)
+		t.Fatalf("Second deriveEncryptionKeyLegacy() error = %v", err)
 	}
 
 	if string(key1) != string(key2) {
-		t.Error("deriveEncryptionKey() should produce consistent keys")
+		t.Error("deriveEncryptionKeyLegacy() should produce consistent keys")
 	}
 }
 

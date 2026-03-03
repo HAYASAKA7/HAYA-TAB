@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.15] - 2026-03-03
+
+### Security
+- **Enhanced Encryption System:**
+  - Migrated from machine-derived encryption keys (PBKDF2) to OS keyring-based master keys
+  - Uses OS-native credential managers: Windows Credential Manager, macOS Keychain, Linux Secret Service
+  - Implements cryptographically random 32-byte keys with v2 encryption prefix
+  - Provides OS-level encryption and access control for sensitive credentials
+
+### Improved
+- **Backward Compatibility:**
+  - Legacy encrypted data (without v2: prefix) automatically detected and decrypted
+  - Seamless migration path for existing users with zero data loss
+  - Automatic cache management for both new and legacy encryption keys
+
+### Dependencies
+- Added `github.com/zalando/go-keyring` for cross-platform OS keyring integration
+
 ## [2.2.14] - 2026-03-03
 
 ### Added

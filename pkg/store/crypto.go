@@ -7,57 +7,93 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"os"
+	"strings"
 
+	"github.com/zalando/go-keyring"
 	"golang.org/x/crypto/pbkdf2"
 )
 
-// deriveEncryptionKey generates a machine-specific encryption key using PBKDF2.
-// This provides better security than a hardcoded key by deriving the key from:
-// - Machine hostname (unique per machine)
-// - Current username (unique per user)
-// - A fixed salt (for consistency across app restarts)
-//
-// Security Note: This is NOT cryptographically secure against determined attackers
-// who have access to the binary and the machine, but it's significantly better than
-// a hardcoded key.
-func deriveEncryptionKey() ([]byte, error) {
-	// Get machine hostname
+const (
+	keyringService  = "haya-tab"
+	keyringUsername = "encryption-master-key"
+	encryptionV2Prefix = "v2:"
+)
+
+// getOrCreateMasterKey retrieves or creates a random master key stored in the OS keyring.
+// This provides strong security by:
+// - Using a cryptographically random 32-byte key
+// - Storing the key in the OS-native credential manager (Keychain/Credential Manager/Secret Service)
+// - Leveraging OS-level encryption and access controls
+func getOrCreateMasterKey() ([]byte, error) {
+	// Try to retrieve existing key from keyring
+	keyStr, err := keyring.Get(keyringService, keyringUsername)
+	if err == nil {
+		// Key exists, decode and return it
+		key, err := base64.StdEncoding.DecodeString(keyStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode master key: %w", err)
+		}
+		if len(key) != 32 {
+			return nil, fmt.Errorf("invalid master key length: %d", len(key))
+		}
+		return key, nil
+	}
+
+	// Key doesn't exist or error occurred
+	if err != keyring.ErrNotFound {
+		// Real error occurred (not just "not found")
+		return nil, fmt.Errorf("failed to access keyring: %w", err)
+	}
+
+	// Generate new random master key
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return nil, fmt.Errorf("failed to generate random key: %w", err)
+	}
+
+	// Store in keyring
+	keyStr = base64.StdEncoding.EncodeToString(key)
+	if err := keyring.Set(keyringService, keyringUsername, keyStr); err != nil {
+		return nil, fmt.Errorf("failed to store key in keyring: %w", err)
+	}
+
+	return key, nil
+}
+
+// deriveEncryptionKeyLegacy generates a machine-specific encryption key using PBKDF2.
+// This is the legacy method kept for backward compatibility with existing encrypted data.
+// New encryptions should use getOrCreateMasterKey() instead.
+func deriveEncryptionKeyLegacy() ([]byte, error) {
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "haya-tab-default-host"
 	}
 
-	// Get current username
 	username := os.Getenv("USER")
 	if username == "" {
-		username = os.Getenv("USERNAME") // Windows
+		username = os.Getenv("USERNAME")
 	}
 	if username == "" {
 		username = "haya-tab-default-user"
 	}
 
-	// Combine hostname and username as the password material
 	password := hostname + ":" + username
-
-	// Use a fixed salt for consistency (same machine/user always gets same key)
-	// This allows decryption of previously encrypted data
 	salt := []byte("HAYA-TAB-SALT-V1-2026")
-
-	// Derive a 32-byte key using PBKDF2 with SHA-256
-	// 100,000 iterations provides good security while remaining fast enough
 	key := pbkdf2.Key([]byte(password), salt, 100000, 32, sha256.New)
 
 	return key, nil
 }
 
-// getEncryptionKey returns the cached encryption key, deriving it on first call
+// getEncryptionKey returns the cached encryption key
 var encryptionKeyCache []byte
+var legacyKeyCache []byte
 
 func getEncryptionKey() ([]byte, error) {
 	if encryptionKeyCache == nil {
-		key, err := deriveEncryptionKey()
+		key, err := getOrCreateMasterKey()
 		if err != nil {
 			return nil, err
 		}
@@ -66,6 +102,19 @@ func getEncryptionKey() ([]byte, error) {
 	return encryptionKeyCache, nil
 }
 
+func getLegacyEncryptionKey() ([]byte, error) {
+	if legacyKeyCache == nil {
+		key, err := deriveEncryptionKeyLegacy()
+		if err != nil {
+			return nil, err
+		}
+		legacyKeyCache = key
+	}
+	return legacyKeyCache, nil
+}
+
+// Encrypt encrypts plaintext using AES-256-GCM with the master key from OS keyring.
+// Returns base64-encoded ciphertext with "v2:" prefix to indicate the new encryption method.
 func Encrypt(text string) (string, error) {
 	if text == "" {
 		return "", nil
@@ -91,19 +140,44 @@ func Encrypt(text string) (string, error) {
 		return "", err
 	}
 
-	return base64.StdEncoding.EncodeToString(gcm.Seal(nonce, nonce, []byte(text), nil)), nil
+	ciphertext := gcm.Seal(nonce, nonce, []byte(text), nil)
+	encoded := base64.StdEncoding.EncodeToString(ciphertext)
+
+	// Add version prefix to indicate new encryption method
+	return encryptionV2Prefix + encoded, nil
 }
 
+// Decrypt decrypts ciphertext, automatically detecting the encryption version.
+// Supports both v2 (keyring-based) and legacy (PBKDF2-based) encryption.
 func Decrypt(cryptoText string) (string, error) {
 	if cryptoText == "" {
 		return "", nil
 	}
-	ciphertext, err := base64.StdEncoding.DecodeString(cryptoText)
-	if err != nil {
-		return "", err
+
+	// Check if this is v2 encrypted data
+	if strings.HasPrefix(cryptoText, encryptionV2Prefix) {
+		// Remove prefix and decrypt with new method
+		cryptoText = strings.TrimPrefix(cryptoText, encryptionV2Prefix)
+		return decryptWithKey(cryptoText, getEncryptionKey)
 	}
 
-	key, err := getEncryptionKey()
+	// Legacy encrypted data - try legacy decryption first
+	plaintext, err := decryptWithKey(cryptoText, getLegacyEncryptionKey)
+	if err != nil {
+		// If legacy decryption fails, try new method (in case prefix was missing)
+		return decryptWithKey(cryptoText, getEncryptionKey)
+	}
+	return plaintext, nil
+}
+
+// decryptWithKey is a helper function that decrypts using the provided key getter
+func decryptWithKey(cryptoText string, keyGetter func() ([]byte, error)) (string, error) {
+	ciphertext, err := base64.StdEncoding.DecodeString(cryptoText)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode base64: %w", err)
+	}
+
+	key, err := keyGetter()
 	if err != nil {
 		return "", err
 	}
@@ -126,7 +200,7 @@ func Decrypt(cryptoText string) (string, error) {
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("decryption failed: %w", err)
 	}
 
 	return string(plaintext), nil
