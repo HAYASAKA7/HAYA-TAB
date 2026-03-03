@@ -857,4 +857,272 @@ func TestDBStore_DeleteCategory_WithSubcategories(t *testing.T) {
 	}
 }
 
+func TestDBStore_GetTabsPaginatedLike(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Add test tabs with various fields
+	tabs := []Tab{
+		{ID: "tab-1", Title: "Stairway to Heaven", Artist: "Led Zeppelin", Album: "Led Zeppelin IV", Tag: "rock"},
+		{ID: "tab-2", Title: "Hotel California", Artist: "Eagles", Album: "Hotel California", Tag: "rock"},
+		{ID: "tab-3", Title: "Bohemian Rhapsody", Artist: "Queen", Album: "A Night at the Opera", Tag: "rock"},
+		{ID: "tab-4", Title: "Imagine", Artist: "John Lennon", Album: "Imagine", Tag: "pop"},
+		{ID: "tab-5", Title: "Yesterday", Artist: "The Beatles", Album: "Help!", Tag: "pop"},
+	}
+
+	for _, tab := range tabs {
+		store.AddTab(tab)
+	}
+
+	// Add categories
+	cat1 := Category{ID: "cat-1", Name: "Rock"}
+	cat2 := Category{ID: "cat-2", Name: "Pop"}
+	store.AddCategory(cat1)
+	store.AddCategory(cat2)
+
+	// Assign tabs to categories
+	store.SetTabCategories("tab-1", []string{"cat-1"}, time.Now().Unix())
+	store.SetTabCategories("tab-2", []string{"cat-1"}, time.Now().Unix())
+	store.SetTabCategories("tab-3", []string{"cat-1"}, time.Now().Unix())
+	store.SetTabCategories("tab-4", []string{"cat-2"}, time.Now().Unix())
+	store.SetTabCategories("tab-5", []string{"cat-2"}, time.Now().Unix())
+
+	tests := []struct {
+		name         string
+		categoryId   string
+		page         int
+		pageSize     int
+		searchQuery  string
+		filterBy     []string
+		isGlobal     bool
+		sortBy       string
+		sortDesc     bool
+		wantCount    int
+		wantTotal    int
+		checkResults func(t *testing.T, tabs []Tab)
+	}{
+		{
+			name:        "Search by title - global",
+			categoryId:  "",
+			page:        1,
+			pageSize:    10,
+			searchQuery: "Heaven",
+			filterBy:    []string{"title"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   1, // Only "Stairway to Heaven" contains "Heaven"
+			wantTotal:   1,
+		},
+		{
+			name:        "Search by artist - global",
+			categoryId:  "",
+			page:        1,
+			pageSize:    10,
+			searchQuery: "Queen",
+			filterBy:    []string{"artist"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   1,
+			wantTotal:   1,
+		},
+		{
+			name:        "Search by album - global",
+			categoryId:  "",
+			page:        1,
+			pageSize:    10,
+			searchQuery: "Imagine",
+			filterBy:    []string{"album"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   1,
+			wantTotal:   1,
+		},
+		{
+			name:        "Search by tag - global",
+			categoryId:  "",
+			page:        1,
+			pageSize:    10,
+			searchQuery: "rock",
+			filterBy:    []string{"tag"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   3,
+			wantTotal:   3,
+		},
+		{
+			name:        "Search multiple fields - global",
+			categoryId:  "",
+			page:        1,
+			pageSize:    10,
+			searchQuery: "Led",
+			filterBy:    []string{"title", "artist", "album"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   1, // "Led Zeppelin" in artist and album
+			wantTotal:   1,
+		},
+		{
+			name:        "Search in specific category",
+			categoryId:  "cat-1",
+			page:        1,
+			pageSize:    10,
+			searchQuery: "Heaven",
+			filterBy:    []string{"title"},
+			isGlobal:    false,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   1, // Only "Stairway to Heaven" in cat-1
+			wantTotal:   1,
+		},
+		{
+			name:        "Pagination - page 1",
+			categoryId:  "",
+			page:        1,
+			pageSize:    2,
+			searchQuery: "",
+			filterBy:    []string{"title"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   2,
+			wantTotal:   5,
+		},
+		{
+			name:        "Pagination - page 2",
+			categoryId:  "",
+			page:        2,
+			pageSize:    2,
+			searchQuery: "",
+			filterBy:    []string{"title"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   2,
+			wantTotal:   5,
+		},
+		{
+			name:        "Sort by title descending",
+			categoryId:  "",
+			page:        1,
+			pageSize:    10,
+			searchQuery: "",
+			filterBy:    []string{"title"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    true,
+			wantCount:   5,
+			wantTotal:   5,
+			checkResults: func(t *testing.T, tabs []Tab) {
+				if len(tabs) >= 2 && tabs[0].Title < tabs[1].Title {
+					t.Error("Tabs should be sorted by title descending")
+				}
+			},
+		},
+		{
+			name:        "Empty search query",
+			categoryId:  "",
+			page:        1,
+			pageSize:    10,
+			searchQuery: "",
+			filterBy:    []string{"title"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   5,
+			wantTotal:   5,
+		},
+		{
+			name:        "No results",
+			categoryId:  "",
+			page:        1,
+			pageSize:    10,
+			searchQuery: "NonExistentSong",
+			filterBy:    []string{"title"},
+			isGlobal:    true,
+			sortBy:      "title",
+			sortDesc:    false,
+			wantCount:   0,
+			wantTotal:   0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			results, total, err := store.getTabsPaginatedLike(
+				tt.categoryId,
+				tt.page,
+				tt.pageSize,
+				tt.searchQuery,
+				tt.filterBy,
+				tt.isGlobal,
+				tt.sortBy,
+				tt.sortDesc,
+			)
+
+			if err != nil {
+				t.Fatalf("getTabsPaginatedLike() error = %v", err)
+			}
+
+			if len(results) != tt.wantCount {
+				t.Errorf("getTabsPaginatedLike() returned %d results, want %d", len(results), tt.wantCount)
+			}
+
+			if total != tt.wantTotal {
+				t.Errorf("getTabsPaginatedLike() total = %d, want %d", total, tt.wantTotal)
+			}
+
+			if tt.checkResults != nil {
+				tt.checkResults(t, results)
+			}
+		})
+	}
+}
+
+func TestDBStore_GetTabsPaginatedLike_EdgeCases(t *testing.T) {
+	store, tmpDir := setupTestDB(t)
+	defer cleanupTestDB(store, tmpDir)
+
+	// Test with empty database
+	results, total, err := store.getTabsPaginatedLike("", 1, 10, "test", []string{"title"}, true, "title", false)
+	if err != nil {
+		t.Fatalf("getTabsPaginatedLike() on empty DB error = %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("Expected 0 results on empty DB, got %d", len(results))
+	}
+	if total != 0 {
+		t.Errorf("Expected total 0 on empty DB, got %d", total)
+	}
+
+	// Add a tab
+	tab := Tab{ID: "tab-1", Title: "Test Song", Artist: "Test Artist"}
+	store.AddTab(tab)
+
+	// Test with invalid filter field (should be ignored)
+	results, total, err = store.getTabsPaginatedLike("", 1, 10, "Test", []string{"invalid_field"}, true, "title", false)
+	if err != nil {
+		t.Fatalf("getTabsPaginatedLike() with invalid filter error = %v", err)
+	}
+	// Should return all tabs since no valid filter was applied
+	if total != 1 {
+		t.Errorf("Expected total 1, got %d", total)
+	}
+
+	// Test with page beyond available data
+	results, total, err = store.getTabsPaginatedLike("", 10, 10, "", []string{"title"}, true, "title", false)
+	if err != nil {
+		t.Fatalf("getTabsPaginatedLike() with page beyond data error = %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("Expected 0 results for page beyond data, got %d", len(results))
+	}
+	if total != 1 {
+		t.Errorf("Expected total 1, got %d", total)
+	}
+}
 
