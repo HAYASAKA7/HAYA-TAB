@@ -69,14 +69,14 @@ function handleContextMenu(e: MouseEvent) {
 
   // Build menu items based on category type
   const menuItems = [
-    { label: t('contextMenu.open'), action: () => tabsStore.navigateToCategory(props.category.id) }
+    { label: t('contextMenu.open'), icon: 'open', action: () => tabsStore.navigateToCategory(props.category.id) }
   ]
 
   // Don't allow rename/delete for system cloud category
   if (!isCloudCategory.value) {
     menuItems.push(
-      { label: t('contextMenu.rename'), action: () => uiStore.showCategoryModal(props.category) },
-      { label: t('contextMenu.deleteCategory'), action: () => confirmDelete() }
+      { label: t('contextMenu.rename'), icon: 'rename', action: () => uiStore.showCategoryModal(props.category) },
+      { label: t('contextMenu.deleteCategory'), icon: 'delete', action: () => confirmDelete() }
     )
   }
 

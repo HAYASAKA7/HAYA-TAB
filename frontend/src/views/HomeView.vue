@@ -45,8 +45,8 @@ function handleBlankContextMenu(e: MouseEvent) {
 
   e.preventDefault()
   contextMenu.show(e.pageX, e.pageY, [
-    { label: t('library.uploadTab'), action: () => addTab(true) },
-    { label: t('library.linkTab'), action: () => addTab(false) }
+    { label: t('library.uploadTab'), icon: 'upload', action: () => addTab(true) },
+    { label: t('library.linkTab'), icon: 'open', action: () => addTab(false) }
   ])
 }
 

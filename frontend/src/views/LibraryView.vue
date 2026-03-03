@@ -163,14 +163,14 @@ function handleBlankContextMenu(e: MouseEvent) {
   // Add Upload/Link only if singles mode
   if (viewMode.value === 'singles') {
     items.push(
-        { label: t('library.uploadTab'), action: () => { addTab(true) } },
-        { label: t('library.linkTab'), action: () => { addTab(false) } }
+        { label: t('library.uploadTab'), icon: 'upload', action: () => { addTab(true) } },
+        { label: t('library.linkTab'), icon: 'open', action: () => { addTab(false) } }
     )
   }
 
   // Add New Category only if in root categories view
   if (viewMode.value === 'categories' && !tabsStore.currentCategoryId) {
-    items.push({ label: t('library.newCategory'), action: () => { uiStore.showCategoryModal() } })
+    items.push({ label: t('library.newCategory'), icon: 'folder', action: () => { uiStore.showCategoryModal() } })
   }
 
   if (items.length > 0) {

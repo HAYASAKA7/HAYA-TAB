@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.14] - 2026-03-03
+
+### Added
+- **UI/UX Improvements:**
+  - Added MenuIcon component for context menus
+  - Enhanced ContextMenu with improved icon support
+
+### Improved
+- **Component Updates:**
+  - CategoryCard with better visual feedback
+  - TabCard with enhanced interaction patterns
+  - TabGrid with improved rendering performance
+  - SidebarTabItem with better styling
+  - HomeView and LibraryView with improved layout
+  - Type definitions for better type safety
+
 ## [2.2.13] - 2026-03-02
 
 ### Added

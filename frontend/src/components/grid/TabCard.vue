@@ -135,25 +135,27 @@ function handleContextMenu(e: MouseEvent) {
     // Download to local option (always available for cloud tabs)
     items.push({
       label: t('cloud.downloadToLocal'),
+      icon: 'cloud-download',
       action: () => downloadToLocal()
     })
 
     // Only show open options if online
     if (!isCloudOffline.value) {
       items.push(
-        { label: t('contextMenu.openWithInner'), action: () => openInternalTab() }
+        { label: t('contextMenu.openWithInner'), icon: 'viewer', action: () => openInternalTab() }
       )
     }
 
     items.push(
-      { label: t('contextMenu.editMetadata'), action: () => uiStore.showEditModal(props.tab) },
-      { label: t('contextMenu.addToCategory'), action: () => uiStore.showMoveModal(props.tab.id) }
+      { label: t('contextMenu.editMetadata'), icon: 'edit', action: () => uiStore.showEditModal(props.tab) },
+      { label: t('contextMenu.addToCategory'), icon: 'add-folder', action: () => uiStore.showMoveModal(props.tab.id) }
     )
 
     // Allow removing from non-system categories (backend will block removal from cloud storage)
     if (tabsStore.currentCategoryId && tabsStore.currentCategoryId !== 'sys_cloud') {
       items.push({
         label: t('contextMenu.removeFromCategory'),
+        icon: 'remove-folder',
         action: async () => {
           await tabsStore.removeTabFromCategory(props.tab.id, tabsStore.currentCategoryId)
           showToast(t('contextMenu.removedFromCategory'))
@@ -163,20 +165,21 @@ function handleContextMenu(e: MouseEvent) {
 
     items.push(
       { type: 'separator' },
-      { label: t('contextMenu.removeTab'), action: () => confirmDelete() }
+      { label: t('contextMenu.removeTab'), icon: 'remove', action: () => confirmDelete() }
     )
   } else {
     // Regular local tab options
     items.push(
-      { label: t('contextMenu.openWithSystem'), action: () => window.go.app.App.OpenTab(props.tab.id) },
-      { label: t('contextMenu.openWithInner'), action: () => openInternalTab() },
-      { label: t('contextMenu.editMetadata'), action: () => uiStore.showEditModal(props.tab) },
-      { label: t('contextMenu.addToCategory'), action: () => uiStore.showMoveModal(props.tab.id) }
+      { label: t('contextMenu.openWithSystem'), icon: 'system', action: () => window.go.app.App.OpenTab(props.tab.id) },
+      { label: t('contextMenu.openWithInner'), icon: 'viewer', action: () => openInternalTab() },
+      { label: t('contextMenu.editMetadata'), icon: 'edit', action: () => uiStore.showEditModal(props.tab) },
+      { label: t('contextMenu.addToCategory'), icon: 'add-folder', action: () => uiStore.showMoveModal(props.tab.id) }
     )
 
     if (tabsStore.currentCategoryId) {
       items.push({
         label: t('contextMenu.removeFromCategory'),
+        icon: 'remove-folder',
         action: async () => {
           await tabsStore.removeTabFromCategory(props.tab.id, tabsStore.currentCategoryId)
           showToast(t('contextMenu.removedFromCategory'))
@@ -185,10 +188,10 @@ function handleContextMenu(e: MouseEvent) {
     }
 
     items.push(
-      { label: t('contextMenu.exportTab'), action: () => exportTab() },
-      { label: t('cloud.uploadTitle'), action: () => uiStore.showCloudUploadModal([props.tab.filePath]) },
+      { label: t('contextMenu.exportTab'), icon: 'export', action: () => exportTab() },
+      { label: t('cloud.uploadTitle'), icon: 'cloud-upload', action: () => uiStore.showCloudUploadModal([props.tab.filePath]) },
       { type: 'separator' },
-      { label: props.tab.isManaged ? t('contextMenu.deleteTab') : t('contextMenu.unlinkTab'), action: () => confirmDelete() }
+      { label: props.tab.isManaged ? t('contextMenu.deleteTab') : t('contextMenu.unlinkTab'), icon: props.tab.isManaged ? 'delete' : 'unlink', action: () => confirmDelete() }
     )
   }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import { useContextMenu } from '@/composables/useContextMenu'
+import MenuIcon from './MenuIcon.vue'
 
 const { visible, x, y, items, hide, handleItemClick } = useContextMenu()
 
@@ -33,8 +34,23 @@ onUnmounted(() => {
         :class="{ separator: item.type === 'separator' }"
         @click="item.type !== 'separator' && handleItemClick(item)"
       >
-        {{ item.type !== 'separator' ? item.label : '' }}
+        <template v-if="item.type !== 'separator'">
+          <MenuIcon v-if="item.icon" :name="item.icon" />
+          <span class="menu-label">{{ item.label }}</span>
+        </template>
       </li>
     </ul>
   </div>
 </template>
+
+<style scoped>
+#context-menu-items li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-label {
+  flex: 1;
+}
+</style>

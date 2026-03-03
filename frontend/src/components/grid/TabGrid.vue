@@ -20,10 +20,10 @@ function handleBlankContextMenu(e: MouseEvent) {
 
   e.preventDefault()
   contextMenu.show(e.pageX, e.pageY, [
-    { label: t('library.newCategory'), action: () => uiStore.showCategoryModal() },
-    { label: t('cloud.title'), action: () => uiStore.showCloudPickerModal() },
-    { label: t('library.uploadTab'), action: () => addTab(true) },
-    { label: t('library.linkTab'), action: () => addTab(false) }
+    { label: t('library.newCategory'), icon: 'folder', action: () => uiStore.showCategoryModal() },
+    { label: t('cloud.title'), icon: 'cloud-upload', action: () => uiStore.showCloudPickerModal() },
+    { label: t('library.uploadTab'), icon: 'upload', action: () => addTab(true) },
+    { label: t('library.linkTab'), icon: 'open', action: () => addTab(false) }
   ])
 }
 

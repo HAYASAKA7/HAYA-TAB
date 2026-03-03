@@ -46,6 +46,7 @@ function handleContextMenu(e: MouseEvent) {
   contextMenu.show(e.pageX, e.pageY, [
     {
       label: isPinned.value ? t('contextMenu.unpin') : t('contextMenu.pin'),
+      icon: isPinned.value ? 'unpin' : 'pin',
       action: () => {
         viewersStore.togglePin(props.tabId)
         showToast(isPinned.value ? t('toast.tabUnpinned') : t('toast.tabPinned'))
@@ -53,6 +54,7 @@ function handleContextMenu(e: MouseEvent) {
     },
     {
       label: t('contextMenu.close'),
+      icon: 'close',
       action: () => {
         viewersStore.closeTab(props.tabId)
         uiStore.switchView('home')

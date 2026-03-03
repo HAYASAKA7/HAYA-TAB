@@ -92,6 +92,7 @@ export interface OpenedTab {
 // ContextMenuItem represents an item in a context menu
 export interface ContextMenuItem {
   label?: string
+  icon?: string
   action?: () => void
   type?: 'separator'
 }
