@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.16] - 2026-03-04
+
+### Improved
+- **Database Query Optimization:** Enhanced `GetRecentTabs` query to use secondary sort by `added_at` for improved consistency
+  - Changed: `ORDER BY last_opened DESC` → `ORDER BY last_opened DESC, added_at DESC`
+  - Ensures stable and predictable ordering when multiple tabs have the same last_opened timestamp
+
 ## [2.2.15] - 2026-03-03
 
 ### Security

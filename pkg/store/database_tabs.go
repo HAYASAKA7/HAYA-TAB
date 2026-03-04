@@ -636,7 +636,7 @@ func (s *DBStore) GetRecentTabs(limit int) ([]Tab, error) {
 		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs
 		WHERE last_opened > 0
-		ORDER BY last_opened DESC
+		ORDER BY last_opened DESC, added_at DESC
 		LIMIT ?
 	`, limit)
 	if err != nil {
