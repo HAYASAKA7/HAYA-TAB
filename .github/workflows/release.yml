@@ -106,6 +106,7 @@ jobs:
           cd build/bin
           mkdir -p dmg
           cp -r HAYA-TAB.app dmg/
+          ln -s /Applications dmg/Applications
           hdiutil create -volname "HAYA-TAB" -srcfolder dmg -ov -format UDZO ../../${{ matrix.artifact_name }}.dmg
           rm -rf dmg
 
