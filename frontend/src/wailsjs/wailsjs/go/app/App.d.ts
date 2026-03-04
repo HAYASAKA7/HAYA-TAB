@@ -89,11 +89,27 @@ export function WebDAVAddOnlineFiles(arg1:string,arg2:string,arg3:string,arg4:Ar
 
 export function WebDAVCheckStatus():Promise<boolean>;
 
+export function WebDAVCheckVolumeHealth():Promise<Record<string, boolean>>;
+
+export function WebDAVCleanupOrphanedTabs():Promise<number>;
+
+export function WebDAVCreateVolume(arg1:string,arg2:string):Promise<store.CloudVolume>;
+
+export function WebDAVDiscoverVolumes():Promise<Array<store.CloudVolume>>;
+
 export function WebDAVDownloadFiles(arg1:string,arg2:string,arg3:string,arg4:Array<string>):Promise<void>;
+
+export function WebDAVGetOrphanedTabsCount():Promise<number>;
+
+export function WebDAVInitialize():Promise<void>;
 
 export function WebDAVListDir(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<store.RemoteFile>>;
 
 export function WebDAVListRemoteDirectories(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<string>>;
+
+export function WebDAVMigrateCloudTabs():Promise<void>;
+
+export function WebDAVReconnect():Promise<void>;
 
 export function WebDAVScanRemoteFiles(arg1:string,arg2:string,arg3:string,arg4:string):Promise<Array<store.RemoteFile>>;
 

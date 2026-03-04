@@ -1,15 +1,17 @@
 ﻿# HAYA-TAB Go API Documentation
 
-## Package: haya-tab
-
-```go
-
-```
+> Generated from Go code using `go doc` command. Updated for v2.3.0
 
 ## Package: haya-tab/internal/app
 
 ```go
 package app // import "haya-tab/internal/app"
+
+VARIABLES
+
+var AppVersion = "2.3.0"
+    AppVersion is the application version. Can be set via ldflags during build:
+    -ldflags "-X haya-tab/internal/app.AppVersion=2.3.0"
 
 
 FUNCTIONS
@@ -177,14 +179,42 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 func (a *App) WebDAVCheckStatus() bool
     WebDAVCheckStatus checks if WebDAV connection is available
 
+func (a *App) WebDAVCheckVolumeHealth() (map[string]bool, error)
+    WebDAVCheckVolumeHealth checks the health of all registered volumes
+
+func (a *App) WebDAVCleanupOrphanedTabs() (int, error)
+    WebDAVCleanupOrphanedTabs removes tabs that reference non-existent volumes
+
+func (a *App) WebDAVCreateVolume(volumeName, remotePath string) (*store.CloudVolume, error)
+    WebDAVCreateVolume creates a new volume with a fingerprint file
+
+func (a *App) WebDAVDiscoverVolumes() ([]store.CloudVolume, error)
+    WebDAVDiscoverVolumes scans WebDAV for all volumes and registers them.
+    This is the entry point for multi-device sync.
+
 func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []string) error
     WebDAVDownloadFiles downloads selected files and processes them
+
+func (a *App) WebDAVGetOrphanedTabsCount() (int, error)
+    WebDAVGetOrphanedTabsCount returns the count of tabs referencing
+    non-existent volumes
+
+func (a *App) WebDAVInitialize() error
+    WebDAVInitialize initializes the WebDAV volume system. This should be called
+    on app startup if WebDAV is enabled.
 
 func (a *App) WebDAVListDir(url, user, password, dir string) ([]store.RemoteFile, error)
     WebDAVListDir lists files and directories in a remote path (non-recursive)
 
 func (a *App) WebDAVListRemoteDirectories(url, user, password, dir string) ([]string, error)
     WebDAVListRemoteDirectories lists directories in a remote path
+
+func (a *App) WebDAVMigrateCloudTabs() error
+    WebDAVMigrateCloudTabs migrates existing cloud tabs to use the volume system
+
+func (a *App) WebDAVReconnect() error
+    WebDAVReconnect attempts to reconnect and reinitialize WebDAV. This should be
+    called when connection is restored after being lost.
 
 func (a *App) WebDAVScanRemoteFiles(url, user, password, dir string) ([]store.RemoteFile, error)
     WebDAVScanRemoteFiles scans a remote directory
@@ -435,6 +465,18 @@ type Category struct {
 }
     Category represents a grouping of tabs
 
+type CloudVolume struct {
+	ID              string `json:"id"`              // UUID generated on first scan
+	Name            string `json:"name"`            // User-friendly name (e.g., "Google Drive", "OneDrive")
+	MountPath       string `json:"mountPath"`       // Current mount path in WebDAV (e.g., "/gdrive")
+	FingerprintPath string `json:"fingerprintPath"` // Path to fingerprint file (e.g., "/gdrive/.haya-volume-fingerprint")
+	CreatedAt       int64  `json:"createdAt"`       // Unix timestamp when volume was first registered
+	LastSeenAt      int64  `json:"lastSeenAt"`      // Unix timestamp when volume was last detected
+	IsAvailable     bool   `json:"isAvailable"`     // True if volume is currently accessible
+}
+    CloudVolume represents a virtual volume (physical cloud drive) mounted via
+    WebDAV
+
 type DBStore struct {
 	Settings Settings
 	// Has unexported fields.
@@ -446,6 +488,12 @@ func (s *DBStore) AddCategory(cat Category) error
 
 func (s *DBStore) AddTab(tab Tab) error
 
+func (s *DBStore) AddVolume(volume CloudVolume) error
+    AddVolume adds a new cloud volume to the database
+
+func (s *DBStore) CleanupOrphanedTabs() (int, error)
+    CleanupOrphanedTabs removes tabs that reference non-existent volumes
+
 func (s *DBStore) Close() error
     Close closes the database connection
 
@@ -453,16 +501,31 @@ func (s *DBStore) DeleteCategory(id string) error
 
 func (s *DBStore) DeleteTab(id string) error
 
+func (s *DBStore) DeleteVolume(volumeID string) error
+    DeleteVolume deletes a volume and all associated tabs
+
 func (s *DBStore) EnsureCloudCategory() error
     EnsureCloudCategory creates or updates the system cloud category
 
+func (s *DBStore) EnsureCloudTabsHaveCloudCategory() (int, error)
+    EnsureCloudTabsHaveCloudCategory adds the syscloud category to all cloud
+    tabs that don't have it. This is a migration for tabs created before the
+    automatic category assignment was implemented.
+
 func (s *DBStore) GetAllTabs() ([]Tab, error)
     GetAllTabs is an alias for GetTabs for backward compatibility
+
+func (s *DBStore) GetAllVolumes() ([]CloudVolume, error)
+    GetAllVolumes retrieves all cloud volumes
 
 func (s *DBStore) GetCategories() ([]Category, error)
 
 func (s *DBStore) GetCategory(id string) (*Category, error)
     GetCategory retrieves a single category by ID
+
+func (s *DBStore) GetOrphanedTabsCount() (int, error)
+    GetOrphanedTabsCount returns the count of tabs referencing non-existent
+    volumes
 
 func (s *DBStore) GetRecentCategories(limit int) ([]Category, error)
 
@@ -476,23 +539,43 @@ func (s *DBStore) GetTabByPath(filePath string) (*Tab, error)
 
 func (s *DBStore) GetTabByTitle(title string) (*Tab, error)
 
+func (s *DBStore) GetTabByVolumeAndPath(volumeID, relativePath string) (*Tab, error)
+    GetTabByVolumeAndPath retrieves a tab by volume ID and relative path
+
 func (s *DBStore) GetTabs() ([]Tab, error)
+
+func (s *DBStore) GetTabsByVolume(volumeID string) ([]Tab, error)
+    GetTabsByVolume retrieves all tabs for a specific volume
 
 func (s *DBStore) GetTabsNeedingInitials() ([]Tab, error)
     GetTabsNeedingInitials returns tabs that need initial_az/initial_kana
-    backfill Used for background backfill of legacy data
+    backfill. Used for background backfill of legacy data.
 
 func (s *DBStore) GetTabsNeedingOriginCountry() ([]Tab, error)
     GetTabsNeedingOriginCountry returns tabs that have a cover but no
-    origin_country set Used for background backfill of MusicBrainz data
+    origin_country set. Used for background backfill of MusicBrainz data.
 
 func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) ([]Tab, int, error)
+
+func (s *DBStore) GetVolume(id string) (*CloudVolume, error)
+    GetVolume retrieves a volume by ID
+
+func (s *DBStore) GetVolumeByMountPath(mountPath string) (*CloudVolume, error)
+    GetVolumeByMountPath retrieves a volume by its mount path
 
 func (s *DBStore) HasData() bool
     HasData checks if the database has any data
 
 func (s *DBStore) Initialize() error
     Initialize creates the database and tables
+
+func (s *DBStore) MarkVolumeAvailable(volumeID string, available bool) error
+    MarkVolumeAvailable marks a volume as available or unavailable
+
+func (s *DBStore) MigrateCloudTabsToVolumes() error
+    MigrateCloudTabsToVolumes migrates existing cloud tabs to use the volume
+    system. This is for backward compatibility with tabs created before the
+    volume system was implemented.
 
 func (s *DBStore) MoveCategory(id, newParentID string) error
 
@@ -515,6 +598,13 @@ func (s *DBStore) UpdateTabInitials(tabID, initialAZ, initialKana string) error
 
 func (s *DBStore) UpdateTabOriginCountry(tabID, originCountry string) error
     UpdateTabOriginCountry updates only the origin_country field for a tab
+
+func (s *DBStore) UpdateVolume(volume CloudVolume) error
+    UpdateVolume updates an existing volume
+
+func (s *DBStore) UpdateVolumeMountPath(volumeID, newMountPath string) error
+    UpdateVolumeMountPath updates the mount path of a volume (when WebDAV root
+    changes)
 
 type KeyBindings struct {
 	ScrollDown      string `json:"scrollDown"`
@@ -571,10 +661,11 @@ type Tab struct {
 	Title         string   `json:"title"`
 	Artist        string   `json:"artist"`
 	Album         string   `json:"album"`
-	FilePath      string   `json:"filePath"` // Absolute path or relative to app (or WebDAV path for cloud tabs)
-	Type          string   `json:"type"`     // "pdf" or "gp"
+	FilePath      string   `json:"filePath"`      // For local: absolute path. For cloud: relative path within volume
+	VolumeID      string   `json:"volumeId"`      // Cloud volume ID (empty for local files)
+	Type          string   `json:"type"`          // "pdf" or "gp"
 	IsManaged     bool     `json:"isManaged"`
-	IsCloud       bool     `json:"isCloud"` // True if this is a cloud/online tab (not downloaded)
+	IsCloud       bool     `json:"isCloud"`       // True if this is a cloud/online tab (not downloaded)
 	CoverPath     string   `json:"coverPath"`
 	CategoryIDs   []string `json:"categoryIds"`   // List of Category IDs
 	Country       string   `json:"country"`       // e.g. "US", "JP" (user's preferred search country)

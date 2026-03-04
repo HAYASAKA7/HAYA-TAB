@@ -292,6 +292,11 @@ func (a *App) DeleteTab(id string) error {
 		}
 	}
 
+	// If it's a cloud tab, update the fingerprint file
+	if targetTab.IsCloud && targetTab.VolumeID != "" {
+		go a.removeFromFingerprint(targetTab.VolumeID, targetTab.FilePath)
+	}
+
 	if err := a.store.DeleteTab(id); err != nil {
 		return err
 	}
@@ -305,6 +310,10 @@ func (a *App) DeleteTab(id string) error {
 func (a *App) BatchDeleteTabs(ids []string) (int, error) {
 	deleted := 0
 	deletedIds := []string{}
+
+	// Group cloud tabs by volume for batch fingerprint updates
+	volumeFiles := make(map[string][]string)
+
 	for _, id := range ids {
 		targetTab, err := a.store.GetTab(id)
 		if err != nil || targetTab == nil {
@@ -324,10 +333,20 @@ func (a *App) BatchDeleteTabs(ids []string) (int, error) {
 			}
 		}
 
+		// Track cloud tabs for fingerprint updates
+		if targetTab.IsCloud && targetTab.VolumeID != "" {
+			volumeFiles[targetTab.VolumeID] = append(volumeFiles[targetTab.VolumeID], targetTab.FilePath)
+		}
+
 		if err := a.store.DeleteTab(id); err == nil {
 			deleted++
 			deletedIds = append(deletedIds, id)
 		}
+	}
+
+	// Update fingerprints for all affected volumes
+	for volumeID, files := range volumeFiles {
+		go a.batchRemoveFromFingerprint(volumeID, files)
 	}
 
 	// Emit event to notify frontend

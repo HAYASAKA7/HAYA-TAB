@@ -77,6 +77,30 @@ export namespace store {
 	        this.effectiveCoverPath = source["effectiveCoverPath"];
 	    }
 	}
+	export class CloudVolume {
+	    id: string;
+	    name: string;
+	    mountPath: string;
+	    fingerprintPath: string;
+	    createdAt: number;
+	    lastSeenAt: number;
+	    isAvailable: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudVolume(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.mountPath = source["mountPath"];
+	        this.fingerprintPath = source["fingerprintPath"];
+	        this.createdAt = source["createdAt"];
+	        this.lastSeenAt = source["lastSeenAt"];
+	        this.isAvailable = source["isAvailable"];
+	    }
+	}
 	export class KeyBindings {
 	    scrollDown: string;
 	    scrollUp: string;
@@ -205,6 +229,7 @@ export namespace store {
 	    artist: string;
 	    album: string;
 	    filePath: string;
+	    volumeId: string;
 	    type: string;
 	    isManaged: boolean;
 	    isCloud: boolean;
@@ -230,6 +255,7 @@ export namespace store {
 	        this.artist = source["artist"];
 	        this.album = source["album"];
 	        this.filePath = source["filePath"];
+	        this.volumeId = source["volumeId"];
 	        this.type = source["type"];
 	        this.isManaged = source["isManaged"];
 	        this.isCloud = source["isCloud"];

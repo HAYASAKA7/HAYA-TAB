@@ -18,6 +18,22 @@ func (a *App) SaveSettings(s store.Settings) error {
 		return err
 	}
 
+	// Check if WebDAV settings changed
+	webdavChanged := oldSettings.WebDAVEnabled != s.WebDAVEnabled ||
+		oldSettings.WebDAVURL != s.WebDAVURL ||
+		oldSettings.WebDAVUser != s.WebDAVUser ||
+		oldSettings.WebDAVPassword != s.WebDAVPassword
+
+	// If WebDAV was just enabled or connection info changed, initialize it
+	if webdavChanged && s.WebDAVEnabled && s.WebDAVURL != "" {
+		a.logger.Info("WebDAV settings changed, initializing...")
+		go func() {
+			if err := a.WebDAVInitialize(); err != nil {
+				a.logger.Error("WebDAV initialization failed: %v", err)
+			}
+		}()
+	}
+
 	// Update file watcher if sync paths changed (only in app context with logger)
 	if len(s.SyncPaths) > 0 && a.logger != nil {
 		if a.fileWatcher == nil {

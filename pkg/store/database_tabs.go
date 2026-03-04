@@ -431,10 +431,11 @@ func (s *DBStore) GetTab(id string) (*Tab, error) {
 	var t Tab
 	var isManaged, isCloud int
 	var legacyCatID sql.NullString
+	var volumeID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
+		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#'), COALESCE(volume_id, '')
 		FROM tabs WHERE id = ?
-	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana)
+	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana, &volumeID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -443,6 +444,7 @@ func (s *DBStore) GetTab(id string) (*Tab, error) {
 	}
 	t.IsManaged = isManaged == 1
 	t.IsCloud = isCloud == 1
+	t.VolumeID = volumeID.String
 	t.CategoryIDs = []string{}
 
 	// Fetch categories
@@ -485,9 +487,9 @@ func (s *DBStore) AddTab(tab Tab) error {
 	}
 
 	_, err = tx.Exec(`
-		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, type, is_managed, is_cloud, cover_path, category_id, country, language, tag, origin_country, added_at, last_opened, initial_az, initial_kana)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.Type, isManaged, isCloud, tab.CoverPath, primaryCatID, tab.Country, tab.Language, tab.Tag, tab.OriginCountry, tab.AddedAt, tab.LastOpened, tab.InitialAZ, tab.InitialKana)
+		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, volume_id, type, is_managed, is_cloud, cover_path, category_id, country, language, tag, origin_country, added_at, last_opened, initial_az, initial_kana)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.VolumeID, tab.Type, isManaged, isCloud, tab.CoverPath, primaryCatID, tab.Country, tab.Language, tab.Tag, tab.OriginCountry, tab.AddedAt, tab.LastOpened, tab.InitialAZ, tab.InitialKana)
 	if err != nil {
 		return err
 	}

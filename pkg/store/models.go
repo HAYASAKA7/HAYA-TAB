@@ -5,13 +5,25 @@ const (
 	SystemCloudCategoryID = "sys_cloud"
 )
 
+// CloudVolume represents a virtual volume (physical cloud drive) mounted via WebDAV
+type CloudVolume struct {
+	ID              string `json:"id"`              // UUID generated on first scan
+	Name            string `json:"name"`            // User-friendly name (e.g., "Google Drive", "OneDrive")
+	MountPath       string `json:"mountPath"`       // Current mount path in WebDAV (e.g., "/gdrive")
+	FingerprintPath string `json:"fingerprintPath"` // Path to fingerprint file (e.g., "/gdrive/.haya-volume-fingerprint")
+	CreatedAt       int64  `json:"createdAt"`       // Unix timestamp when volume was first registered
+	LastSeenAt      int64  `json:"lastSeenAt"`      // Unix timestamp when volume was last detected
+	IsAvailable     bool   `json:"isAvailable"`     // True if volume is currently accessible
+}
+
 // Tab represents a guitar tab file and its metadata
 type Tab struct {
 	ID            string   `json:"id"`
 	Title         string   `json:"title"`
 	Artist        string   `json:"artist"`
 	Album         string   `json:"album"`
-	FilePath      string   `json:"filePath"`      // Absolute path or relative to app (or WebDAV path for cloud tabs)
+	FilePath      string   `json:"filePath"`      // For local: absolute path. For cloud: relative path within volume
+	VolumeID      string   `json:"volumeId"`      // Cloud volume ID (empty for local files)
 	Type          string   `json:"type"`          // "pdf" or "gp"
 	IsManaged     bool     `json:"isManaged"`
 	IsCloud       bool     `json:"isCloud"`       // True if this is a cloud/online tab (not downloaded)

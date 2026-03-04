@@ -174,8 +174,32 @@ export function WebDAVCheckStatus() {
   return window['go']['app']['App']['WebDAVCheckStatus']();
 }
 
+export function WebDAVCheckVolumeHealth() {
+  return window['go']['app']['App']['WebDAVCheckVolumeHealth']();
+}
+
+export function WebDAVCleanupOrphanedTabs() {
+  return window['go']['app']['App']['WebDAVCleanupOrphanedTabs']();
+}
+
+export function WebDAVCreateVolume(arg1, arg2) {
+  return window['go']['app']['App']['WebDAVCreateVolume'](arg1, arg2);
+}
+
+export function WebDAVDiscoverVolumes() {
+  return window['go']['app']['App']['WebDAVDiscoverVolumes']();
+}
+
 export function WebDAVDownloadFiles(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['WebDAVDownloadFiles'](arg1, arg2, arg3, arg4);
+}
+
+export function WebDAVGetOrphanedTabsCount() {
+  return window['go']['app']['App']['WebDAVGetOrphanedTabsCount']();
+}
+
+export function WebDAVInitialize() {
+  return window['go']['app']['App']['WebDAVInitialize']();
 }
 
 export function WebDAVListDir(arg1, arg2, arg3, arg4) {
@@ -184,6 +208,14 @@ export function WebDAVListDir(arg1, arg2, arg3, arg4) {
 
 export function WebDAVListRemoteDirectories(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['WebDAVListRemoteDirectories'](arg1, arg2, arg3, arg4);
+}
+
+export function WebDAVMigrateCloudTabs() {
+  return window['go']['app']['App']['WebDAVMigrateCloudTabs']();
+}
+
+export function WebDAVReconnect() {
+  return window['go']['app']['App']['WebDAVReconnect']();
 }
 
 export function WebDAVScanRemoteFiles(arg1, arg2, arg3, arg4) {

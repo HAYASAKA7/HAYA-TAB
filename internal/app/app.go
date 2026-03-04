@@ -22,6 +22,10 @@ import (
 // idCounter is used to ensure unique IDs even when called in rapid succession
 var idCounter uint64
 
+// AppVersion is the application version
+// Can be set via ldflags during build: -ldflags "-X haya-tab/internal/app.AppVersion=2.3.0"
+var AppVersion = "2.3.0"
+
 // getAppDir returns the directory where the database and logs should be stored.
 // It is forced to the user's config directory so that it's accessible even if a custom storage drive is offline.
 func getAppDir() string {
@@ -224,6 +228,18 @@ func (a *App) Startup(ctx context.Context) {
 	emitter := &WailsEventEmitter{ctx: a.ctx}
 	a.syncService = syncpkg.NewSyncService(a.store, a.logger, a.coverPool, emitter, appDir, a.mbWorker)
 	a.logger.Info("SyncService initialized")
+
+	// Initialize WebDAV volume system (if enabled)
+	go func() {
+		// Small delay to ensure everything is ready
+		time.Sleep(500 * time.Millisecond)
+		if err := a.WebDAVInitialize(); err != nil {
+			a.logger.Error("WebDAV initialization failed: %v", err)
+		}
+	}()
+
+	// Start WebDAV connection monitor
+	go a.monitorWebDAVConnection()
 
 	// Auto Sync Logic
 	go a.runAutoSync()

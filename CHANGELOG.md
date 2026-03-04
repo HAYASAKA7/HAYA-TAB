@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2026-03-04
+
+### Added
+- **Multi-Device WebDAV Sync**: New volume system for managing cloud drives with fingerprint files
+  - Each volume (cloud drive) has a unique fingerprint file (`.haya-volume-fingerprint`) containing metadata
+  - Fingerprints track uploaded files, their metadata (title, artist, album), and upload source device
+  - Enables seamless discovery and synchronization across multiple devices
+- **WebDAV Volume Discovery**: `WebDAVDiscoverVolumes()` automatically scans WebDAV root for all volumes
+  - Supports both existing volumes and auto-creates fingerprints for new directories
+  - Handles multi-device scenarios where volumes are discovered after initial setup
+- **Volume Health Checking**: `WebDAVCheckVolumeHealth()` monitors volume accessibility
+  - Tracks which cloud drives are currently available
+  - Updates availability status in database
+- **Cloud Tab Migration**: Automatic migration of existing cloud tabs to use the new volume system
+  - `WebDAVMigrateCloudTabs()` relinks legacy tabs to their respective volumes
+  - `WebDAVCleanupOrphanedTabs()` removes tabs referencing non-existent volumes
+- **Connection Monitoring**: Automatic WebDAV reconnection when connection is restored
+  - `WebDAVReconnect()` reinitializes volume system after network restore
+  - Background monitor checks connection every 30 seconds
+- **Volume Creation API**: `WebDAVCreateVolume()` allows creating new cloud volumes programmatically
+- **Fingerprint Management**: Direct fingerprint file access for upload/download operations
+  - Tracks file relationships to volumes using relative paths
+  - Updates fingerprints when files are uploaded or deleted
+- **Enhanced Tab Management**: Tab records now include `volume_id` and `fingerprint_path` fields
+  - Cloud tabs store relative path within volume (not absolute WebDAV path)
+  - Enables portable multi-device support
+- **Database Schema Updates**:
+  - New `cloud_volumes` table to store volume metadata
+  - Added `volume_id` column to tabs table
+  - Migration functions for legacy data
+
+### Improved
+- **WebDAV Upload**: Files are now added to volume fingerprints automatically upon upload
+  - Tracks metadata (title, artist, album, type) in fingerprint
+  - Records upload timestamp and device name
+- **Cloud Tab Addition**: Enhanced `WebDAVAddOnlineFiles()` with improved volume matching
+  - Uses volume mount paths to correctly associate files with volumes
+  - Logs detailed debug info for troubleshooting
+  - Batch updates fingerprints for better performance
+- **File Deletion**: Removes files from volume fingerprints when deleted from app
+  - Single and batch deletions automatically update fingerprints
+  - Maintains consistency between app database and WebDAV
+- **App Startup**: WebDAV system initializes automatically on startup if enabled
+  - Discovers volumes, checks health, and migrates legacy data
+  - Non-blocking initialization prevents UI freeze
+
+### Fixed
+- **Cloud File Streaming**: Fixed path resolution for cloud tab playback
+  - Correctly resolves relative paths using volume information
+  - Proper error handling for unavailable volumes
+
 ## [2.2.20] - 2026-03-04
 
 ### Added

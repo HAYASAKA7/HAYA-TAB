@@ -259,6 +259,10 @@ func (h *FileHandler) serveCloudFile(w http.ResponseWriter, r *http.Request, id 
 		return
 	}
 
+	// DEBUG: Print tab details
+	fmt.Printf("[ServeCloudFile] Tab details: ID=%s, VolumeID='%s', FilePath='%s', IsCloud=%v\n",
+		tab.ID, tab.VolumeID, tab.FilePath, tab.IsCloud)
+
 	if !tab.IsCloud {
 		fmt.Printf("[ServeCloudFile] Tab %s is not a cloud tab, redirecting to local\n", id)
 		h.serveTabFile(w, r, id)
@@ -277,11 +281,19 @@ func (h *FileHandler) serveCloudFile(w http.ResponseWriter, r *http.Request, id 
 	baseURL := strings.TrimRight(settings.WebDAVURL, "/")
 	client := syncpkg.NewWebDAVClient(baseURL, settings.WebDAVUser, settings.WebDAVPassword)
 
-	fmt.Printf("[ServeCloudFile] Streaming from WebDAV: %s\n", tab.FilePath)
+	// Resolve the full WebDAV path using volume system
+	fullPath, err := syncpkg.ResolveFilePath(h.app.store, tab.VolumeID, tab.FilePath)
+	if err != nil {
+		fmt.Printf("[ServeCloudFile] Failed to resolve file path: %v\n", err)
+		http.Error(w, "Failed to resolve file path: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("[ServeCloudFile] Streaming from WebDAV: %s (resolved from volume %s)\n", fullPath, tab.VolumeID)
 
 	// Get file info for content-length
 	var fileSize int64
-	fileInfo, err := client.GetFileInfo(tab.FilePath)
+	fileInfo, err := client.GetFileInfo(fullPath)
 	if err != nil {
 		fmt.Printf("[ServeCloudFile] Failed to get file info: %v\n", err)
 		// Continue without file size - not fatal
@@ -293,7 +305,7 @@ func (h *FileHandler) serveCloudFile(w http.ResponseWriter, r *http.Request, id 
 	ctx := r.Context()
 
 	// Use gowebdav's ReadStream which handles auth properly for Baidu/Jianguoyun etc.
-	stream, err := client.ReadStream(tab.FilePath)
+	stream, err := client.ReadStream(fullPath)
 	if err != nil {
 		fmt.Printf("[ServeCloudFile] Failed to open WebDAV stream: %v\n", err)
 		errStr := err.Error()

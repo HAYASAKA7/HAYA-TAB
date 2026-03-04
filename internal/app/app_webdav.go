@@ -10,6 +10,15 @@ import (
 	"time"
 )
 
+// getDeviceName returns a device identifier for fingerprint tracking
+func getDeviceName() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return "unknown-device"
+	}
+	return hostname
+}
+
 // WebDAVTestConnection tests the WebDAV connection
 func (a *App) WebDAVTestConnection(url, user, password string) error {
 	url = strings.TrimRight(url, "/")
@@ -158,18 +167,94 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 
 	go func() {
 		successCount := 0
+
+		// Get all volumes to determine which volume this upload belongs to
+		volumes, err := a.store.GetAllVolumes()
+		if err != nil {
+			a.logger.Error("Failed to get volumes: %v", err)
+			volumes = []store.CloudVolume{}
+		}
+
+		// Find the volume that contains remoteDir
+		var targetVolume *store.CloudVolume
+		longestMatch := ""
+		for _, vol := range volumes {
+			if strings.HasPrefix(remoteDir, vol.MountPath+"/") || remoteDir == vol.MountPath {
+				if len(vol.MountPath) > len(longestMatch) {
+					longestMatch = vol.MountPath
+					targetVolume = &vol
+				}
+			}
+		}
+
 		for i, localPath := range localPaths {
+			fileName := filepath.Base(localPath)
+
+			// Upload the file
 			if err := client.UploadFile(localPath, remoteDir); err != nil {
 				a.logger.Error("Failed to upload %s: %v", localPath, err)
 			} else {
 				successCount++
+
+				// If we found a volume, update its fingerprint file
+				if targetVolume != nil {
+					// Get tab metadata if this file is in our library
+					tab, _ := a.store.GetTabByPath(localPath)
+
+					var title, artist, album, fileType string
+					if tab != nil {
+						// Use existing metadata from library
+						title = tab.Title
+						artist = tab.Artist
+						album = tab.Album
+						fileType = tab.Type
+					} else {
+						// Parse metadata from filename
+						title, artist = parseMetadataFromFilename(fileName)
+
+						// Determine file type
+						ext := strings.ToLower(filepath.Ext(fileName))
+						fileType = "gp"
+						switch ext {
+						case ".pdf":
+							fileType = "pdf"
+						case ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".xml", ".musicxml", ".mxl":
+							fileType = "gp"
+						}
+					}
+
+					// Calculate relative path within volume
+					relativePath := strings.TrimPrefix(remoteDir, targetVolume.MountPath)
+					relativePath = strings.TrimPrefix(relativePath, "/")
+					if relativePath != "" {
+						relativePath = relativePath + "/"
+					}
+					relativePath = relativePath + fileName
+
+					// Add file record to fingerprint
+					fpFile := syncpkg.FingerprintFile{
+						RelativePath: relativePath,
+						Title:        title,
+						Artist:       artist,
+						Album:        album,
+						Type:         fileType,
+						UploadedAt:   time.Now().UTC().Format(time.RFC3339),
+						UploadedBy:   getDeviceName(),
+					}
+
+					if err := client.AddFileToFingerprint(targetVolume.MountPath, fpFile); err != nil {
+						a.logger.Error("Failed to update fingerprint for %s: %v", fileName, err)
+					} else {
+						a.logger.Info("Updated fingerprint for uploaded file: %s", fileName)
+					}
+				}
 			}
 
 			a.emitEvent("cloud-upload-progress", map[string]interface{}{
 				"status":   "progress",
 				"current":  i + 1,
 				"total":    len(localPaths),
-				"filename": filepath.Base(localPath),
+				"filename": fileName,
 			})
 		}
 
@@ -191,6 +276,15 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 		a.logger.Error("Failed to ensure cloud category: %v", err)
 	}
 
+	// CRITICAL: Discover volumes SYNCHRONOUSLY before adding files
+	// This ensures volumes exist before we try to match files to them
+	a.logger.Info("Discovering volumes before adding files...")
+	_, err := a.WebDAVDiscoverVolumes()
+	if err != nil {
+		a.logger.Error("Failed to discover volumes: %v", err)
+		return fmt.Errorf("failed to discover volumes: %w", err)
+	}
+
 	a.emitEvent("cloud-progress", map[string]interface{}{
 		"status": "start",
 		"total":  len(remotePaths),
@@ -200,11 +294,69 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 		successCount := 0
 		skippedCount := 0
 
+		// Get all volumes to determine which volume each file belongs to
+		volumes, err := a.store.GetAllVolumes()
+		if err != nil {
+			a.logger.Error("Failed to get volumes: %v", err)
+			volumes = []store.CloudVolume{} // Continue without volume support
+		}
+
+		// Track added files by volume for batch fingerprint updates
+		volumeAddedFiles := make(map[string][]store.Tab)
+
 		for i, remotePath := range remotePaths {
 			fileName := filepath.Base(remotePath)
 
-			// Check for duplicates by remote path
-			existingTab, _ := a.store.GetTabByPath(remotePath)
+			a.logger.Info("=== Processing file %d/%d ===", i+1, len(remotePaths))
+			a.logger.Info("Remote path: %s", remotePath)
+			a.logger.Info("File name: %s", fileName)
+			a.logger.Info("Available volumes: %d", len(volumes))
+			for _, vol := range volumes {
+				a.logger.Info("  Volume: %s (ID: %s, MountPath: %s)", vol.Name, vol.ID, vol.MountPath)
+			}
+
+			// Determine which volume this file belongs to
+			var volumeID string
+			var relativePath string
+
+			// Find the volume with the longest matching mount path
+			longestMatch := ""
+			for _, vol := range volumes {
+				a.logger.Info("Checking: does '%s' start with '%s/'?", remotePath, vol.MountPath)
+				if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath {
+					a.logger.Info("  YES - Match found!")
+					if len(vol.MountPath) > len(longestMatch) {
+						longestMatch = vol.MountPath
+						volumeID = vol.ID
+						a.logger.Info("  This is the longest match so far (length: %d)", len(vol.MountPath))
+					}
+				} else {
+					a.logger.Info("  NO - No match")
+				}
+			}
+
+			if volumeID != "" {
+				// Calculate relative path within volume
+				relativePath = strings.TrimPrefix(remotePath, longestMatch)
+				relativePath = strings.TrimPrefix(relativePath, "/")
+				a.logger.Info("MATCHED to volume %s", volumeID)
+				a.logger.Info("  Longest match: %s", longestMatch)
+				a.logger.Info("  Relative path: %s", relativePath)
+			} else {
+				// No volume found - this should not happen if discovery worked
+				a.logger.Error("NO VOLUME MATCHED for file: %s", remotePath)
+				a.logger.Error("  Available volumes: %d", len(volumes))
+				relativePath = remotePath
+			}
+
+			// Check for duplicates by volume and path
+			var existingTab *store.Tab
+			if volumeID != "" {
+				existingTab, _ = a.store.GetTabByVolumeAndPath(volumeID, relativePath)
+			} else {
+				existingTab, _ = a.store.GetTabByPath(remotePath)
+			}
+
 			if existingTab != nil {
 				a.logger.Info("Skipping duplicate cloud file %s", fileName)
 				skippedCount++
@@ -235,7 +387,8 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				ID:          generateID(),
 				Title:       title,
 				Artist:      artist,
-				FilePath:    remotePath, // Store remote path
+				FilePath:    relativePath, // Store relative path within volume
+				VolumeID:    volumeID,     // Store volume ID
 				Type:        fileType,
 				IsManaged:   false,
 				IsCloud:     true,
@@ -247,6 +400,12 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				a.logger.Error("Failed to add cloud tab %s: %v", fileName, err)
 			} else {
 				successCount++
+				a.logger.Info("Added cloud file: %s (volume: %s, path: %s)", fileName, volumeID, relativePath)
+
+				// Track for fingerprint update
+				if volumeID != "" {
+					volumeAddedFiles[volumeID] = append(volumeAddedFiles[volumeID], tab)
+				}
 			}
 
 			a.emitEvent("cloud-progress", map[string]interface{}{
@@ -255,6 +414,11 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				"total":    len(remotePaths),
 				"filename": fileName,
 			})
+		}
+
+		// Update fingerprints for all affected volumes
+		for volumeID, tabs := range volumeAddedFiles {
+			a.batchAddToFingerprint(volumeID, tabs)
 		}
 
 		a.emitEvent("cloud-progress", map[string]interface{}{
@@ -283,6 +447,209 @@ func (a *App) WebDAVCheckStatus() bool {
 
 	err := client.TestConnection()
 	return err == nil
+}
+
+// WebDAVReconnect attempts to reconnect and reinitialize WebDAV
+// This should be called when connection is restored after being lost
+func (a *App) WebDAVReconnect() error {
+	settings := a.store.GetSettings()
+	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
+		return fmt.Errorf("WebDAV is not enabled")
+	}
+
+	a.logger.Info("Attempting to reconnect to WebDAV...")
+
+	// Test connection first
+	if !a.WebDAVCheckStatus() {
+		return fmt.Errorf("WebDAV connection test failed")
+	}
+
+	// Reinitialize volumes
+	return a.WebDAVInitialize()
+}
+
+// monitorWebDAVConnection monitors WebDAV connection status and auto-reconnects when connection is restored
+func (a *App) monitorWebDAVConnection() {
+	// Wait for initial startup to complete
+	time.Sleep(5 * time.Second)
+
+	// Initialize lastStatus to current status to avoid false "connection restored" on first check
+	settings := a.store.GetSettings()
+	lastStatus := false
+	if settings.WebDAVEnabled && settings.WebDAVURL != "" {
+		lastStatus = a.WebDAVCheckStatus()
+	}
+
+	checkInterval := 30 * time.Second // Check every 30 seconds
+
+	for {
+		settings := a.store.GetSettings()
+
+		// Only monitor if WebDAV is enabled
+		if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
+			lastStatus = false
+			time.Sleep(checkInterval)
+			continue
+		}
+
+		currentStatus := a.WebDAVCheckStatus()
+
+		// If connection was lost and now restored, reinitialize
+		if !lastStatus && currentStatus {
+			a.logger.Info("WebDAV connection restored, reinitializing...")
+			go func() {
+				if err := a.WebDAVReconnect(); err != nil {
+					a.logger.Error("WebDAV reconnection failed: %v", err)
+				} else {
+					a.logger.Info("WebDAV reconnection successful")
+				}
+			}()
+		} else if lastStatus && !currentStatus {
+			a.logger.Info("WebDAV connection lost")
+		}
+
+		lastStatus = currentStatus
+		time.Sleep(checkInterval)
+	}
+}
+
+// WebDAVDiscoverVolumes scans WebDAV for all volumes and registers them
+// This is the entry point for multi-device sync
+func (a *App) WebDAVDiscoverVolumes() ([]store.CloudVolume, error) {
+	settings := a.store.GetSettings()
+	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
+		return nil, fmt.Errorf("WebDAV is not enabled")
+	}
+
+	client := syncpkg.NewWebDAVClient(
+		strings.TrimRight(settings.WebDAVURL, "/"),
+		settings.WebDAVUser,
+		settings.WebDAVPassword,
+	)
+
+	// Discover and register all volumes
+	volumes, err := syncpkg.DiscoverAndRegisterVolumes(client, a.store, "/")
+	if err != nil {
+		return nil, fmt.Errorf("failed to discover volumes: %w", err)
+	}
+
+	a.logger.Info("Discovered %d volumes", len(volumes))
+	return volumes, nil
+}
+
+// WebDAVCheckVolumeHealth checks the health of all registered volumes
+func (a *App) WebDAVCheckVolumeHealth() (map[string]bool, error) {
+	settings := a.store.GetSettings()
+	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
+		return nil, fmt.Errorf("WebDAV is not enabled")
+	}
+
+	client := syncpkg.NewWebDAVClient(
+		strings.TrimRight(settings.WebDAVURL, "/"),
+		settings.WebDAVUser,
+		settings.WebDAVPassword,
+	)
+
+	healthMap, err := syncpkg.CheckVolumeHealth(client, a.store)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check volume health: %w", err)
+	}
+
+	return healthMap, nil
+}
+
+// WebDAVMigrateCloudTabs migrates existing cloud tabs to use the volume system
+func (a *App) WebDAVMigrateCloudTabs() error {
+	return a.store.MigrateCloudTabsToVolumes()
+}
+
+// WebDAVGetOrphanedTabsCount returns the count of tabs referencing non-existent volumes
+func (a *App) WebDAVGetOrphanedTabsCount() (int, error) {
+	return a.store.GetOrphanedTabsCount()
+}
+
+// WebDAVCleanupOrphanedTabs removes tabs that reference non-existent volumes
+func (a *App) WebDAVCleanupOrphanedTabs() (int, error) {
+	return a.store.CleanupOrphanedTabs()
+}
+
+// WebDAVInitialize initializes the WebDAV volume system
+// This should be called on app startup if WebDAV is enabled
+func (a *App) WebDAVInitialize() error {
+	settings := a.store.GetSettings()
+	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
+		a.logger.Info("WebDAV not enabled, skipping initialization")
+		return nil
+	}
+
+	a.logger.Info("Initializing WebDAV volume system...")
+
+	// Ensure cloud category exists before syncing files
+	if err := a.store.EnsureCloudCategory(); err != nil {
+		a.logger.Error("Failed to ensure cloud category: %v", err)
+		// Don't fail initialization if category creation fails
+	}
+
+	client := syncpkg.NewWebDAVClient(
+		strings.TrimRight(settings.WebDAVURL, "/"),
+		settings.WebDAVUser,
+		settings.WebDAVPassword,
+	)
+
+	// Discover and register volumes
+	volumes, err := a.WebDAVDiscoverVolumes()
+	if err != nil {
+		a.logger.Error("Failed to discover volumes: %v", err)
+		return err
+	}
+
+	a.logger.Info("Discovered %d volumes", len(volumes))
+
+	// Migrate existing cloud files to fingerprints
+	a.logger.Info("Migrating existing cloud files to fingerprints...")
+	migratedCount, err := syncpkg.MigrateExistingCloudFilesToFingerprints(client, a.store)
+	if err != nil {
+		a.logger.Error("Failed to migrate cloud files to fingerprints: %v", err)
+		// Don't fail initialization if migration fails
+	} else if migratedCount > 0 {
+		a.logger.Info("Migrated %d existing cloud files to fingerprints", migratedCount)
+	}
+
+	// Migrate legacy cloud tabs
+	if err := a.WebDAVMigrateCloudTabs(); err != nil {
+		a.logger.Error("Failed to migrate cloud tabs: %v", err)
+		// Don't fail initialization if migration fails
+	}
+
+	// Ensure all cloud tabs have the cloud category
+	a.logger.Info("Ensuring all cloud tabs have cloud category...")
+	addedCount, err := a.store.EnsureCloudTabsHaveCloudCategory()
+	if err != nil {
+		a.logger.Error("Failed to ensure cloud tabs have cloud category: %v", err)
+		// Don't fail initialization if migration fails
+	} else if addedCount > 0 {
+		a.logger.Info("Added cloud category to %d existing cloud tabs", addedCount)
+	}
+
+	// Check volume health
+	healthMap, err := a.WebDAVCheckVolumeHealth()
+	if err != nil {
+		a.logger.Error("Failed to check volume health: %v", err)
+		// Don't fail initialization if health check fails
+	} else {
+		unavailableCount := 0
+		for _, available := range healthMap {
+			if !available {
+				unavailableCount++
+			}
+		}
+		if unavailableCount > 0 {
+			a.logger.Info("%d volumes are currently unavailable", unavailableCount)
+		}
+	}
+
+	a.logger.Info("WebDAV initialization complete")
+	return nil
 }
 
 // DownloadCloudTabToLocal downloads a cloud tab to local storage
@@ -400,6 +767,51 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 	}()
 
 	return nil
+}
+
+// WebDAVCreateVolume creates a new volume with a fingerprint file
+func (a *App) WebDAVCreateVolume(volumeName, remotePath string) (*store.CloudVolume, error) {
+	settings := a.store.GetSettings()
+	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
+		return nil, fmt.Errorf("WebDAV is not enabled")
+	}
+
+	// Validate inputs
+	if volumeName == "" {
+		return nil, fmt.Errorf("volume name cannot be empty")
+	}
+	if remotePath == "" {
+		remotePath = "/" // Default to root
+	}
+
+	client := syncpkg.NewWebDAVClient(
+		strings.TrimRight(settings.WebDAVURL, "/"),
+		settings.WebDAVUser,
+		settings.WebDAVPassword,
+	)
+
+	// Check if fingerprint already exists at this path
+	if client.FingerprintExists(remotePath) {
+		return nil, fmt.Errorf("a volume already exists at path: %s", remotePath)
+	}
+
+	// Create fingerprint file with app version and device name
+	deviceName := getDeviceName()
+	fingerprint, err := client.CreateVolumeFingerprint(remotePath, volumeName, AppVersion, deviceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create volume fingerprint: %w", err)
+	}
+
+	a.logger.Info("Created volume fingerprint: %s at %s", fingerprint.VolumeID, remotePath)
+
+	// Register volume in database
+	volume, err := syncpkg.RegisterOrUpdateVolume(a.store, remotePath, fingerprint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to register volume: %w", err)
+	}
+
+	a.logger.Info("Volume created successfully: %s (%s)", volume.Name, volume.ID)
+	return volume, nil
 }
 
 // parseMetadataFromFilename extracts title and artist from filename

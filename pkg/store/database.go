@@ -119,7 +119,12 @@ func (s *DBStore) createTables() error {
 		language TEXT DEFAULT '',
 		tag TEXT DEFAULT '',
 		added_at INTEGER DEFAULT 0,
-		last_opened INTEGER DEFAULT 0
+		last_opened INTEGER DEFAULT 0,
+		is_cloud INTEGER DEFAULT 0,
+		origin_country TEXT DEFAULT '',
+		initial_az TEXT DEFAULT '#',
+		initial_kana TEXT DEFAULT '#',
+		volume_id TEXT DEFAULT ''
 	);
 
 	CREATE TABLE IF NOT EXISTS categories (
@@ -143,10 +148,21 @@ func (s *DBStore) createTables() error {
 		value TEXT
 	);
 
+	CREATE TABLE IF NOT EXISTS cloud_volumes (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
+		mount_path TEXT NOT NULL,
+		fingerprint_path TEXT NOT NULL,
+		created_at INTEGER DEFAULT 0,
+		last_seen_at INTEGER DEFAULT 0,
+		is_available INTEGER DEFAULT 1
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_tabs_category ON tabs(category_id);
 	CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
 	CREATE INDEX IF NOT EXISTS idx_tab_categories_tab ON tab_categories(tab_id);
 	CREATE INDEX IF NOT EXISTS idx_tab_categories_cat ON tab_categories(category_id);
+	CREATE INDEX IF NOT EXISTS idx_cloud_volumes_mount ON cloud_volumes(mount_path);
 	`
 
 	if _, err := s.db.Exec(schema); err != nil {
@@ -271,6 +287,22 @@ func (s *DBStore) runMigrations() error {
 		if !strings.Contains(err.Error(), "duplicate column name") {
 			// It's okay
 		}
+	}
+
+	// Add volume_id column for cloud volume support
+	_, err = s.db.Exec("ALTER TABLE tabs ADD COLUMN volume_id TEXT DEFAULT ''")
+	if err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			// It's okay
+		}
+	}
+
+	// Create index on volume_id after the column exists
+	// This must be done in migrations to support existing databases
+	_, err = s.db.Exec("CREATE INDEX IF NOT EXISTS idx_tabs_volume ON tabs(volume_id)")
+	if err != nil {
+		// Log but don't fail - index might already exist
+		fmt.Printf("Warning: failed to create volume_id index: %v\n", err)
 	}
 
 	return nil
