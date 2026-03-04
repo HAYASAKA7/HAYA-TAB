@@ -90,7 +90,8 @@ To fix this:
 │       ├── app_files.go              # File dialogs & sync triggers
 │       ├── app_settings.go           # Settings persistence
 │       ├── app_migration.go          # Data migration utilities
-│       ├── app_webdav.go             # WebDAV cloud operations
+│       ├── app_webdav.go             # WebDAV cloud operations & volume system
+│       ├── app_webdav_helpers.go     # WebDAV fingerprint helpers (batch operations)
 │       ├── server.go                 # HTTP file server
 │       ├── disk_unix.go              # Unix disk operations
 │       └── disk_windows.go           # Windows disk operations
@@ -142,13 +143,17 @@ To fix this:
 │   │   └── gp_binary.go              # Binary format handlers
 │   ├── store/                        # SQLite database layer
 │   │   ├── database.go               # DB connection & management
-│   │   ├── models.go                 # Data models
+│   │   ├── database_volumes.go       # Cloud volume operations
+│   │   ├── database_migration_volumes.go    # Volume system migrations
+│   │   ├── models.go                 # Data models (includes CloudVolume)
 │   │   ├── migration.go              # Schema migrations
 │   │   ├── crypto.go                 # Encryption utilities
 │   │   └── locale_*.go               # Platform-specific locale detection
-│   ├── sync/                         # File synchronization
+│   ├── sync/                         # File synchronization & WebDAV volume system
 │   │   ├── sync.go                   # Sync engine
-│   │   └── webdav.go                 # WebDAV operations
+│   │   ├── webdav.go                 # WebDAV client & operations
+│   │   ├── volume.go                 # Volume fingerprinting & metadata tracking
+│   │   └── volume_sync.go            # Multi-device volume discovery & migration
 │   ├── watcher/                      # File system watcher
 │   │   └── watcher.go                # Watch folders for changes
 │   └── worker/                       # Background workers
