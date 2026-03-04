@@ -398,7 +398,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
           <div class="input-with-button">
             <input type="text" :value="settingsStore.settings.webdavUrl" disabled readonly>
             <button class="btn" @click="uiStore.showWebdavModal" :title="t('settings.configureWebdav')"><span class="icon-edit"></span></button>
-            <button class="btn" @click="uiStore.showCloudPickerModal" :title="t('cloud.title')"><span class="icon-cloud"></span></button>
+            <button class="btn" :disabled="!settingsStore.webdavConnected" @click="uiStore.showCloudPickerModal" :title="settingsStore.webdavConnected ? t('cloud.title') : t('cloud.offline')"><span class="icon-cloud"></span></button>
           </div>
         </div>
       </div>

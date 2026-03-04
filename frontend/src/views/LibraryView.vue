@@ -259,8 +259,9 @@ async function addTab(isUpload: boolean) {
         <button
           v-if="viewMode === 'singles' && settingsStore.settings.webdavEnabled"
           class="btn icon-btn"
+          :disabled="!settingsStore.webdavConnected"
           @click="uiStore.showCloudPickerModal()"
-          :title="t('cloud.title')"
+          :title="settingsStore.webdavConnected ? t('cloud.title') : t('cloud.offline')"
         >
           <span class="icon-cloud"></span>
         </button>

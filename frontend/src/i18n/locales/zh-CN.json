@@ -100,6 +100,7 @@
   },
   "cloud": {
     "title": "云端曲库",
+    "offline": "WebDAV 服务未连接",
     "uploadTitle": "上传到云端",
     "selectDestination": "选择目标文件夹",
     "download": "下载",

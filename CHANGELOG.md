@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.19] - 2026-03-04
+
+### Added
+- **WebDAV UI Enhancement:** Disabled cloud picker button when WebDAV is not connected
+- **Style Improvements:** Added disabled button state styling
+- **Localization:** Added offline state messages for all supported languages (English, Japanese, Simplified Chinese, Traditional Chinese)
+
+### Improved
+- **User Experience:** Better visual feedback for unavailable cloud features when WebDAV is disconnected
+
 ## [2.2.18] - 2026-03-04
 
 ### Added

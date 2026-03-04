@@ -100,6 +100,7 @@
   },
   "cloud": {
     "title": "雲端曲庫",
+    "offline": "WebDAV 服務未連線",
     "uploadTitle": "上傳到雲端",
     "selectDestination": "選擇目標資料夾",
     "download": "下載",

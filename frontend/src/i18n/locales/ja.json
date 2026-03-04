@@ -100,6 +100,7 @@
   },
   "cloud": {
     "title": "クラウドライブラリ",
+    "offline": "WebDAVサービスが接続されていません",
     "uploadTitle": "クラウドへアップロード",
     "selectDestination": "保存先フォルダを選択",
     "download": "ダウンロード",

@@ -256,6 +256,12 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 .btn.primary { background: var(--primary); border-color: var(--primary); color: white; }
 .btn:hover { background: var(--hover); }
 .btn.primary:hover { opacity: 0.9; }
+.btn:disabled,
+.btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
 
 /* Grid */
 #tab-grid {
