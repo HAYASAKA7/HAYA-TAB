@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.20] - 2026-03-04
+
+### Added
+- **Grid UI Enhancement:** Improved TabCard component with better visual feedback
+
 ## [2.2.19] - 2026-03-04
 
 ### Added
