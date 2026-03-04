@@ -280,5 +280,19 @@
     "accessDeniedWebdav": "访问被拒绝：WebDAV 服务器拒绝了请求（可能是文件过大）",
     "fileNotFound": "文件未找到",
     "serverError": "服务器错误：无法从云存储流式传输文件"
+  },
+  "errors": {
+    "fileNotFound": "文件未找到：{path}",
+    "fileAccess": "无法访问文件：{path}",
+    "duplicate": "{type} 已存在：{name}",
+    "database": "数据库 {operation} 操作失败",
+    "network": "{operation} 期间发生网络错误",
+    "webdav": "WebDAV {operation} 操作失败",
+    "metadata": "获取 {filename} 的元数据失败",
+    "coverDownload": "下载 {artist} - {album} 的封面失败",
+    "musicbrainz": "MusicBrainz 查询 {artist} 失败",
+    "invalidInput": "{field} 无效：{reason}",
+    "permission": "{operation} 权限被拒绝",
+    "unknown": "发生未知错误"
   }
 }

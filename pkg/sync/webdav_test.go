@@ -194,8 +194,11 @@ func TestNewWebDAVClient(t *testing.T) {
 	if client == nil {
 		t.Fatal("NewWebDAVClient returned nil")
 	}
-	if client.client == nil {
-		t.Error("WebDAVClient.client is nil")
+	if client.metadataClient == nil {
+		t.Error("WebDAVClient.metadataClient is nil")
+	}
+	if client.streamClient == nil {
+		t.Error("WebDAVClient.streamClient is nil")
 	}
 	if client.url != "http://example.com/webdav" {
 		t.Errorf("url = %v, want http://example.com/webdav", client.url)

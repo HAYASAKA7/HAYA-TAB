@@ -280,5 +280,19 @@
     "accessDeniedWebdav": "存取被拒絕：WebDAV 伺服器拒絕了請求（可能是檔案過大）",
     "fileNotFound": "找不到檔案",
     "serverError": "伺服器錯誤：無法從雲端儲存串流檔案"
+  },
+  "errors": {
+    "fileNotFound": "找不到檔案：{path}",
+    "fileAccess": "無法存取檔案：{path}",
+    "duplicate": "{type} 已存在：{name}",
+    "database": "資料庫 {operation} 操作失敗",
+    "network": "{operation} 期間發生網路錯誤",
+    "webdav": "WebDAV {operation} 操作失敗",
+    "metadata": "取得 {filename} 的中繼資料失敗",
+    "coverDownload": "下載 {artist} - {album} 的封面失敗",
+    "musicbrainz": "MusicBrainz 查詢 {artist} 失敗",
+    "invalidInput": "{field} 無效：{reason}",
+    "permission": "{operation} 權限被拒絕",
+    "unknown": "發生未知錯誤"
   }
 }

@@ -280,5 +280,19 @@
     "accessDeniedWebdav": "アクセスが拒否されました：WebDAVサーバーがリクエストを拒否しました（ファイルが大きすぎる可能性があります）",
     "fileNotFound": "ファイルが見つかりません",
     "serverError": "サーバーエラー：クラウドストレージからのファイルストリーミングに失敗しました"
+  },
+  "errors": {
+    "fileNotFound": "ファイルが見つかりません：{path}",
+    "fileAccess": "ファイルにアクセスできません：{path}",
+    "duplicate": "{type} は既に存在します：{name}",
+    "database": "データベース {operation} 操作に失敗しました",
+    "network": "{operation} 中にネットワークエラーが発生しました",
+    "webdav": "WebDAV {operation} 操作に失敗しました",
+    "metadata": "{filename} のメタデータの取得に失敗しました",
+    "coverDownload": "{artist} - {album} のカバーのダウンロードに失敗しました",
+    "musicbrainz": "{artist} の MusicBrainz 検索に失敗しました",
+    "invalidInput": "{field} が無効です：{reason}",
+    "permission": "{operation} の権限が拒否されました",
+    "unknown": "予期しないエラーが発生しました"
   }
 }

@@ -84,14 +84,52 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.base.RoundTrip(clone)
 }
 
+// WebDAVClient provides WebDAV operations with dual-client strategy for performance optimization:
+// - metadataClient: for metadata operations (list, query) with Keep-Alive enabled for better performance
+// - streamClient: for file transfers with Keep-Alive disabled to avoid connection issues with large files
 type WebDAVClient struct {
-	client     *gowebdav.Client
-	url        string
-	httpClient *http.Client
+	metadataClient *gowebdav.Client // Metadata operations client (Keep-Alive enabled)
+	streamClient   *gowebdav.Client // File streaming client (Keep-Alive disabled)
+	url            string
+	httpClient     *http.Client
 }
 
+// NewWebDAVClient creates a new WebDAV client with dual-client strategy
+// to balance performance and stability:
+// 1. Metadata operations (list, query) use Keep-Alive enabled client to reduce connection overhead
+// 2. File transfer operations use Keep-Alive disabled client to avoid idle channel panics with large files
 func NewWebDAVClient(serverURL, user, password string) *WebDAVClient {
-	// Create custom HTTP client with browser-like transport and long timeout for large files
+	// Create transport for metadata operations (Keep-Alive enabled)
+	metadataTransport := createTransport(true)
+	metadataClient := gowebdav.NewClient(serverURL, user, password)
+	metadataClient.SetTransport(&customTransport{base: metadataTransport})
+	metadataClient.SetTimeout(30 * time.Second) // 30 second timeout for metadata operations
+	metadataClient.SetHeader("User-Agent", BrowserUserAgent)
+
+	// Create transport for file transfers (Keep-Alive disabled)
+	streamTransport := createTransport(false)
+	streamClient := gowebdav.NewClient(serverURL, user, password)
+	streamClient.SetTransport(&customTransport{base: streamTransport})
+	streamClient.SetTimeout(0) // No timeout for file transfers
+	streamClient.SetHeader("User-Agent", BrowserUserAgent)
+
+	// HTTP client for advanced operations
+	httpClient := &http.Client{
+		Transport: &customTransport{base: streamTransport},
+		Timeout:   0,
+	}
+
+	return &WebDAVClient{
+		metadataClient: metadataClient,
+		streamClient:   streamClient,
+		url:            serverURL,
+		httpClient:     httpClient,
+	}
+}
+
+// createTransport creates a configured HTTP transport
+// enableKeepAlive: true enables Keep-Alive (for metadata operations), false disables it (for file transfers)
+func createTransport(enableKeepAlive bool) *http.Transport {
 	var baseTransport *http.Transport
 	if defaultTransport, ok := http.DefaultTransport.(*http.Transport); ok {
 		baseTransport = defaultTransport.Clone()
@@ -102,36 +140,18 @@ func NewWebDAVClient(serverURL, user, password string) *WebDAVClient {
 	baseTransport.MaxIdleConns = 10
 	baseTransport.IdleConnTimeout = 90 * time.Second
 	baseTransport.DisableCompression = false
-	baseTransport.DisableKeepAlives = true // Disable Keep-Alives to prevent idle HTTP channel panics during file streaming
+	baseTransport.DisableKeepAlives = !enableKeepAlive // Enable/disable Keep-Alive based on parameter
 	baseTransport.MaxIdleConnsPerHost = 5
-	// Disable HTTP/2
+	// Disable HTTP/2 for better compatibility
 	baseTransport.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
 
-	transport := &customTransport{
-		base: baseTransport,
-	}
-
-	httpClient := &http.Client{
-		Transport: transport,
-		Timeout:   0, // Disable timeout for large file transfers
-	}
-
-	client := gowebdav.NewClient(serverURL, user, password)
-	// Set the custom HTTP client with browser User-Agent
-	client.SetTransport(transport)
-	client.SetTimeout(0)
-	// Also set header directly as fallback
-	client.SetHeader("User-Agent", BrowserUserAgent)
-
-	return &WebDAVClient{
-		client:     client,
-		url:        serverURL,
-		httpClient: httpClient,
-	}
+	return baseTransport
 }
 
+// TestConnection tests if the WebDAV connection is available
+// Uses metadata client for connection testing as it's a lightweight operation
 func (c *WebDAVClient) TestConnection() error {
-	return c.client.Connect()
+	return c.metadataClient.Connect()
 }
 
 // sanitizePath properly escapes special characters in path while preserving directory structure
@@ -146,6 +166,7 @@ func sanitizePath(remotePath string) string {
 }
 
 // ScanRemoteFiles recursively scans the remote directory for supported files
+// Uses metadata client for directory listing operations, leveraging Keep-Alive for better performance
 func (c *WebDAVClient) ScanRemoteFiles(dir string) ([]store.RemoteFile, error) {
 	return c.scanRecursive(dir, 0)
 }
@@ -161,7 +182,8 @@ func (c *WebDAVClient) scanRecursive(dir string, depth int) ([]store.RemoteFile,
 		dir = "/"
 	}
 
-	infos, err := c.client.ReadDir(dir)
+	// Use metadata client for directory reading (Keep-Alive enabled)
+	infos, err := c.metadataClient.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory %s: %w", dir, err)
 	}
@@ -192,6 +214,7 @@ func (c *WebDAVClient) scanRecursive(dir string, depth int) ([]store.RemoteFile,
 }
 
 // ListRemoteDirectories returns a list of directories in the given path (non-recursive)
+// Uses metadata client for directory listing operations
 func (c *WebDAVClient) ListRemoteDirectories(dir string) ([]string, error) {
 	var dirs []string
 
@@ -199,7 +222,8 @@ func (c *WebDAVClient) ListRemoteDirectories(dir string) ([]string, error) {
 		dir = "/"
 	}
 
-	infos, err := c.client.ReadDir(dir)
+	// Use metadata client (Keep-Alive enabled)
+	infos, err := c.metadataClient.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory %s: %w", dir, err)
 	}
@@ -215,12 +239,14 @@ func (c *WebDAVClient) ListRemoteDirectories(dir string) ([]string, error) {
 }
 
 // ListDir returns a list of files and directories in the given path (non-recursive)
+// Uses metadata client for directory listing operations
 func (c *WebDAVClient) ListDir(dir string) ([]store.RemoteFile, error) {
 	if dir == "" {
 		dir = "/"
 	}
 
-	infos, err := c.client.ReadDir(dir)
+	// Use metadata client (Keep-Alive enabled)
+	infos, err := c.metadataClient.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory %s: %w", dir, err)
 	}
@@ -247,12 +273,14 @@ func (c *WebDAVClient) ListDir(dir string) ([]store.RemoteFile, error) {
 }
 
 // DownloadFile downloads a single file to the local destination
+// Uses stream client (Keep-Alive disabled) to avoid connection issues with large file transfers
 func (c *WebDAVClient) DownloadFile(remotePath, localPath string) error {
 	// Sanitize the remote path (gowebdav handles encoding internally)
 	sanitizedPath := sanitizePath(remotePath)
 	fmt.Printf("[WebDAV] DownloadFile: path=%s\n", sanitizedPath)
 
-	data, err := c.client.ReadStream(sanitizedPath)
+	// Use stream client for file download (Keep-Alive disabled)
+	data, err := c.streamClient.ReadStream(sanitizedPath)
 	if err != nil {
 		fmt.Printf("[WebDAV] DownloadFile failed for %s: %v\n", sanitizedPath, err)
 		return fmt.Errorf("failed to download %s: %w", remotePath, err)
@@ -274,6 +302,7 @@ func (c *WebDAVClient) DownloadFile(remotePath, localPath string) error {
 }
 
 // UploadFile uploads a single file to the remote directory
+// Uses stream client (Keep-Alive disabled) to avoid connection issues with large file transfers
 func (c *WebDAVClient) UploadFile(localPath, remoteDir string) error {
 	f, err := os.Open(localPath)
 	if err != nil {
@@ -281,29 +310,33 @@ func (c *WebDAVClient) UploadFile(localPath, remoteDir string) error {
 	}
 	defer f.Close()
 
-	// Ensure remote directory exists (simple check, might fail if parent doesn't exist,
-	// but gowebdav MkdirAll isn't available, only Mkdir. recursive mkdir is complex.
-	// We'll assume the user picked an existing dir from ListRemoteDirectories or root)
-	// For robustness, we could try to create it.
-	c.client.Mkdir(remoteDir, 0755)
+	// Ensure remote directory exists (simple check, might fail if parent doesn't exist)
+	// gowebdav doesn't provide MkdirAll, only Mkdir. Recursive mkdir is complex.
+	// We assume the user picked an existing dir from ListRemoteDirectories or root
+	c.metadataClient.Mkdir(remoteDir, 0755)
 
 	fileName := filepath.Base(localPath)
 	remotePath := path.Join(remoteDir, fileName)
 
-	return c.client.WriteStream(remotePath, f, 0644)
+	// Use stream client for file upload (Keep-Alive disabled)
+	return c.streamClient.WriteStream(remotePath, f, 0644)
 }
 
 // ReadStream returns a read stream for the remote file (for streaming/proxy)
+// Uses stream client (Keep-Alive disabled) to avoid connection issues with large file transfers
 func (c *WebDAVClient) ReadStream(remotePath string) (io.ReadCloser, error) {
 	sanitizedPath := sanitizePath(remotePath)
 	fmt.Printf("[WebDAV] ReadStream: path=%s\n", sanitizedPath)
-	return c.client.ReadStream(sanitizedPath)
+	// Use stream client for file stream reading (Keep-Alive disabled)
+	return c.streamClient.ReadStream(sanitizedPath)
 }
 
 // GetFileInfo returns file info for a remote path
+// Uses metadata client for file info queries
 func (c *WebDAVClient) GetFileInfo(remotePath string) (os.FileInfo, error) {
 	sanitizedPath := sanitizePath(remotePath)
-	return c.client.Stat(sanitizedPath)
+	// Use metadata client (Keep-Alive enabled)
+	return c.metadataClient.Stat(sanitizedPath)
 }
 
 // GetHTTPClient returns the underlying HTTP client for advanced operations

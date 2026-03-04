@@ -280,5 +280,19 @@
     "accessDeniedWebdav": "Access denied: The WebDAV server rejected the request (possibly file too large)",
     "fileNotFound": "File not found",
     "serverError": "Server error: Failed to stream file from cloud storage"
+  },
+  "errors": {
+    "fileNotFound": "File not found: {path}",
+    "fileAccess": "Cannot access file: {path}",
+    "duplicate": "{type} already exists: {name}",
+    "database": "Database error during {operation}",
+    "network": "Network error during {operation}",
+    "webdav": "WebDAV error during {operation}",
+    "metadata": "Failed to fetch metadata for {filename}",
+    "coverDownload": "Failed to download cover for {artist} - {album}",
+    "musicbrainz": "MusicBrainz lookup failed for {artist}",
+    "invalidInput": "Invalid {field}: {reason}",
+    "permission": "Permission denied for {operation}",
+    "unknown": "An unexpected error occurred"
   }
 }

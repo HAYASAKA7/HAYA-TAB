@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.18] - 2026-03-04
+
+### Added
+- **pkg/errors:** New error handling package for standardized error management
+
+### Improved
+- **WebDAV Integration:** Enhanced sync.go and webdav.go with improved stability and test coverage
+
 ## [2.2.17] - 2026-03-04
 
 ### Fixed

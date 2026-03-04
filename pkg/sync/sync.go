@@ -1,5 +1,16 @@
 // Package sync provides file synchronization services for HAYA-TAB.
 // It handles scanning directories, processing files, and managing tab entries.
+//
+// Core Features:
+// 1. Folder Monitoring: Automatically scans configured sync paths to discover new tab files
+// 2. Metadata Extraction: Parses title, artist, album from filenames and file content
+// 3. Duplicate Detection: Detects duplicate files by path and title, supports skip or rename strategies
+// 4. Cover Download: Asynchronously downloads album cover art using worker pool for better concurrency
+// 5. MusicBrainz Integration: Queries artist origin country for initial letter sorting
+//
+// Sync Strategies:
+// - "skip": Skip new file when duplicate title is found (default)
+// - "overwrite": Rename new file when duplicate title is found (non-destructive, keeps original file)
 package sync
 
 import (
@@ -60,6 +71,20 @@ func NewSyncService(
 }
 
 // TriggerSync scans configured sync paths and adds/updates tabs based on strategy
+//
+// Workflow:
+// 1. Iterate through all configured sync paths (settings.SyncPaths)
+// 2. Recursively scan each path for supported file types (.pdf, .gp, .gpx, .xml, etc.)
+// 3. For each file, perform duplicate detection:
+//    - Check if file path already exists (exact match)
+//    - Check if title conflicts (via metadata parsing)
+// 4. Handle conflicts based on sync strategy:
+//    - "skip": Skip duplicate file, keep existing data unchanged
+//    - "overwrite": Non-destructive rename (add _copy1, _copy2 suffix), keep original file
+// 5. Add new tab to database, trigger async cover download
+// 6. Update last sync timestamp
+//
+// Returns: Summary string with counts of added, updated, skipped, and error items
 func (s *SyncService) TriggerSync() (string, error) {
 	s.logger.Info("Starting TriggerSync...")
 	settings := s.store.GetSettings()
@@ -182,7 +207,26 @@ func (s *SyncService) ProcessFile(path string) store.Tab {
 	}
 }
 
-// FetchCoverAsync downloads album cover art asynchronously for a tab using worker pool
+// FetchCoverAsync asynchronously downloads album cover art
+//
+// Workflow:
+// 1. Validate sufficient metadata (artist + album/title)
+// 2. Generate cover filename (using Tab ID for uniqueness)
+// 3. Submit download task to worker pool (3 concurrent workers)
+// 4. On completion:
+//    - Update cover path in database
+//    - Trigger frontend update event
+//    - If artist origin country is unknown, submit MusicBrainz query task
+//
+// Performance Optimization:
+// - Uses worker pool to avoid blocking main thread
+// - Concurrent downloads for better throughput
+// - Async processing doesn't affect tab addition speed
+//
+// Data Source: iTunes Search API
+// - Prioritizes album cover search (more accurate)
+// - Falls back to song cover (if no album info)
+// - Automatically upgrades to high resolution (600x600)
 func (s *SyncService) FetchCoverAsync(tab store.Tab) {
 	if tab.Artist == "" || (tab.Album == "" && tab.Title == "") {
 		return // Not enough info to search for cover

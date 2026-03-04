@@ -1,6 +1,6 @@
 {
   "name": "HAYA-TAB",
-  "version": "2.2.17",
+  "version": "2.2.18",
   "author": {
     "name": "HAYASAKA7",
     "email": "cyanluxury267@gmail.com"
@@ -8,7 +8,7 @@
   "info": {
     "companyName": "HAYASAKA7",
     "productName": "HAYA-TAB",
-    "productVersion": "2.2.17",
+    "productVersion": "2.2.18",
     "copyright": "© 2026 HAYASAKA7. All rights reserved.",
     "comments": "A lightweight music tab manager for guitarists and musicians"
   },
