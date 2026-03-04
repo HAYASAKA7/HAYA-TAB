@@ -126,7 +126,12 @@
     "downloadSuccess": "ローカルストレージにダウンロードしました",
     "offlineCannotOpen": "開けません：クラウドストレージがオフラインです",
     "uploadFailed": "アップロードに失敗しました",
-    "listDirectoriesFailed": "ディレクトリの取得に失敗しました"
+    "listDirectoriesFailed": "ディレクトリの取得に失敗しました",
+    "discoveringVolumes": "ボリュームを検索中...",
+    "volumesDiscovered": "{count}件のボリュームを検索しました",
+    "connectionRestored": "WebDAV接続が復旧しました",
+    "connectionLost": "WebDAV接続が切断されました",
+    "volumeUnavailable": "クラウドボリュームが利用不可です"
   },
   "keyBindings": {
     "title": "キーバインド",
@@ -280,7 +285,9 @@
     "accessDenied": "アクセスが拒否されました：ファイルが大きすぎるか、アクセス権限がない可能性があります",
     "accessDeniedWebdav": "アクセスが拒否されました：WebDAVサーバーがリクエストを拒否しました（ファイルが大きすぎる可能性があります）",
     "fileNotFound": "ファイルが見つかりません",
-    "serverError": "サーバーエラー：クラウドストレージからのファイルストリーミングに失敗しました"
+    "serverError": "サーバーエラー：クラウドストレージからのファイルストリーミングに失敗しました",
+    "volumeUnavailable": "開けません：クラウドボリュームは現在利用できません",
+    "volumeNotFound": "開けません：クラウドボリュームが見つかりません。WebDAVに再接続してください。"
   },
   "errors": {
     "fileNotFound": "ファイルが見つかりません：{path}",

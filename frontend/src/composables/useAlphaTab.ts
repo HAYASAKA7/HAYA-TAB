@@ -148,6 +148,10 @@ export function useAlphaTab(t?: TranslateFunction) {
             const text = await response.text().catch(() => '')
             if (text.includes('403') || text.toLowerCase().includes('forbidden')) {
               errorMsg = t ? t('gpViewer.accessDeniedWebdav') : 'Access denied: The WebDAV server rejected the request (possibly file too large)'
+            } else if (text.toLowerCase().includes('volume is not available')) {
+              errorMsg = t ? t('gpViewer.volumeUnavailable') : 'Cannot open: The cloud volume is currently unavailable'
+            } else if (text.toLowerCase().includes('volume not found')) {
+              errorMsg = t ? t('gpViewer.volumeNotFound') : 'Cannot open: Cloud volume not found. Please reconnect WebDAV.'
             } else {
               errorMsg = t ? t('gpViewer.serverError') : 'Server error: Failed to stream file from cloud storage'
             }

@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.1] - 2026-03-04
+
+### Added
+- **Internationalization (i18n) for Volume System**: Added i18n strings for all new WebDAV volume features introduced in v2.3.0
+  - `cloud.discoveringVolumes` — status message while scanning for volumes
+  - `cloud.volumesDiscovered` — confirmation after volume discovery completes
+  - `cloud.connectionRestored` — notification when WebDAV auto-reconnects
+  - `cloud.connectionLost` — notification when WebDAV connection drops
+  - `cloud.volumeUnavailable` — notification for inaccessible cloud volumes
+  - `gpViewer.volumeUnavailable` — viewer error when cloud volume is offline
+  - `gpViewer.volumeNotFound` — viewer error when volume record is missing
+  - All strings available in English, Japanese, Simplified Chinese, and Traditional Chinese
+
+### Fixed
+- **Cloud Viewer Error Messages**: Improved error detection in AlphaTab loader for volume-specific 500 errors
+  - Distinguishes "volume unavailable" from "volume not found" from generic server errors
+  - Users now see actionable messages (e.g., "reconnect WebDAV") instead of generic server error text
+
 ## [2.3.0] - 2026-03-04
 
 ### Added

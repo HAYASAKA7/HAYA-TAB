@@ -126,7 +126,12 @@
     "downloadSuccess": "Downloaded to local storage",
     "offlineCannotOpen": "Cannot open: Cloud storage is offline",
     "uploadFailed": "Upload failed",
-    "listDirectoriesFailed": "Failed to list directories"
+    "listDirectoriesFailed": "Failed to list directories",
+    "discoveringVolumes": "Discovering volumes...",
+    "volumesDiscovered": "Discovered {count} volume(s)",
+    "connectionRestored": "WebDAV connection restored",
+    "connectionLost": "WebDAV connection lost",
+    "volumeUnavailable": "Cloud volume unavailable"
   },
   "keyBindings": {
     "title": "Key Bindings",
@@ -280,7 +285,9 @@
     "accessDenied": "Access denied: The file may be too large or you may not have permission to access it",
     "accessDeniedWebdav": "Access denied: The WebDAV server rejected the request (possibly file too large)",
     "fileNotFound": "File not found",
-    "serverError": "Server error: Failed to stream file from cloud storage"
+    "serverError": "Server error: Failed to stream file from cloud storage",
+    "volumeUnavailable": "Cannot open: The cloud volume is currently unavailable",
+    "volumeNotFound": "Cannot open: Cloud volume not found. Please reconnect WebDAV."
   },
   "errors": {
     "fileNotFound": "File not found: {path}",

@@ -126,7 +126,12 @@
     "downloadSuccess": "已下載到本機儲存空間",
     "offlineCannotOpen": "無法開啟：雲端儲存離線",
     "uploadFailed": "上傳失敗",
-    "listDirectoriesFailed": "取得目錄清單失敗"
+    "listDirectoriesFailed": "取得目錄清單失敗",
+    "discoveringVolumes": "正在搜尋磁碟區...",
+    "volumesDiscovered": "已發現 {count} 個磁碟區",
+    "connectionRestored": "WebDAV 連線已恢復",
+    "connectionLost": "WebDAV 連線已中斷",
+    "volumeUnavailable": "雲端磁碟區不可用"
   },
   "keyBindings": {
     "title": "按鍵綁定",
@@ -280,7 +285,9 @@
     "accessDenied": "存取被拒絕：檔案可能過大或您沒有存取權限",
     "accessDeniedWebdav": "存取被拒絕：WebDAV 伺服器拒絕了請求（可能是檔案過大）",
     "fileNotFound": "找不到檔案",
-    "serverError": "伺服器錯誤：無法從雲端儲存串流檔案"
+    "serverError": "伺服器錯誤：無法從雲端儲存串流檔案",
+    "volumeUnavailable": "無法開啟：雲端磁碟區目前不可用",
+    "volumeNotFound": "無法開啟：找不到雲端磁碟區，請重新連線 WebDAV"
   },
   "errors": {
     "fileNotFound": "找不到檔案：{path}",

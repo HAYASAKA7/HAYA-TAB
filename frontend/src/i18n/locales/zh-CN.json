@@ -126,7 +126,12 @@
     "downloadSuccess": "已下载到本地存储",
     "offlineCannotOpen": "无法打开：云存储离线",
     "uploadFailed": "上传失败",
-    "listDirectoriesFailed": "获取目录列表失败"
+    "listDirectoriesFailed": "获取目录列表失败",
+    "discoveringVolumes": "正在搜索卷...",
+    "volumesDiscovered": "已发现 {count} 个卷",
+    "connectionRestored": "WebDAV 连接已恢复",
+    "connectionLost": "WebDAV 连接已断开",
+    "volumeUnavailable": "云端卷不可用"
   },
   "keyBindings": {
     "title": "按键绑定",
@@ -280,7 +285,9 @@
     "accessDenied": "访问被拒绝：文件可能过大或您没有访问权限",
     "accessDeniedWebdav": "访问被拒绝：WebDAV 服务器拒绝了请求（可能是文件过大）",
     "fileNotFound": "文件未找到",
-    "serverError": "服务器错误：无法从云存储流式传输文件"
+    "serverError": "服务器错误：无法从云存储流式传输文件",
+    "volumeUnavailable": "无法打开：云端卷当前不可用",
+    "volumeNotFound": "无法打开：找不到云端卷，请重新连接 WebDAV"
   },
   "errors": {
     "fileNotFound": "文件未找到：{path}",
