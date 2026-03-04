@@ -20,6 +20,17 @@ const (
 	LevelError
 )
 
+type safeMultiWriter struct {
+	writers []io.Writer
+}
+
+func (t *safeMultiWriter) Write(p []byte) (n int, err error) {
+	for _, w := range t.writers {
+		w.Write(p)
+	}
+	return len(p), nil
+}
+
 type Logger struct {
 	ctx      context.Context
 	logFile  *os.File
@@ -50,8 +61,8 @@ func NewLogger(appDir string) *Logger {
 		}
 	}
 
-	// Multiwriter: stdout + file
-	mw := io.MultiWriter(os.Stdout, file)
+	// Multiwriter: stdout + file (ignoring errors from stdout on Windows GUI)
+	mw := &safeMultiWriter{writers: []io.Writer{os.Stdout, file}}
 
 	return &Logger{
 		logFile:  file,

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.17] - 2026-03-04
+
+### Fixed
+- **Logger Multi-Writer Safety:** Implemented `safeMultiWriter` to handle Windows GUI stdout errors
+  - Custom writer ignores stdout write errors to prevent panic on Windows Wails GUI
+  - Maintains backward compatibility while improving stability
+
 ## [2.2.16] - 2026-03-04
 
 ### Improved
