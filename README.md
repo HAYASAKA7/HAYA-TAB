@@ -30,6 +30,17 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 ### Pre-built Binary
 Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAYA-TAB/releases) page.
 
+#### 🍎 macOS Users (Unverified Developer)
+Since the application is not signed with an Apple Developer account, macOS may show a warning like "cannot be opened because the developer cannot be verified" or "app is damaged". 
+
+To fix this:
+1. Go to **System Settings** -> **Privacy & Security**.
+2. Scroll down to the Security section and click **"Open Anyway"** for HAYA-TAB.
+3. Alternatively, run the following command in your terminal to remove the quarantine attribute (assuming you moved the app to `/Applications`):
+   ```bash
+   xattr -cr /Applications/HAYA-TAB.app
+   ```
+
 ### Build from Source
 1. Ensure you have [Go](https://go.dev/), [Node.js](https://nodejs.org/) (npm), and [Wails](https://wails.io/) installed
 2. Clone this repository
