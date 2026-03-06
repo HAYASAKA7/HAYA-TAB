@@ -517,6 +517,99 @@ func (s *DBStore) AddTab(tab Tab) error {
 	return tx.Commit()
 }
 
+// BatchAddTabs adds multiple tabs in a single transaction for better performance
+// Returns the number of successfully added tabs and any error encountered
+func (s *DBStore) BatchAddTabs(tabs []Tab) (int, error) {
+	if len(tabs) == 0 {
+		return 0, nil
+	}
+
+	// Start transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	// Prepare statements for reuse
+	tabStmt, err := tx.Prepare(`
+		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, volume_id, type, is_managed, is_cloud, cover_path, category_id, country, language, tag, origin_country, added_at, last_opened, initial_az, initial_kana)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`)
+	if err != nil {
+		return 0, err
+	}
+	defer tabStmt.Close()
+
+	catDeleteStmt, err := tx.Prepare("DELETE FROM tab_categories WHERE tab_id = ?")
+	if err != nil {
+		return 0, err
+	}
+	defer catDeleteStmt.Close()
+
+	catInsertStmt, err := tx.Prepare("INSERT INTO tab_categories (tab_id, category_id, added_at) VALUES (?, ?, ?)")
+	if err != nil {
+		return 0, err
+	}
+	defer catInsertStmt.Close()
+
+	successCount := 0
+
+	// Process each tab
+	for _, tab := range tabs {
+		isManaged := 0
+		if tab.IsManaged {
+			isManaged = 1
+		}
+		isCloud := 0
+		if tab.IsCloud {
+			isCloud = 1
+		}
+
+		primaryCatID := ""
+		if len(tab.CategoryIDs) > 0 {
+			primaryCatID = tab.CategoryIDs[0]
+		}
+
+		// Insert tab
+		_, err = tabStmt.Exec(
+			tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.VolumeID,
+			tab.Type, isManaged, isCloud, tab.CoverPath, primaryCatID,
+			tab.Country, tab.Language, tab.Tag, tab.OriginCountry,
+			tab.AddedAt, tab.LastOpened, tab.InitialAZ, tab.InitialKana,
+		)
+		if err != nil {
+			// Log error but continue with other tabs
+			fmt.Printf("[Warning] Failed to insert tab %s: %v\n", tab.ID, err)
+			continue
+		}
+
+		// Delete old categories
+		_, err = catDeleteStmt.Exec(tab.ID)
+		if err != nil {
+			fmt.Printf("[Warning] Failed to delete old categories for tab %s: %v\n", tab.ID, err)
+			continue
+		}
+
+		// Insert new categories
+		if len(tab.CategoryIDs) > 0 {
+			for _, catID := range tab.CategoryIDs {
+				if _, err := catInsertStmt.Exec(tab.ID, catID, tab.AddedAt); err != nil {
+					fmt.Printf("[Warning] Failed to insert category %s for tab %s: %v\n", catID, tab.ID, err)
+				}
+			}
+		}
+
+		successCount++
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+
+	return successCount, nil
+}
+
 func (s *DBStore) UpdateTab(tab Tab) error {
 	return s.AddTab(tab) // INSERT OR REPLACE handles update
 }

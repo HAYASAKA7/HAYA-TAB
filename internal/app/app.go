@@ -156,6 +156,7 @@ type App struct {
 	mbWorker           *worker.MBWorker
 	fingerprintCache   *syncpkg.FingerprintCache
 	fingerprintCacheMu sync.RWMutex
+	volumeCache        *syncpkg.VolumeCache // Cache for volume metadata to avoid redundant scanning
 }
 
 // NewApp creates a new App application struct
@@ -231,6 +232,10 @@ func (a *App) Startup(ctx context.Context) {
 	emitter := &WailsEventEmitter{ctx: a.ctx}
 	a.syncService = syncpkg.NewSyncService(a.store, a.logger, a.coverPool, emitter, appDir, a.mbWorker)
 	a.logger.Info("SyncService initialized")
+
+	// Initialize volume cache with 5-minute TTL
+	a.volumeCache = syncpkg.NewVolumeCache(5 * time.Minute)
+	a.logger.Info("Volume cache initialized with 5-minute TTL")
 
 	// Initialize WebDAV volume system (if enabled)
 	go func() {

@@ -25,9 +25,9 @@ func (a *App) getFingerprintCache() *syncpkg.FingerprintCache {
 			settings.WebDAVPassword,
 		)
 
-		// Create cache with 3 second flush interval for faster updates
-		a.fingerprintCache = syncpkg.NewFingerprintCache(client, 3*time.Second)
-		a.logger.Info("Fingerprint cache initialized with 3s flush interval")
+		// Create cache with 3 second flush interval and 100 bucket max size
+		a.fingerprintCache = syncpkg.NewFingerprintCache(client, 3*time.Second, 100)
+		a.logger.Info("Fingerprint cache initialized with 3s flush interval and 100 bucket max size")
 	}
 
 	return a.fingerprintCache

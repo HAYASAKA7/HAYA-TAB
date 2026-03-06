@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"haya-tab/pkg/store"
@@ -63,7 +64,7 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 // DiscoverAndRegisterVolumes scans WebDAV root for all volumes and registers them
 // This is the main entry point for multi-device sync
 // It automatically creates volumes for the root directory and first-level subdirectories that don't have fingerprints
-func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPath string) ([]store.CloudVolume, error) {
+func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPath string, cache *VolumeCache) ([]store.CloudVolume, error) {
 	// First, scan for existing volumes (directories with fingerprint files)
 	volumeMap, err := client.ScanVolumes(rootPath)
 	if err != nil {
@@ -94,27 +95,48 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 		return nil, fmt.Errorf("failed to list directories: %w", err)
 	}
 
-	// Auto-create volumes for subdirectories without fingerprints
+	// OPTIMIZED: Parallel fingerprint creation for subdirectories
+	// Use a semaphore to limit concurrent WebDAV requests
+	const maxConcurrent = 5
+	sem := make(chan struct{}, maxConcurrent)
+	var wg sync.WaitGroup
+	var mu sync.Mutex // Protect volumeMap
+
 	for _, subdir := range subdirs {
 		// Skip if this directory already has a fingerprint
 		if _, exists := volumeMap[subdir]; exists {
 			continue
 		}
 
-		// Create fingerprint for this subdirectory
-		volumeName := path.Base(subdir)
-		fmt.Printf("[Info] Auto-creating volume for directory: %s\n", subdir)
+		wg.Add(1)
+		go func(dir string) {
+			defer wg.Done()
 
-		fingerprint, err := client.CreateVolumeFingerprint(subdir, volumeName, "1.0.0", getDeviceName())
-		if err != nil {
-			fmt.Printf("[Warning] Failed to create fingerprint for %s: %v\n", subdir, err)
-			continue
-		}
+			// Acquire semaphore
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		// Add to volume map
-		volumeMap[subdir] = fingerprint
-		fmt.Printf("[Info] Created volume: %s (%s) at %s\n", volumeName, fingerprint.VolumeID, subdir)
+			// Create fingerprint for this subdirectory
+			volumeName := path.Base(dir)
+			fmt.Printf("[Info] Auto-creating volume for directory: %s\n", dir)
+
+			fingerprint, err := client.CreateVolumeFingerprint(dir, volumeName, "1.0.0", getDeviceName())
+			if err != nil {
+				fmt.Printf("[Warning] Failed to create fingerprint for %s: %v\n", dir, err)
+				return
+			}
+
+			// Add to volume map (thread-safe)
+			mu.Lock()
+			volumeMap[dir] = fingerprint
+			mu.Unlock()
+
+			fmt.Printf("[Info] Created volume: %s (%s) at %s\n", volumeName, fingerprint.VolumeID, dir)
+		}(subdir)
 	}
+
+	// Wait for all parallel operations to complete
+	wg.Wait()
 
 	var registeredVolumes []store.CloudVolume
 
@@ -146,6 +168,12 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 				fmt.Printf("[Info] Volume sync complete: %d added, %d skipped\n", added, skipped)
 			}
 		}
+	}
+
+	// Populate cache with discovered volumes
+	if cache != nil {
+		cache.SetAll(registeredVolumes, volumeMap)
+		fmt.Printf("[Info] Volume cache updated with %d volumes\n", len(registeredVolumes))
 	}
 
 	return registeredVolumes, nil

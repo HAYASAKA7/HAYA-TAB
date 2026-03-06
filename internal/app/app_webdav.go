@@ -280,13 +280,23 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 		a.logger.Error("Failed to ensure cloud category: %v", err)
 	}
 
-	// CRITICAL: Discover volumes SYNCHRONOUSLY before adding files
-	// This ensures volumes exist before we try to match files to them
-	a.logger.Info("Discovering volumes before adding files...")
-	_, err := a.WebDAVDiscoverVolumes()
-	if err != nil {
-		a.logger.Error("Failed to discover volumes: %v", err)
-		return fmt.Errorf("failed to discover volumes: %w", err)
+	// OPTIMIZED: Use cached volumes if available, only discover if cache is stale
+	var volumes []store.CloudVolume
+	var err error
+
+	// Try to get volumes from cache first
+	cachedVolumes := a.volumeCache.GetAll()
+	if cachedVolumes != nil {
+		a.logger.Info("Using cached volumes (%d volumes)", len(cachedVolumes))
+		volumes = cachedVolumes
+	} else {
+		// Cache miss or stale - discover volumes asynchronously
+		a.logger.Info("Cache miss - discovering volumes...")
+		volumes, err = a.WebDAVDiscoverVolumes()
+		if err != nil {
+			a.logger.Error("Failed to discover volumes: %v", err)
+			return fmt.Errorf("failed to discover volumes: %w", err)
+		}
 	}
 
 	a.emitEvent("cloud-progress", map[string]interface{}{
@@ -298,15 +308,10 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 		successCount := 0
 		skippedCount := 0
 
-		// Get only active volumes (available and deduplicated by mount path)
-		volumes, err := a.store.GetActiveVolumes()
-		if err != nil {
-			a.logger.Error("Failed to get active volumes: %v", err)
-			volumes = []store.CloudVolume{} // Continue without volume support
-		}
-
 		a.logger.Info("Processing %d files with %d active volumes", len(remotePaths), len(volumes))
 
+		// Collect all tabs to add in batch
+		var tabsToAdd []store.Tab
 		// Track added files by volume for batch fingerprint updates
 		volumeAddedFiles := make(map[string][]store.Tab)
 
@@ -385,16 +390,12 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				AddedAt:     time.Now().Unix(),
 			}
 
-			if err := a.store.AddTab(tab); err != nil {
-				a.logger.Error("Failed to add cloud tab %s: %v", fileName, err)
-			} else {
-				successCount++
-				a.logger.Info("Added cloud file: %s (volume: %s, path: %s)", fileName, volumeID, relativePath)
+			// Add to batch
+			tabsToAdd = append(tabsToAdd, tab)
 
-				// Track for fingerprint update
-				if volumeID != "" {
-					volumeAddedFiles[volumeID] = append(volumeAddedFiles[volumeID], tab)
-				}
+			// Track for fingerprint update
+			if volumeID != "" {
+				volumeAddedFiles[volumeID] = append(volumeAddedFiles[volumeID], tab)
 			}
 
 			a.emitEvent("cloud-progress", map[string]interface{}{
@@ -403,6 +404,17 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				"total":    len(remotePaths),
 				"filename": fileName,
 			})
+		}
+
+		// Batch add all tabs at once
+		if len(tabsToAdd) > 0 {
+			added, err := a.store.BatchAddTabs(tabsToAdd)
+			if err != nil {
+				a.logger.Error("Failed to batch add tabs: %v", err)
+			} else {
+				successCount = added
+				a.logger.Info("Batch added %d cloud files", added)
+			}
 		}
 
 		// Update fingerprints for all affected volumes
@@ -517,7 +529,7 @@ func (a *App) WebDAVDiscoverVolumes() ([]store.CloudVolume, error) {
 	)
 
 	// Discover and register all volumes
-	volumes, err := syncpkg.DiscoverAndRegisterVolumes(client, a.store, "/")
+	volumes, err := syncpkg.DiscoverAndRegisterVolumes(client, a.store, "/", a.volumeCache)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover volumes: %w", err)
 	}
