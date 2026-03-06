@@ -134,6 +134,62 @@ func (s *DBStore) GetAllVolumes() ([]CloudVolume, error) {
 	return volumes, nil
 }
 
+// GetActiveVolumes retrieves only available volumes, deduplicated by mount path
+// For duplicate mount paths, returns the most recently seen volume
+func (s *DBStore) GetActiveVolumes() ([]CloudVolume, error) {
+	query := `
+		SELECT id, name, mount_path, fingerprint_path, created_at, last_seen_at, is_available
+		FROM cloud_volumes
+		WHERE is_available = 1
+		ORDER BY mount_path, last_seen_at DESC
+	`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Use map to deduplicate by mount_path, keeping the first (most recent) one
+	volumeMap := make(map[string]CloudVolume)
+	for rows.Next() {
+		var volume CloudVolume
+		var isAvailable int
+		if err := rows.Scan(
+			&volume.ID,
+			&volume.Name,
+			&volume.MountPath,
+			&volume.FingerprintPath,
+			&volume.CreatedAt,
+			&volume.LastSeenAt,
+			&isAvailable,
+		); err != nil {
+			return nil, err
+		}
+		volume.IsAvailable = intToBool(isAvailable)
+
+		// Only keep the first (most recent) volume for each mount path
+		if _, exists := volumeMap[volume.MountPath]; !exists {
+			volumeMap[volume.MountPath] = volume
+		}
+	}
+
+	// Convert map to slice
+	volumes := make([]CloudVolume, 0, len(volumeMap))
+	for _, vol := range volumeMap {
+		volumes = append(volumes, vol)
+	}
+
+	return volumes, nil
+}
+
+// MarkAllVolumesUnavailable marks all volumes as unavailable
+// This is called at the start of volume discovery to reset state
+func (s *DBStore) MarkAllVolumesUnavailable() error {
+	query := `UPDATE cloud_volumes SET is_available = 0`
+	_, err := s.db.Exec(query)
+	return err
+}
+
 // UpdateVolume updates an existing volume
 func (s *DBStore) UpdateVolume(volume CloudVolume) error {
 	query := `

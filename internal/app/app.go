@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -145,14 +146,16 @@ func (a *App) emitEvent(eventName string, data interface{}) {
 
 // App struct holds all application dependencies and state
 type App struct {
-	ctx            context.Context
-	store          *store.DBStore
-	fileWatcher    *watcher.FileWatcher
-	logger         *logger.Logger
-	fileServerPort int
-	coverPool      *coverpool.CoverPool
-	syncService    *syncpkg.SyncService
-	mbWorker       *worker.MBWorker
+	ctx                context.Context
+	store              *store.DBStore
+	fileWatcher        *watcher.FileWatcher
+	logger             *logger.Logger
+	fileServerPort     int
+	coverPool          *coverpool.CoverPool
+	syncService        *syncpkg.SyncService
+	mbWorker           *worker.MBWorker
+	fingerprintCache   *syncpkg.FingerprintCache
+	fingerprintCacheMu sync.RWMutex
 }
 
 // NewApp creates a new App application struct
@@ -384,6 +387,14 @@ func (a *App) initFileWatcher() {
 
 // Shutdown is called when the app is closing
 func (a *App) Shutdown(ctx context.Context) {
+	// Flush and stop fingerprint cache
+	if a.fingerprintCache != nil {
+		a.logger.Info("Flushing fingerprint cache...")
+		if err := a.fingerprintCache.Close(); err != nil {
+			a.logger.Error("Error closing fingerprint cache: %v", err)
+		}
+	}
+
 	// Stop MusicBrainz worker
 	if a.mbWorker != nil {
 		a.mbWorker.Stop()

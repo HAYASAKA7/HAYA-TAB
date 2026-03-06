@@ -70,6 +70,12 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 		return nil, fmt.Errorf("failed to scan volumes: %w", err)
 	}
 
+	// Mark all existing volumes as unavailable AFTER successful scan
+	// Only volumes discovered in this session will be marked as available
+	if err := db.MarkAllVolumesUnavailable(); err != nil {
+		fmt.Printf("[Warning] Failed to mark volumes as unavailable: %v\n", err)
+	}
+
 	// Create volume for root directory if it doesn't exist
 	if _, exists := volumeMap[rootPath]; !exists {
 		fmt.Printf("[Info] Auto-creating volume for root directory: %s\n", rootPath)

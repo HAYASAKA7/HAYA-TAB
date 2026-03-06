@@ -168,21 +168,22 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 	go func() {
 		successCount := 0
 
-		// Get all volumes to determine which volume this upload belongs to
-		volumes, err := a.store.GetAllVolumes()
+		// Get only active volumes (available and deduplicated by mount path)
+		volumes, err := a.store.GetActiveVolumes()
 		if err != nil {
-			a.logger.Error("Failed to get volumes: %v", err)
+			a.logger.Error("Failed to get active volumes: %v", err)
 			volumes = []store.CloudVolume{}
 		}
 
 		// Find the volume that contains remoteDir
 		var targetVolume *store.CloudVolume
 		longestMatch := ""
-		for _, vol := range volumes {
+		for i := range volumes {
+			vol := &volumes[i]
 			if strings.HasPrefix(remoteDir, vol.MountPath+"/") || remoteDir == vol.MountPath {
 				if len(vol.MountPath) > len(longestMatch) {
 					longestMatch = vol.MountPath
-					targetVolume = &vol
+					targetVolume = vol
 				}
 			}
 		}
@@ -231,7 +232,7 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 					}
 					relativePath = relativePath + fileName
 
-					// Add file record to fingerprint
+					// Add file record to fingerprint cache (non-blocking)
 					fpFile := syncpkg.FingerprintFile{
 						RelativePath: relativePath,
 						Title:        title,
@@ -242,10 +243,13 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 						UploadedBy:   getDeviceName(),
 					}
 
-					if err := client.AddFileToFingerprint(targetVolume.MountPath, fpFile); err != nil {
-						a.logger.Error("Failed to update fingerprint for %s: %v", fileName, err)
-					} else {
-						a.logger.Info("Updated fingerprint for uploaded file: %s", fileName)
+					cache := a.getFingerprintCache()
+					if cache != nil {
+						if err := cache.AddFile(targetVolume.MountPath, fpFile); err != nil {
+							a.logger.Error("Failed to add file to fingerprint cache for %s: %v", fileName, err)
+						} else {
+							a.logger.Info("Added file to fingerprint cache: %s (will be flushed automatically)", fileName)
+						}
 					}
 				}
 			}
@@ -294,26 +298,20 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 		successCount := 0
 		skippedCount := 0
 
-		// Get all volumes to determine which volume each file belongs to
-		volumes, err := a.store.GetAllVolumes()
+		// Get only active volumes (available and deduplicated by mount path)
+		volumes, err := a.store.GetActiveVolumes()
 		if err != nil {
-			a.logger.Error("Failed to get volumes: %v", err)
+			a.logger.Error("Failed to get active volumes: %v", err)
 			volumes = []store.CloudVolume{} // Continue without volume support
 		}
+
+		a.logger.Info("Processing %d files with %d active volumes", len(remotePaths), len(volumes))
 
 		// Track added files by volume for batch fingerprint updates
 		volumeAddedFiles := make(map[string][]store.Tab)
 
 		for i, remotePath := range remotePaths {
 			fileName := filepath.Base(remotePath)
-
-			a.logger.Info("=== Processing file %d/%d ===", i+1, len(remotePaths))
-			a.logger.Info("Remote path: %s", remotePath)
-			a.logger.Info("File name: %s", fileName)
-			a.logger.Info("Available volumes: %d", len(volumes))
-			for _, vol := range volumes {
-				a.logger.Info("  Volume: %s (ID: %s, MountPath: %s)", vol.Name, vol.ID, vol.MountPath)
-			}
 
 			// Determine which volume this file belongs to
 			var volumeID string
@@ -322,16 +320,11 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 			// Find the volume with the longest matching mount path
 			longestMatch := ""
 			for _, vol := range volumes {
-				a.logger.Info("Checking: does '%s' start with '%s/'?", remotePath, vol.MountPath)
 				if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath {
-					a.logger.Info("  YES - Match found!")
 					if len(vol.MountPath) > len(longestMatch) {
 						longestMatch = vol.MountPath
 						volumeID = vol.ID
-						a.logger.Info("  This is the longest match so far (length: %d)", len(vol.MountPath))
 					}
-				} else {
-					a.logger.Info("  NO - No match")
 				}
 			}
 
@@ -339,13 +332,9 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				// Calculate relative path within volume
 				relativePath = strings.TrimPrefix(remotePath, longestMatch)
 				relativePath = strings.TrimPrefix(relativePath, "/")
-				a.logger.Info("MATCHED to volume %s", volumeID)
-				a.logger.Info("  Longest match: %s", longestMatch)
-				a.logger.Info("  Relative path: %s", relativePath)
 			} else {
-				// No volume found - this should not happen if discovery worked
-				a.logger.Error("NO VOLUME MATCHED for file: %s", remotePath)
-				a.logger.Error("  Available volumes: %d", len(volumes))
+				// No volume found
+				a.logger.Error("No active volume matched for file: %s", remotePath)
 				relativePath = remotePath
 			}
 

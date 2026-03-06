@@ -154,6 +154,49 @@ func (c *WebDAVClient) TestConnection() error {
 	return c.metadataClient.Connect()
 }
 
+// MkdirAll creates a directory and all necessary parent directories
+// Similar to mkdir -p, it creates intermediate directories as needed
+func (c *WebDAVClient) MkdirAll(remotePath string) error {
+	// Normalize path
+	remotePath = strings.Trim(remotePath, "/")
+	if remotePath == "" {
+		return nil // Root directory always exists
+	}
+
+	// Split path into parts
+	parts := strings.Split(remotePath, "/")
+	current := ""
+
+	// Create each directory level
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		current = path.Join(current, part)
+		fullPath := "/" + current
+
+		// Check if directory already exists
+		_, err := c.metadataClient.Stat(fullPath)
+		if err == nil {
+			// Directory exists, continue
+			continue
+		}
+
+		// Try to create directory
+		err = c.metadataClient.Mkdir(fullPath, 0755)
+		if err != nil {
+			// Check if error is "already exists" (some servers return error even if dir exists)
+			if _, statErr := c.metadataClient.Stat(fullPath); statErr == nil {
+				// Directory exists now, continue
+				continue
+			}
+			return fmt.Errorf("failed to create directory %s: %w", fullPath, err)
+		}
+	}
+
+	return nil
+}
+
 // sanitizePath properly escapes special characters in path while preserving directory structure
 // Note: gowebdav library handles URL encoding internally, so we only need to handle edge cases
 func sanitizePath(remotePath string) string {
@@ -192,6 +235,10 @@ func (c *WebDAVClient) scanRecursive(dir string, depth int) ([]store.RemoteFile,
 		fullPath := path.Join(dir, info.Name())
 
 		if info.IsDir() {
+			// CRITICAL: Skip metadata directory to prevent scanning bucket files as user content
+			if info.Name() == MetadataDirectoryName {
+				continue
+			}
 			// Recursive scan
 			subFiles, err := c.scanRecursive(fullPath, depth+1)
 			if err == nil {
@@ -230,6 +277,10 @@ func (c *WebDAVClient) ListRemoteDirectories(dir string) ([]string, error) {
 
 	for _, info := range infos {
 		if info.IsDir() {
+			// CRITICAL: Filter out metadata directory to prevent recursive volume creation
+			if info.Name() == MetadataDirectoryName {
+				continue
+			}
 			fullPath := path.Join(dir, info.Name())
 			dirs = append(dirs, fullPath)
 		}
