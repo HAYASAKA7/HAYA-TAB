@@ -142,6 +142,8 @@ func createTransport(enableKeepAlive bool) *http.Transport {
 	baseTransport.DisableCompression = false
 	baseTransport.DisableKeepAlives = !enableKeepAlive // Enable/disable Keep-Alive based on parameter
 	baseTransport.MaxIdleConnsPerHost = 5
+	// Add strict concurrency limits per host to prevent overwhelming WebDAV servers
+	baseTransport.MaxConnsPerHost = 5
 	// Disable HTTP/2 for better compatibility
 	baseTransport.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
 

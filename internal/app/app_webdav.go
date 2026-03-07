@@ -481,9 +481,6 @@ func (a *App) WebDAVReconnect() error {
 
 // monitorWebDAVConnection monitors WebDAV connection status and auto-reconnects when connection is restored
 func (a *App) monitorWebDAVConnection() {
-	// Wait for initial startup to complete
-	time.Sleep(5 * time.Second)
-
 	// Initialize lastStatus to current status to avoid false "connection restored" on first check
 	settings := a.store.GetSettings()
 	lastStatus := false

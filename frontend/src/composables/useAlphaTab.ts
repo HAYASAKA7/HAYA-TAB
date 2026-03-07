@@ -114,6 +114,25 @@ export function useAlphaTab(t?: TranslateFunction) {
     if (api.value) {
       try {
         api.value.stop()
+
+        // Clean up AudioContext to prevent memory leaks and exceeding hardware limits
+        const player = api.value.player
+        let ctx = (api.value as any).audioContext || (player && player.context)
+        if (!ctx && player) {
+           // @ts-ignore
+           if (player.synthesis && player.synthesis.audioContext) {
+             // @ts-ignore
+             ctx = player.synthesis.audioContext
+           }
+        }
+        if (ctx && typeof ctx.close === 'function') {
+          try {
+            ctx.close()
+          } catch (e) {
+            console.warn('Error closing AudioContext:', e)
+          }
+        }
+
         api.value.destroy()
       } catch (e) {
         console.error('Error destroying alphaTab:', e)

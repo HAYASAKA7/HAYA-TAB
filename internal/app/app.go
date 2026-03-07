@@ -174,6 +174,19 @@ func (a *App) GetFileServerPort() int {
 	return a.fileServerPort
 }
 
+// DomReady is called after the front-end dom has been loaded
+func (a *App) DomReady(ctx context.Context) {
+	// Initialize WebDAV volume system (if enabled)
+	go func() {
+		if err := a.WebDAVInitialize(); err != nil {
+			a.logger.Error("WebDAV initialization failed: %v", err)
+		}
+	}()
+
+	// Start WebDAV connection monitor
+	go a.monitorWebDAVConnection()
+}
+
 // Startup is called when the app starts. The context is saved
 // so we can call the runtime methods
 func (a *App) Startup(ctx context.Context) {
@@ -236,18 +249,6 @@ func (a *App) Startup(ctx context.Context) {
 	// Initialize volume cache with 5-minute TTL
 	a.volumeCache = syncpkg.NewVolumeCache(5 * time.Minute)
 	a.logger.Info("Volume cache initialized with 5-minute TTL")
-
-	// Initialize WebDAV volume system (if enabled)
-	go func() {
-		// Small delay to ensure everything is ready
-		time.Sleep(500 * time.Millisecond)
-		if err := a.WebDAVInitialize(); err != nil {
-			a.logger.Error("WebDAV initialization failed: %v", err)
-		}
-	}()
-
-	// Start WebDAV connection monitor
-	go a.monitorWebDAVConnection()
 
 	// Auto Sync Logic
 	go a.runAutoSync()
