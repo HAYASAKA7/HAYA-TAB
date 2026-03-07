@@ -70,7 +70,7 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 // DiscoverAndRegisterVolumes scans WebDAV root for all volumes and registers them
 // This is the main entry point for multi-device sync
 // It automatically creates volumes for the root directory and first-level subdirectories that don't have fingerprints
-func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPath string, cache *VolumeCache) ([]store.CloudVolume, int, error) {
+func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPath string, cache *VolumeCache, appVersion string) ([]store.CloudVolume, int, error) {
 	// First, scan for existing volumes (directories with fingerprint files)
 	volumeMap, err := client.ScanVolumes(rootPath)
 	if err != nil {
@@ -86,7 +86,7 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 	// Create volume for root directory if it doesn't exist
 	if _, exists := volumeMap[rootPath]; !exists {
 		fmt.Printf("[Info] Auto-creating volume for root directory: %s\n", rootPath)
-		fingerprint, err := client.CreateVolumeFingerprint(rootPath, "Root", "1.0.0", getDeviceName())
+		fingerprint, err := client.CreateVolumeFingerprint(rootPath, "Root", appVersion, getDeviceName())
 		if err != nil {
 			fmt.Printf("[Warning] Failed to create fingerprint for root: %v\n", err)
 		} else {
@@ -126,7 +126,7 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 			volumeName := path.Base(dir)
 			fmt.Printf("[Info] Auto-creating volume for directory: %s\n", dir)
 
-			fingerprint, err := client.CreateVolumeFingerprint(dir, volumeName, "1.0.0", getDeviceName())
+			fingerprint, err := client.CreateVolumeFingerprint(dir, volumeName, appVersion, getDeviceName())
 			if err != nil {
 				fmt.Printf("[Warning] Failed to create fingerprint for %s: %v\n", dir, err)
 				return

@@ -539,7 +539,7 @@ func (a *App) WebDAVDiscoverVolumes() ([]store.CloudVolume, error) {
 	)
 
 	// Discover and register all volumes
-	volumes, addedCount, err := syncpkg.DiscoverAndRegisterVolumes(client, a.store, "/", a.volumeCache)
+	volumes, addedCount, err := syncpkg.DiscoverAndRegisterVolumes(client, a.store, "/", a.volumeCache, AppVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover volumes: %w", err)
 	}

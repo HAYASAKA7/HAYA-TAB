@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.2] - 2026-03-07
+
+### Added
+- **WebDAV Status**: Added a floating bar for better visibility of WebDAV sync status.
+
+### Changed
+- **WebDAV Optimizations**: Improved WebDAV integration and optimized the volume system.
+- **Fingerprint Logic**: Optimized fingerprint operations by introducing a hash bucket mechanism.
+
+### Fixed
+- **Sync View**: Fixed an issue where the WebDAV sync would not correctly update the view.
+- **Sync Scores**: Fixed an issue with initial letters handling when processing sync scores.
+
 ## [2.3.1] - 2026-03-04
 
 ### Added
