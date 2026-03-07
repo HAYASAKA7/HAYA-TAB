@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.3] - 2026-03-07
+
+### Changed
+- **Initialization Optimization**: Moved WebDAV initialization from Startup to DomReady hook for better timing and UI responsiveness.
+- **WebDAV Connection Monitoring**: Removed the 5-second sleep delay in connection monitor for faster status checks.
+- **HTTP Transport**: Added strict concurrency limits (MaxConnsPerHost = 5) to prevent overwhelming WebDAV servers.
+
+### Improved
+- **Memory Management**: Added AudioContext cleanup in alphaTab viewer to prevent memory leaks and exceeding hardware limits.
+- **AlphaTab Disposal**: Enhanced cleanup logic for audio synthesis context with proper error handling.
+
 ## [2.3.2] - 2026-03-07
 
 ### Added
