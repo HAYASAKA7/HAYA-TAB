@@ -243,17 +243,22 @@ func (c *FingerprintCache) BatchAddFiles(volumePath string, files []FingerprintF
 }
 
 // Flush writes all dirty buckets to WebDAV (blocking)
-// OPTIMIZED: Only writes dirty buckets, keeps cache intact
+// OPTIMIZED: Only writes dirty buckets, keeps cache intact and releases lock before I/O
 func (c *FingerprintCache) Flush() error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 
 	if len(c.dirtyBuckets) == 0 {
+		c.mu.Unlock()
 		return nil
 	}
 
-	var lastErr error
-	flushedCount := 0
+	// Extract dirty buckets and deep copy necessary data to write without lock
+	type dirtyItem struct {
+		volumePath string
+		bucketNum  int
+		bucket     *BucketData
+	}
+	var itemsToWrite []dirtyItem
 
 	for volumePath, buckets := range c.dirtyBuckets {
 		for bucketNum := range buckets {
@@ -262,20 +267,41 @@ func (c *FingerprintCache) Flush() error {
 				continue
 			}
 
-			bucket := c.cache[volumePath][bucketNum].data
-
-			// Write to WebDAV
-			if err := c.client.WriteBucket(volumePath, bucketNum, bucket); err != nil {
-				lastErr = fmt.Errorf("failed to write bucket %d for volume %s: %w", bucketNum, volumePath, err)
-				fmt.Printf("[Warning] %v\n", lastErr)
-			} else {
-				flushedCount++
+			// Create a deep copy of the bucket to avoid race conditions during JSON marshalling
+			originalBucket := c.cache[volumePath][bucketNum].data
+			
+			filesCopy := make([]FingerprintFile, len(originalBucket.Files))
+			copy(filesCopy, originalBucket.Files)
+			
+			bucketCopy := &BucketData{
+				BucketNumber: originalBucket.BucketNumber,
+				Files:        filesCopy,
 			}
+
+			itemsToWrite = append(itemsToWrite, dirtyItem{
+				volumePath: volumePath,
+				bucketNum:  bucketNum,
+				bucket:     bucketCopy,
+			})
 		}
 	}
 
 	// Clear dirty flags (but keep cache)
 	c.dirtyBuckets = make(map[string]map[int]bool)
+	c.mu.Unlock()
+
+	var lastErr error
+	flushedCount := 0
+
+	// Write to WebDAV without lock
+	for _, item := range itemsToWrite {
+		if err := c.client.WriteBucket(item.volumePath, item.bucketNum, item.bucket); err != nil {
+			lastErr = fmt.Errorf("failed to write bucket %d for volume %s: %w", item.bucketNum, item.volumePath, err)
+			fmt.Printf("[Warning] %v\n", lastErr)
+		} else {
+			flushedCount++
+		}
+	}
 
 	if flushedCount > 0 {
 		fmt.Printf("[Info] Flushed %d dirty buckets to WebDAV\n", flushedCount)

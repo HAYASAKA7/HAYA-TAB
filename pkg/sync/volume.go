@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"sync"
 	"time"
 
 	"haya-tab/pkg/store"
@@ -151,16 +152,34 @@ func (c *WebDAVClient) ReadVolumeFingerprint(remotePath string) (*VolumeFingerpr
 		return nil, fmt.Errorf("failed to read metadata: %w", err)
 	}
 
-	// Read all buckets and merge files
+	// Read all buckets and merge files concurrently
 	var allFiles []FingerprintFile
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	// Fetch buckets concurrently with a limited concurrency to avoid overwhelming the server
+	sem := make(chan struct{}, 8)
+
 	for i := 0; i < BucketCount; i++ {
-		bucket, err := c.ReadBucket(remotePath, i)
-		if err != nil {
-			// Skip missing buckets (they might be empty)
-			continue
-		}
-		allFiles = append(allFiles, bucket.Files...)
+		wg.Add(1)
+		go func(bucketNum int) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			bucket, err := c.ReadBucket(remotePath, bucketNum)
+			if err != nil {
+				// Skip missing buckets (they might be empty)
+				return
+			}
+			
+			mu.Lock()
+			allFiles = append(allFiles, bucket.Files...)
+			mu.Unlock()
+		}(i)
 	}
+
+	wg.Wait()
 
 	// Return merged VolumeFingerprint
 	return &VolumeFingerprint{
@@ -464,8 +483,8 @@ func (c *WebDAVClient) WriteMetadata(volumePath string, metadata *FingerprintMet
 		Files:    existingFiles,
 	}
 
-	// Serialize to JSON
-	data, err := json.MarshalIndent(bucket0, "", "  ")
+	// Serialize to JSON (OPTIMIZED: removed Indent to save space)
+	data, err := json.Marshal(bucket0)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
@@ -566,10 +585,10 @@ func (c *WebDAVClient) WriteBucket(volumePath string, bucketNum int, bucket *Buc
 			Metadata: *metadata,
 			Files:    bucket.Files,
 		}
-		data, err = json.MarshalIndent(bucket0, "", "  ")
+		data, err = json.Marshal(bucket0)
 	} else {
 		// Other buckets have simple structure
-		data, err = json.MarshalIndent(bucket, "", "  ")
+		data, err = json.Marshal(bucket)
 	}
 
 	if err != nil {

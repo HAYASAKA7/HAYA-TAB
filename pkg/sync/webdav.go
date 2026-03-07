@@ -163,7 +163,20 @@ func (c *WebDAVClient) MkdirAll(remotePath string) error {
 		return nil // Root directory always exists
 	}
 
-	// Split path into parts
+	targetPath := "/" + remotePath
+
+	// OPTIMIZATION: Try fast-path first. Attempt to create the final directory directly.
+	err := c.metadataClient.Mkdir(targetPath, 0755)
+	if err == nil {
+		return nil // Successfully created directly (parent existed)
+	}
+	
+	// Check if it failed because it already exists
+	if _, statErr := c.metadataClient.Stat(targetPath); statErr == nil {
+		return nil // Already exists
+	}
+
+	// Fast path failed, fallback to step-by-step creation
 	parts := strings.Split(remotePath, "/")
 	current := ""
 
@@ -175,17 +188,10 @@ func (c *WebDAVClient) MkdirAll(remotePath string) error {
 		current = path.Join(current, part)
 		fullPath := "/" + current
 
-		// Check if directory already exists
-		_, err := c.metadataClient.Stat(fullPath)
-		if err == nil {
-			// Directory exists, continue
-			continue
-		}
-
-		// Try to create directory
+		// Try to create directory directly without prior stat to save one PROPFIND if it doesn't exist
 		err = c.metadataClient.Mkdir(fullPath, 0755)
 		if err != nil {
-			// Check if error is "already exists" (some servers return error even if dir exists)
+			// Check if error is "already exists"
 			if _, statErr := c.metadataClient.Stat(fullPath); statErr == nil {
 				// Directory exists now, continue
 				continue
