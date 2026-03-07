@@ -197,13 +197,17 @@ func (s *SyncService) ProcessFile(path string) store.Tab {
 	ext := strings.ToLower(filepath.Ext(path))
 	typeStr := s.getFileType(ext)
 
+	az, kana := metadata.CalculateInitials(meta.Title, "")
+
 	return store.Tab{
-		ID:       fmt.Sprintf("%d", time.Now().UnixNano()),
-		Title:    meta.Title,
-		Artist:   meta.Artist,
-		Album:    meta.Album,
-		FilePath: path,
-		Type:     typeStr,
+		ID:          fmt.Sprintf("%d", time.Now().UnixNano()),
+		Title:       meta.Title,
+		Artist:      meta.Artist,
+		Album:       meta.Album,
+		FilePath:    path,
+		Type:        typeStr,
+		InitialAZ:   az,
+		InitialKana: kana,
 	}
 }
 

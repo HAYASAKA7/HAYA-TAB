@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
 )
 
@@ -34,6 +35,9 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 			continue
 		}
 
+		// Calculate initials for Quick Jump Bar
+		az, kana := metadata.CalculateInitials(fpFile.Title, "")
+
 		// Create tab record using metadata from fingerprint
 		tab := store.Tab{
 			ID:          generateID(),
@@ -47,6 +51,8 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 			IsCloud:     true,
 			CategoryIDs: []string{store.SystemCloudCategoryID},
 			AddedAt:     time.Now().Unix(),
+			InitialAZ:   az,
+			InitialKana: kana,
 		}
 
 		if err := db.AddTab(tab); err != nil {
