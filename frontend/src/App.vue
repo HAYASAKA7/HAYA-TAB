@@ -21,6 +21,7 @@ import CloudPickerModal from '@/components/modals/CloudPickerModal.vue'
 import CloudUploadModal from '@/components/modals/CloudUploadModal.vue'
 import WebDAVModal from '@/components/modals/WebDAVModal.vue'
 import BatchActionBar from '@/components/BatchActionBar.vue'
+import SyncTaskToast from '@/components/common/SyncTaskToast.vue'
 
 const tabsStore = useTabsStore()
 const settingsStore = useSettingsStore()
@@ -179,6 +180,7 @@ function isViewActive(viewType: string): boolean {
 
     <!-- Toast & Context Menu -->
     <Toast />
+    <SyncTaskToast />
     <ContextMenu />
   </div>
 </template>

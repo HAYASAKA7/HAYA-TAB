@@ -598,6 +598,11 @@ func (a *App) WebDAVInitialize() error {
 		return nil
 	}
 
+	a.emitEvent("webdav-sync-progress", map[string]interface{}{
+		"status":     "start",
+		"messageKey": "toast.syncTask.connecting",
+	})
+
 	a.logger.Info("Initializing WebDAV volume system...")
 
 	// Ensure cloud category exists before syncing files
@@ -612,14 +617,31 @@ func (a *App) WebDAVInitialize() error {
 		settings.WebDAVPassword,
 	)
 
+	a.emitEvent("webdav-sync-progress", map[string]interface{}{
+		"status":     "progress",
+		"messageKey": "toast.syncTask.discovering",
+	})
+
 	// Discover and register volumes
 	volumes, err := a.WebDAVDiscoverVolumes()
 	if err != nil {
 		a.logger.Error("Failed to discover volumes: %v", err)
+		a.emitEvent("webdav-sync-progress", map[string]interface{}{
+			"status":     "error",
+			"messageKey": "toast.syncTask.discoverError",
+			"errorArgs": map[string]interface{}{
+				"error": err.Error(),
+			},
+		})
 		return err
 	}
 
 	a.logger.Info("Discovered %d volumes", len(volumes))
+
+	a.emitEvent("webdav-sync-progress", map[string]interface{}{
+		"status":     "progress",
+		"messageKey": "toast.syncTask.syncing",
+	})
 
 	// Migrate existing cloud files to fingerprints
 	a.logger.Info("Migrating existing cloud files to fingerprints...")
@@ -656,6 +678,13 @@ func (a *App) WebDAVInitialize() error {
 	healthMap, err := a.WebDAVCheckVolumeHealth()
 	if err != nil {
 		a.logger.Error("Failed to check volume health: %v", err)
+		a.emitEvent("webdav-sync-progress", map[string]interface{}{
+			"status":     "error",
+			"messageKey": "toast.syncTask.healthError",
+			"errorArgs": map[string]interface{}{
+				"error": err.Error(),
+			},
+		})
 		// Don't fail initialization if health check fails
 	} else {
 		unavailableCount := 0
@@ -670,6 +699,11 @@ func (a *App) WebDAVInitialize() error {
 	}
 
 	a.logger.Info("WebDAV initialization complete")
+	a.emitEvent("webdav-sync-progress", map[string]interface{}{
+		"status":     "success",
+		"messageKey": "toast.syncTask.success",
+	})
+
 	return nil
 }
 

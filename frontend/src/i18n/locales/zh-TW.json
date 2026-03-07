@@ -249,7 +249,18 @@
     "invalidBarNumber": "無效的小節號（1-{max}）",
     "tabPinned": "已釘選分頁",
     "tabUnpinned": "已取消釘選分頁",
-    "clickSyncToUpdate": "點擊同步以更新"
+    "clickSyncToUpdate": "點擊同步以更新",
+    "syncTask": {
+      "connecting": "正在連接 WebDAV...",
+      "discovering": "正在發現 WebDAV 雲端卷...",
+      "syncing": "正在同步雲端資料...",
+      "success": "WebDAV 初始化及同步完成",
+      "discoverError": "發現雲端卷失敗: {error}",
+      "healthError": "檢查雲端卷狀態失敗: {error}",
+      "backgroundDesc": "背景執行中...",
+      "fold": "折疊為懸浮球",
+      "close": "關閉"
+    }
   },
   "countries": {
     "US": "美國",

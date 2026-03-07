@@ -249,7 +249,18 @@
     "invalidBarNumber": "無効な小節番号（1-{max}）",
     "tabPinned": "タブを固定しました",
     "tabUnpinned": "タブの固定を解除しました",
-    "clickSyncToUpdate": "同期をクリックして更新"
+    "clickSyncToUpdate": "同期をクリックして更新",
+    "syncTask": {
+      "connecting": "WebDAVに接続しています...",
+      "discovering": "WebDAVボリュームを検出しています...",
+      "syncing": "クラウドデータを同期しています...",
+      "success": "WebDAVの初期化と同期が完了しました",
+      "discoverError": "ボリュームの検出に失敗しました: {error}",
+      "healthError": "ボリューム状態の確認に失敗しました: {error}",
+      "backgroundDesc": "バックグラウンドで実行中...",
+      "fold": "フローティングボタンに折りたたむ",
+      "close": "閉じる"
+    }
   },
   "countries": {
     "US": "アメリカ",

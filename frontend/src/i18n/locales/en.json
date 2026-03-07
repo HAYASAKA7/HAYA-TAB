@@ -249,7 +249,18 @@
     "invalidBarNumber": "Invalid bar number (1-{max})",
     "tabPinned": "Tab pinned",
     "tabUnpinned": "Tab unpinned",
-    "clickSyncToUpdate": "Click Sync to update"
+    "clickSyncToUpdate": "Click Sync to update",
+    "syncTask": {
+      "connecting": "Connecting to WebDAV...",
+      "discovering": "Discovering WebDAV volumes...",
+      "syncing": "Syncing cloud data...",
+      "success": "WebDAV initialization and sync complete",
+      "discoverError": "Failed to discover volumes: {error}",
+      "healthError": "Failed to check volume status: {error}",
+      "backgroundDesc": "Running in background...",
+      "fold": "Fold to floating button",
+      "close": "Close"
+    }
   },
   "countries": {
     "US": "US",

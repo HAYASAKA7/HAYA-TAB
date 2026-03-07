@@ -577,6 +577,7 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 }
 
 #toast-container {
+    transition: bottom 0.3s ease;
     position: fixed;
     bottom: 30px;
     right: 30px;
@@ -976,3 +977,5 @@ select:focus-visible {
         transition-duration: 0.01ms !important;
     }
 }
+body.has-sync-toast #toast-container { bottom: 90px; }
+body.has-sync-toast-expanded #toast-container { bottom: 100px; }

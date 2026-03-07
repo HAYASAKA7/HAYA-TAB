@@ -249,7 +249,18 @@
     "invalidBarNumber": "无效的小节号（1-{max}）",
     "tabPinned": "已固定标签页",
     "tabUnpinned": "已取消固定标签页",
-    "clickSyncToUpdate": "点击同步以更新"
+    "clickSyncToUpdate": "点击同步以更新",
+    "syncTask": {
+      "connecting": "正在连接WebDAV...",
+      "discovering": "正在发现WebDAV云端卷...",
+      "syncing": "正在同步云端数据...",
+      "success": "WebDAV初始化及同步完成",
+      "discoverError": "发现云端卷失败: {error}",
+      "healthError": "检查云端卷状态失败: {error}",
+      "backgroundDesc": "后台执行中...",
+      "fold": "折叠为悬浮球",
+      "close": "关闭"
+    }
   },
   "countries": {
     "US": "美国",
