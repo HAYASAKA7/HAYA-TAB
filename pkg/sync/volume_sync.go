@@ -70,11 +70,11 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 // DiscoverAndRegisterVolumes scans WebDAV root for all volumes and registers them
 // This is the main entry point for multi-device sync
 // It automatically creates volumes for the root directory and first-level subdirectories that don't have fingerprints
-func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPath string, cache *VolumeCache) ([]store.CloudVolume, error) {
+func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPath string, cache *VolumeCache) ([]store.CloudVolume, int, error) {
 	// First, scan for existing volumes (directories with fingerprint files)
 	volumeMap, err := client.ScanVolumes(rootPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scan volumes: %w", err)
+		return nil, 0, fmt.Errorf("failed to scan volumes: %w", err)
 	}
 
 	// Mark all existing volumes as unavailable AFTER successful scan
@@ -98,7 +98,7 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 	// Get all first-level subdirectories
 	subdirs, err := client.ListRemoteDirectories(rootPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list directories: %w", err)
+		return nil, 0, fmt.Errorf("failed to list directories: %w", err)
 	}
 
 	// OPTIMIZED: Parallel fingerprint creation for subdirectories
@@ -145,6 +145,7 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 	wg.Wait()
 
 	var registeredVolumes []store.CloudVolume
+	totalAdded := 0
 
 	// Register all volumes (existing + newly created)
 	for mountPath, fingerprint := range volumeMap {
@@ -171,6 +172,7 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 			if err != nil {
 				fmt.Printf("[Warning] Failed to sync files for volume %s: %v\n", volume.ID, err)
 			} else {
+				totalAdded += added
 				fmt.Printf("[Info] Volume sync complete: %d added, %d skipped\n", added, skipped)
 			}
 		}
@@ -182,7 +184,7 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 		fmt.Printf("[Info] Volume cache updated with %d volumes\n", len(registeredVolumes))
 	}
 
-	return registeredVolumes, nil
+	return registeredVolumes, totalAdded, nil
 }
 
 // getDeviceName returns a device identifier for fingerprint tracking

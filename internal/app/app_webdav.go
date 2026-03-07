@@ -150,6 +150,11 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 			"skipped": skippedCount,
 			"errors":  errorCount,
 		})
+
+		// Force library refresh when background process finishes, in case modal is closed early
+		if successCount > 0 {
+			a.emitEvent("tab-updated", nil)
+		}
 	}()
 
 	return nil
@@ -428,6 +433,11 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 			"skipped": skippedCount,
 			"errors":  0,
 		})
+
+		// Force library refresh when background process finishes, in case modal is closed early
+		if successCount > 0 {
+			a.emitEvent("tab-updated", nil)
+		}
 	}()
 
 	return nil
@@ -529,9 +539,14 @@ func (a *App) WebDAVDiscoverVolumes() ([]store.CloudVolume, error) {
 	)
 
 	// Discover and register all volumes
-	volumes, err := syncpkg.DiscoverAndRegisterVolumes(client, a.store, "/", a.volumeCache)
+	volumes, addedCount, err := syncpkg.DiscoverAndRegisterVolumes(client, a.store, "/", a.volumeCache)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover volumes: %w", err)
+	}
+
+	if addedCount > 0 {
+		// Emit event to refresh frontend if new tabs were added during sync
+		a.emitEvent("tab-updated", nil)
 	}
 
 	a.logger.Info("Discovered %d volumes", len(volumes))
@@ -630,6 +645,11 @@ func (a *App) WebDAVInitialize() error {
 		// Don't fail initialization if migration fails
 	} else if addedCount > 0 {
 		a.logger.Info("Added cloud category to %d existing cloud tabs", addedCount)
+	}
+
+	if migratedCount > 0 || addedCount > 0 {
+		// Emit event to refresh frontend if any migrations occurred
+		a.emitEvent("tab-updated", nil)
 	}
 
 	// Check volume health
