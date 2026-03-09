@@ -149,6 +149,15 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) (*store.Tab, error) {
 
 // UpdateTab updates an existing tab's metadata
 func (a *App) UpdateTab(tab store.Tab) error {
+	// Check if tab exists
+	existing, err := a.store.GetTab(tab.ID)
+	if err != nil {
+		return fmt.Errorf("failed to check tab existence: %w", err)
+	}
+	if existing == nil {
+		return fmt.Errorf("tab not found: %s", tab.ID)
+	}
+
 	// Recalculate initials in case title or origin country changed
 	tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
 

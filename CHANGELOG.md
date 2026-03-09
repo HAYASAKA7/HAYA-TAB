@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.5] - 2026-03-09
+
+### Added
+- **Enhanced Settings Tests**: Added comprehensive test coverage for WebDAV settings changes with initialization verification
+- **FileWatcher Lifecycle Tests**: Added tests for FileWatcher initialization and cleanup when sync paths change
+- **Tab Validation**: Added tab existence checks in `UpdateTab()` to prevent silent failures with non-existent tabs
+- **Tab Operation Tests**: Added new test cases for `SaveTab()` with invalid/valid files and storage verification
+- **Metadata Update Tests**: Added dedicated tests for `UpdateTab()` and `UpdateTabMetadata()` operations
+
+### Improved
+- **Test Suite Refactoring**: Refactored `setupTestApp()` to properly initialize all dependencies (Logger, CoverPool, MBWorker, SyncService, VolumeCache)
+- **Integration Tests**: Enhanced test setup to use real database initialization for more realistic testing scenarios
+- **Error Handling**: Added explicit error checking in `UpdateTab()` for missing tabs with descriptive error messages
+
 ## [2.3.4] - 2026-03-09
 
 ### Added

@@ -1,12 +1,16 @@
 package app
 
 import (
+	"haya-tab/pkg/coverpool"
+	"haya-tab/pkg/logger"
+	"haya-tab/pkg/store"
+	syncpkg "haya-tab/pkg/sync"
+	"haya-tab/pkg/worker"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"haya-tab/pkg/store"
+	"time"
 )
 
 // setupTestApp creates a minimal App with a real DBStore for integration-style tests.
@@ -19,7 +23,12 @@ func setupTestApp(t *testing.T) (*App, string) {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 
-	dbPath := filepath.Join(tmpDir, "data", "test.db")
+	appDir := filepath.Join(tmpDir, "app")
+	os.MkdirAll(appDir, 0755)
+
+	dbPath := filepath.Join(appDir, "data", "test.db")
+	os.MkdirAll(filepath.Dir(dbPath), 0755)
+	
 	s := store.NewDBStore(dbPath)
 	if err := s.Initialize(); err != nil {
 		os.RemoveAll(tmpDir)
@@ -38,11 +47,22 @@ func setupTestApp(t *testing.T) (*App, string) {
 	settings.CoversPath = coversPath
 	s.UpdateSettings(settings)
 
+	l := logger.NewLogger(appDir)
+	cp := coverpool.NewCoverPool(1, nil) // No downloader for tests
+	mb := worker.NewMBWorker(s, l)
+	
 	// Use nil context to prevent Wails runtime calls in tests
 	app := &App{
-		ctx:   nil,
-		store: s,
+		ctx:       nil,
+		store:     s,
+		logger:    l,
+		coverPool: cp,
+		mbWorker:  mb,
 	}
+	
+	emitter := &WailsEventEmitter{ctx: nil}
+	app.syncService = syncpkg.NewSyncService(s, l, cp, emitter, appDir, mb)
+	app.volumeCache = syncpkg.NewVolumeCache(5 * time.Minute)
 
 	return app, tmpDir
 }

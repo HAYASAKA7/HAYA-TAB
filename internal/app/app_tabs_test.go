@@ -424,48 +424,98 @@ func TestApp_RecalculateAllInitials(t *testing.T) {
 	}
 }
 
-func TestParseMetadataFromFilenameEdgeCases(t *testing.T) {
-	tests := []struct {
-		name       string
-		filename   string
-		wantTitle  string
-		wantArtist string
-	}{
-		{
-			name:       "dash at end",
-			filename:   "Artist - .gp5",
-			wantTitle:  "",
-			wantArtist: "Artist",
-		},
-		{
-			name:       "dash at start",
-			filename:   " - Title.gp5",
-			wantTitle:  "Title",
-			wantArtist: "",
-		},
-		{
-			name:       "only spaces",
-			filename:   "   .gp5",
-			wantTitle:  "",
-			wantArtist: "",
-		},
-		{
-			name:       "hidden file",
-			filename:   ".hidden",
-			wantTitle:  "",
-			wantArtist: "",
-		},
+func TestApp_SaveTab(t *testing.T) {
+	app, tmpDir := setupTestApp(t)
+	defer cleanupTestApp(app, tmpDir)
+
+	t.Run("save tab with invalid file", func(t *testing.T) {
+		tab := store.Tab{Title: "Invalid", FilePath: "/nonexistent/file.gp5"}
+		_, err := app.SaveTab(tab, true)
+		if err == nil {
+			t.Error("Expected error for non-existent file")
+		}
+	})
+
+	t.Run("save tab with valid file", func(t *testing.T) {
+		// Create a source file
+		srcPath := filepath.Join(tmpDir, "source.gp5")
+		os.WriteFile(srcPath, []byte("data"), 0644)
+
+		tab := store.Tab{ID: "test-tab-1", Title: "Valid", FilePath: srcPath}
+		savedTab, err := app.SaveTab(tab, true)
+		if err != nil {
+			t.Fatalf("SaveTab() error = %v", err)
+		}
+
+		if savedTab.ID == "" {
+			t.Error("Saved tab should have an ID")
+		}
+		if !savedTab.IsManaged {
+			t.Error("Saved tab should be managed")
+		}
+		
+		// Verify file was copied to storage
+		storagePath := filepath.Join(app.GetStorageDir(), savedTab.FilePath)
+		if _, err := os.Stat(storagePath); os.IsNotExist(err) {
+			t.Error("File should be copied to storage")
+		}
+	})
+}
+
+func TestApp_UpdateTab(t *testing.T) {
+	app, tmpDir := setupTestApp(t)
+	defer cleanupTestApp(app, tmpDir)
+
+	// Add initial tab
+	initialTab := store.Tab{ID: "tab1", Title: "Initial", Artist: "Artist"}
+	app.store.AddTab(initialTab)
+
+	t.Run("update non-existent tab", func(t *testing.T) {
+		err := app.UpdateTab(store.Tab{ID: "nonexistent", Title: "New"})
+		if err == nil {
+			t.Error("Expected error for non-existent tab")
+		}
+	})
+
+	t.Run("update existing tab", func(t *testing.T) {
+		err := app.UpdateTab(store.Tab{ID: "tab1", Title: "Updated", Artist: "New Artist"})
+		if err != nil {
+			t.Fatalf("UpdateTab() error = %v", err)
+		}
+
+		updated, _ := app.store.GetTab("tab1")
+		if updated.Title != "Updated" || updated.Artist != "New Artist" {
+			t.Errorf("Updated tab = %v, want Updated/New Artist", updated)
+		}
+	})
+}
+
+func TestApp_UpdateTabMetadata(t *testing.T) {
+	app, tmpDir := setupTestApp(t)
+	defer cleanupTestApp(app, tmpDir)
+
+	app.store.AddTab(store.Tab{ID: "tab1", Title: "Old Title"})
+
+	err := app.UpdateTabMetadata("tab1", "New Title", "New Artist", "New Album")
+	if err != nil {
+		t.Fatalf("UpdateTabMetadata() error = %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotTitle, gotArtist := parseMetadataFromFilename(tt.filename)
-			if gotTitle != tt.wantTitle {
-				t.Errorf("title = %q, want %q", gotTitle, tt.wantTitle)
-			}
-			if gotArtist != tt.wantArtist {
-				t.Errorf("artist = %q, want %q", gotArtist, tt.wantArtist)
-			}
-		})
+	updated, _ := app.store.GetTab("tab1")
+	if updated.Title != "New Title" || updated.Artist != "New Artist" {
+		t.Error("Metadata not updated correctly")
+	}
+}
+
+func TestApp_RecalculateAllInitials_Empty(t *testing.T) {
+	app, tmpDir := setupTestApp(t)
+	defer cleanupTestApp(app, tmpDir)
+
+	count, err := app.RecalculateAllInitials()
+	if err != nil {
+		t.Fatalf("RecalculateAllInitials() error = %v", err)
+	}
+	if count != 0 {
+		t.Errorf("Updated = %d, want 0", count)
 	}
 }

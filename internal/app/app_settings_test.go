@@ -137,6 +137,43 @@ func TestApp_SaveSettings_StoragePaths(t *testing.T) {
 			t.Errorf("CoversPath = %q, want %q", updated.CoversPath, newPath)
 		}
 	})
+
+	t.Run("WebDAV settings change", func(t *testing.T) {
+		settings.WebDAVEnabled = true
+		settings.WebDAVURL = "http://localhost:8080"
+		settings.WebDAVUser = "user"
+		settings.WebDAVPassword = "pass"
+		err := app.SaveSettings(settings)
+		if err != nil {
+			t.Fatalf("SaveSettings() error = %v", err)
+		}
+		
+		// Verification would involve checking if WebDAVInitialize was called, 
+		// but since it's in a goroutine, we just check it doesn't panic.
+	})
+
+	t.Run("FileWatcher path change", func(t *testing.T) {
+		settings.SyncPaths = []string{tmpDir}
+		err := app.SaveSettings(settings)
+		if err != nil {
+			t.Fatalf("SaveSettings() error = %v", err)
+		}
+		
+		if app.fileWatcher == nil {
+			t.Error("fileWatcher should be initialized when sync paths are added")
+		}
+		
+		// Clear sync paths should stop watcher
+		settings.SyncPaths = []string{}
+		err = app.SaveSettings(settings)
+		if err != nil {
+			t.Fatalf("SaveSettings() error = %v", err)
+		}
+		
+		if app.fileWatcher != nil {
+			t.Error("fileWatcher should be nil when sync paths are cleared")
+		}
+	})
 }
 
 func TestApp_Settings_DefaultValues(t *testing.T) {
