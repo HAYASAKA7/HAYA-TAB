@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.4] - 2026-03-09
+
+### Added
+- **Extended Format Support**: Added support for Guitar Pro versions 3 and 4 (.gp3, .gp4) format detection for webDAV sync and viewer loading
+- **MusicXML Format Support**: Added full support for MusicXML standard formats (.xml, .musicxml) and compressed MusicXML (.mxl) for both webDAV sync and viewer loading
+- **Content Type Headers**: Proper HTTP content-type headers for all supported music formats
+  - Guitar Pro: `application/x-guitar-pro` (for .gp, .gp3, .gp4, .gp5, .gpx)
+  - MusicXML: `application/vnd.recordare.musicxml+xml` (for .xml, .musicxml)
+  - MusicXML (compressed): `application/vnd.recordare.musicxml` (for .mxl)
+
+### Improved
+- **WebDAV File Detection**: Enhanced WebDAV client to recognize and sync all new music formats
+- **Format Detection**: Updated file extension checks to prioritize .pdf and properly order other format detection
+
 ## [2.3.3] - 2026-03-07
 
 ### Changed

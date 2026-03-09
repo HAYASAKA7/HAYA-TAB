@@ -157,8 +157,12 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 	switch ext {
 	case ".pdf":
 		contentType = "application/pdf"
-	case ".gp", ".gp5", ".gpx":
+	case ".gp", ".gp3", ".gp4", ".gp5", ".gpx":
 		contentType = "application/x-guitar-pro"
+	case ".xml", ".musicxml":
+		contentType = "application/vnd.recordare.musicxml+xml"
+	case ".mxl":
+		contentType = "application/vnd.recordare.musicxml"
 	}
 
 	// Set headers

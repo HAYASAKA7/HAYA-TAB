@@ -254,7 +254,7 @@ func (c *WebDAVClient) scanRecursive(dir string, depth int) ([]store.RemoteFile,
 			}
 		} else {
 			ext := strings.ToLower(filepath.Ext(info.Name()))
-			if ext == ".gp" || ext == ".gp5" || ext == ".gpx" || ext == ".pdf" {
+			if ext == ".pdf" || ext == ".gp" || ext == ".gp3" || ext == ".gp4" || ext == ".gp5" || ext == ".gpx" || ext == ".xml" || ext == ".musicxml" || ext == ".mxl" {
 				files = append(files, store.RemoteFile{
 					Name:  info.Name(),
 					Path:  fullPath,
@@ -318,7 +318,7 @@ func (c *WebDAVClient) ListDir(dir string) ([]store.RemoteFile, error) {
 		ext := strings.ToLower(filepath.Ext(info.Name()))
 
 		// Include directories or supported files
-		if isDir || ext == ".gp" || ext == ".gp5" || ext == ".gpx" || ext == ".pdf" {
+		if isDir || ext == ".pdf" || ext == ".gp" || ext == ".gp3" || ext == ".gp4" || ext == ".gp5" || ext == ".gpx" || ext == ".xml" || ext == ".musicxml" || ext == ".mxl" {
 			files = append(files, store.RemoteFile{
 				Name:  info.Name(),
 				Path:  fullPath,
