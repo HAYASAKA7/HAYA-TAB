@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.6] - 2026-03-10
+
+### Added
+- **WebDAV Fingerprint Tombstones**: Added tombstone management to `FingerprintCache` to properly handle file deletions during concurrent syncs.
+- **Concurrent Conflict Resolution**: Implemented "Read-Merge-Write" pattern in `FingerprintCache.Flush()` to prevent data loss when multiple devices update the same bucket.
+- **LRU Cache Persistence**: Optimized `FingerprintCache` to keep data in memory after flushing, only clearing dirty flags.
+
+### Improved
+- **Sync Reliability**: Enhanced `FingerprintCache` to merge remote changes with local state during flush, ensuring eventual consistency across devices.
+
 ## [2.3.5] - 2026-03-09
 
 ### Added

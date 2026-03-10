@@ -13,6 +13,7 @@ type FingerprintCache struct {
 	client        *WebDAVClient
 	cache         map[string]map[int]*cachedBucket // volumePath -> bucketNum -> cachedBucket
 	dirtyBuckets  map[string]map[int]bool          // volumePath -> bucketNum -> isDirty
+	deletedFiles  map[string]map[string]bool       // volumePath -> relativePath -> isDeleted (tombstone)
 	mu            sync.RWMutex
 	flushInterval time.Duration
 	stopChan      chan struct{}
@@ -41,6 +42,7 @@ func NewFingerprintCache(client *WebDAVClient, flushInterval time.Duration, maxS
 		client:        client,
 		cache:         make(map[string]map[int]*cachedBucket),
 		dirtyBuckets:  make(map[string]map[int]bool),
+		deletedFiles:  make(map[string]map[string]bool),
 		flushInterval: flushInterval,
 		stopChan:      make(chan struct{}),
 		maxSize:       maxSize,
@@ -148,6 +150,10 @@ func (c *FingerprintCache) AddFile(volumePath string, file FingerprintFile) erro
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if c.deletedFiles[volumePath] != nil {
+		delete(c.deletedFiles[volumePath], file.RelativePath)
+	}
+
 	// Get bucket from cache or load it
 	bucket, err := c.getBucket(volumePath, bucketNum)
 	if err != nil {
@@ -181,6 +187,11 @@ func (c *FingerprintCache) RemoveFile(volumePath, relativePath string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if c.deletedFiles[volumePath] == nil {
+		c.deletedFiles[volumePath] = make(map[string]bool)
+	}
+	c.deletedFiles[volumePath][relativePath] = true
+
 	// Get bucket from cache or load it
 	bucket, err := c.getBucket(volumePath, bucketNum)
 	if err != nil {
@@ -206,6 +217,12 @@ func (c *FingerprintCache) RemoveFile(volumePath, relativePath string) error {
 func (c *FingerprintCache) BatchAddFiles(volumePath string, files []FingerprintFile) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	for _, file := range files {
+		if c.deletedFiles[volumePath] != nil {
+			delete(c.deletedFiles[volumePath], file.RelativePath)
+		}
+	}
 
 	// Group files by bucket
 	bucketFiles := make(map[int][]FingerprintFile)
@@ -260,6 +277,15 @@ func (c *FingerprintCache) Flush() error {
 	}
 	var itemsToWrite []dirtyItem
 
+	// Also make a copy of deletedFiles for this flush to use as tombstones
+	deletedFilesCopy := make(map[string]map[string]bool)
+	for volPath, filesMap := range c.deletedFiles {
+		deletedFilesCopy[volPath] = make(map[string]bool)
+		for relPath, isDeleted := range filesMap {
+			deletedFilesCopy[volPath][relPath] = isDeleted
+		}
+	}
+
 	for volumePath, buckets := range c.dirtyBuckets {
 		for bucketNum := range buckets {
 			// Get bucket from cache
@@ -295,12 +321,67 @@ func (c *FingerprintCache) Flush() error {
 
 	// Write to WebDAV without lock
 	for _, item := range itemsToWrite {
+		// 1. READ: Fetch the latest bucket state from WebDAV to catch concurrent changes
+		remoteBucket, err := c.client.ReadBucket(item.volumePath, item.bucketNum)
+		
+		// 2. MODIFY (MERGE): If read succeeds, merge remote files into our local bucket copy
+		if err == nil && remoteBucket != nil {
+			// Create a quick lookup map of our local files
+			localFilesMap := make(map[string]bool)
+			for _, localFile := range item.bucket.Files {
+				localFilesMap[localFile.RelativePath] = true
+			}
+
+			// Check tombstone map for this volume
+			var tombstone map[string]bool
+			if deletedFilesCopy[item.volumePath] != nil {
+				tombstone = deletedFilesCopy[item.volumePath]
+			}
+
+			// Append any files from the remote bucket that aren't in our local snapshot and not marked as deleted
+			for _, remoteFile := range remoteBucket.Files {
+				if tombstone != nil && tombstone[remoteFile.RelativePath] {
+					continue // file was deleted locally, don't resurrect it
+				}
+				if !localFilesMap[remoteFile.RelativePath] {
+					item.bucket.Files = append(item.bucket.Files, remoteFile)
+				}
+			}
+		}
+
+		// 3. WRITE: Write the merged bucket back to WebDAV
 		if err := c.client.WriteBucket(item.volumePath, item.bucketNum, item.bucket); err != nil {
 			lastErr = fmt.Errorf("failed to write bucket %d for volume %s: %w", item.bucketNum, item.volumePath, err)
 			fmt.Printf("[Warning] %v\n", lastErr)
 		} else {
 			flushedCount++
+			
+			// Update the in-memory cache with the merged remote files
+			// so we don't accidentally overwrite them on the next flush.
+			c.mu.Lock()
+			if c.cache[item.volumePath] != nil && c.cache[item.volumePath][item.bucketNum] != nil {
+				c.cache[item.volumePath][item.bucketNum].data = item.bucket
+			}
+			c.mu.Unlock()
 		}
+	}
+
+	// 4. CLEANUP: Remove successfully processed deleted files from the main deletedFiles map
+	if flushedCount > 0 {
+		c.mu.Lock()
+		// Only remove tombstone entries that we actually processed in this flush
+		// This avoids removing newly deleted files that occurred during the flush
+		for volPath, filesMap := range deletedFilesCopy {
+			if c.deletedFiles[volPath] != nil {
+				for relPath := range filesMap {
+					delete(c.deletedFiles[volPath], relPath)
+				}
+				if len(c.deletedFiles[volPath]) == 0 {
+					delete(c.deletedFiles, volPath)
+				}
+			}
+		}
+		c.mu.Unlock()
 	}
 
 	if flushedCount > 0 {
