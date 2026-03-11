@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.7] - 2026-03-11
+
+### Added
+- Centralized service layer in the frontend (`CategoryService`, `CloudService`, `FileService`, `SettingsService`, `TabService`) to encapsulate backend logic and improve code maintainability.
+- Decoupled components and stores from direct Wails backend calls, leading to cleaner and more testable frontend code.
+
+### Changed
+- Refactored multiple frontend components and Pinia stores to use the new service layer.
+- Updated documentation to reflect version 2.3.7.
+
 ## [2.3.6] - 2026-03-10
 
 ### Added

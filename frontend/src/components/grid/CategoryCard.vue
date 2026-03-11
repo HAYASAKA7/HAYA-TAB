@@ -5,6 +5,7 @@ import type { Category } from '@/types'
 import { SYSTEM_CLOUD_CATEGORY_ID } from '@/types'
 import { useTabsStore, useUIStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
+import { TabService } from '@/services'
 
 import { safeHtml } from '@/utils/html'
 
@@ -39,7 +40,7 @@ const displayName = computed(() => {
 async function loadCover(path: string) {
   if (!path) return
   try {
-    const b64 = await window.go.app.App.GetCover(path)
+    const b64 = await TabService.getCover(path)
     if (b64) {
       coverUrl.value = `data:image/jpeg;base64,${b64}`
     }

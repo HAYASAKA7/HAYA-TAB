@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useUIStore, useSettingsStore, useTabsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+import { CloudService } from '@/services'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -88,7 +89,7 @@ async function loadDirectory(path: string) {
   
   try {
     // Use the new non-recursive list method
-    const result = await window.go.app.App.WebDAVListDir(
+    const result = await CloudService.listDir(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,
@@ -161,7 +162,7 @@ async function handleDownload() {
   loading.value = true
   currentOperation.value = 'download'
   try {
-    await window.go.app.App.WebDAVDownloadFiles(
+    await CloudService.downloadFiles(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,
@@ -180,7 +181,7 @@ async function handleAddOnline() {
   loading.value = true
   currentOperation.value = 'addOnline'
   try {
-    await window.go.app.App.WebDAVAddOnlineFiles(
+    await CloudService.addOnlineFiles(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,

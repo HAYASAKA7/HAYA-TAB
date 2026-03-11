@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
+import { FileService, TabService } from '@/services'
 import TabCard from './TabCard.vue'
 import CategoryCard from './CategoryCard.vue'
 import BackCard from './BackCard.vue'
@@ -28,7 +29,7 @@ function handleBlankContextMenu(e: MouseEvent) {
 }
 
 async function addTab(isUpload: boolean) {
-  const paths = await window.go.app.App.SelectFiles()
+  const paths = await FileService.selectFiles()
   if (paths && paths.length > 0) {
     let added = 0
     let skipped = 0
@@ -36,8 +37,8 @@ async function addTab(isUpload: boolean) {
 
     for (const path of paths) {
       try {
-        const tabData = await window.go.app.App.ProcessFile(path)
-        const savedTab = await window.go.app.App.SaveTab(tabData, isUpload)
+        const tabData = await FileService.processFile(path)
+        const savedTab = await TabService.saveTab(tabData, isUpload)
         if (savedTab) {
           newTabs.push(savedTab)
         }

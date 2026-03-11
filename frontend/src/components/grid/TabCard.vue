@@ -6,6 +6,7 @@ import { useTabsStore, useUIStore, useViewersStore, useSettingsStore } from '@/s
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+import { SettingsService, TabService, FileService } from '@/services'
 
 import { safeHtml } from '@/utils/html'
 
@@ -53,7 +54,7 @@ watch(() => props.tab.coverPath, () => {
 
 onMounted(async () => {
   try {
-    fileServerPort.value = await window.go.app.App.GetFileServerPort()
+    fileServerPort.value = await SettingsService.getFileServerPort()
   } catch (e) {
     console.error('Failed to get file server port:', e)
   }
@@ -101,7 +102,7 @@ async function openTab() {
     openInternalTab()
   } else {
     try {
-      await window.go.app.App.OpenTab(props.tab.id)
+      await TabService.openTab(props.tab.id)
     } catch (err) {
       console.error(err)
       showToast(t('contextMenu.failedToOpen'), 'error')
@@ -112,7 +113,7 @@ async function openTab() {
 async function openInternalTab() {
   try {
     // Notify backend to update timestamp
-    await (window.go.app.App as any).MarkAsOpened(props.tab.id)
+    await TabService.markAsOpened(props.tab.id)
   } catch (err) {
     console.warn('Failed to mark tab as opened:', err)
   }
@@ -170,7 +171,7 @@ function handleContextMenu(e: MouseEvent) {
   } else {
     // Regular local tab options
     items.push(
-      { label: t('contextMenu.openWithSystem'), icon: 'system', action: () => window.go.app.App.OpenTab(props.tab.id) },
+      { label: t('contextMenu.openWithSystem'), icon: 'system', action: () => TabService.openTab(props.tab.id) },
       { label: t('contextMenu.openWithInner'), icon: 'viewer', action: () => openInternalTab() },
       { label: t('contextMenu.editMetadata'), icon: 'edit', action: () => uiStore.showEditModal(props.tab) },
       { label: t('contextMenu.addToCategory'), icon: 'add-folder', action: () => uiStore.showMoveModal(props.tab.id) }
@@ -201,7 +202,7 @@ function handleContextMenu(e: MouseEvent) {
 async function downloadToLocal() {
   try {
     showToast(t('cloud.downloadingToLocal'), 'info')
-    await window.go.app.App.DownloadCloudTabToLocal(props.tab.id)
+    await TabService.downloadCloudTabToLocal(props.tab.id)
     // Success/error handling is done via cloud-download-single event listener
   } catch (err) {
     console.error('Failed to download cloud tab:', err)
@@ -210,9 +211,9 @@ async function downloadToLocal() {
 }
 
 async function exportTab() {
-  const dest = await window.go.app.App.SelectFolder()
+  const dest = await FileService.selectFolder()
   if (dest) {
-    await window.go.app.App.ExportTab(props.tab.id, dest)
+    await TabService.exportTab(props.tab.id, dest)
     showToast(t('contextMenu.exported'))
   }
 }

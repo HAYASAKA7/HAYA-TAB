@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
+import { FileService } from '@/services'
 
 const { t } = useI18n()
 const tabsStore = useTabsStore()
@@ -27,7 +28,7 @@ watch(() => uiStore.categoryModalData, (data) => {
 }, { immediate: true })
 
 async function selectCover() {
-  const path = await window.go.app.App.SelectImage()
+  const path = await FileService.selectImage()
   if (path) {
     coverPath.value = path
   }

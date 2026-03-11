@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
+import { FileService, TabService } from '@/services'
 import type { ContextMenuItem } from '@/types'
 import TabCard from '@/components/grid/TabCard.vue'
 import CategoryCard from '@/components/grid/CategoryCard.vue'
@@ -179,7 +180,7 @@ function handleBlankContextMenu(e: MouseEvent) {
 }
 
 async function addTab(isUpload: boolean) {
-  const paths = await window.go.app.App.SelectFiles()
+  const paths = await FileService.selectFiles()
   if (paths && paths.length > 0) {
     let added = 0
     let skipped = 0
@@ -187,12 +188,12 @@ async function addTab(isUpload: boolean) {
 
     for (const path of paths) {
       try {
-        const tabData = await window.go.app.App.ProcessFile(path)
+        const tabData = await FileService.processFile(path)
         // If inside a category, pre-assign it
         if (viewMode.value === 'categories' && tabsStore.currentCategoryId) {
             tabData.categoryIds = [tabsStore.currentCategoryId]
         }
-        const savedTab = await window.go.app.App.SaveTab(tabData, isUpload)
+        const savedTab = await TabService.saveTab(tabData, isUpload)
         if (savedTab) {
           newTabs.push(savedTab)
         }

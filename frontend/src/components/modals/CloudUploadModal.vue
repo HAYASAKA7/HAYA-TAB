@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useUIStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+import { CloudService } from '@/services'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -45,7 +46,7 @@ async function listDirectories(path: string) {
 
   loading.value = true
   try {
-    const result = await window.go.app.App.WebDAVListRemoteDirectories(
+    const result = await CloudService.listRemoteDirectories(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,
@@ -81,7 +82,7 @@ async function handleUpload() {
 
   loading.value = true
   try {
-    await window.go.app.App.WebDAVUploadFiles(
+    await CloudService.uploadFiles(
       settingsStore.settings.webdavUrl,
       settingsStore.settings.webdavUser,
       settingsStore.settings.webdavPassword,

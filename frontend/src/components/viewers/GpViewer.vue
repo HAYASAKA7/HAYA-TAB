@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useTabsStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { useAlphaTab } from '@/composables/useAlphaTab'
+import { TabService, SettingsService } from '@/services'
 import GpFloatingToolbar from './GpFloatingToolbar.vue'
 import GpSelectionMenu from './GpSelectionMenu.vue'
 import { EventsOn, EventsOff } from '@/wailsjs/runtime/runtime'
@@ -127,7 +128,7 @@ async function loadGpTab() {
                 const album = score.album || ''
 
                 if (title || artist || album) {
-                  window.go.app.App.UpdateTabMetadata(props.tabId, title, artist, album)
+                  TabService.updateTabMetadata(props.tabId, title, artist, album)
                     .catch((err: any) => {
                       console.warn('Failed to update tab metadata:', err)
                     })
@@ -144,7 +145,7 @@ async function loadGpTab() {
     }
 
     updateAudioOutput(settingsStore.settings.audioDevice)
-    const port = await window.go.app.App.GetFileServerPort()
+    const port = await SettingsService.getFileServerPort()
     const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
     
     await load(url)
@@ -159,7 +160,7 @@ async function downloadToLocal() {
   if (!tab.value?.isCloud) return
   try {
     showToast(t('cloud.downloadingToLocal'), 'info')
-    await window.go.app.App.DownloadCloudTabToLocal(props.tabId)
+    await TabService.downloadCloudTabToLocal(props.tabId)
     // Success/error handling is done via cloud-download-single event listener
   } catch (err) {
     console.error('Failed to download cloud tab:', err)
@@ -194,7 +195,7 @@ function onSelectionChange(args: any) {
     // Update composable state
     composableHandleSelectionChange(args)
 
-    // UI Logic: Shift+drag â†?section playback mode with toolbar
+    // UI Logic: Shift+drag ï¿½?section playback mode with toolbar
     if (isShiftDragging.value) {
         isSectionPlaybackMode.value = true
         if (args.endBeatBounds && args.endBeatBounds.visualBounds) {

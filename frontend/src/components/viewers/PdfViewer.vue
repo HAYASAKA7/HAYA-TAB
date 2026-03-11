@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useTabsStore, useSettingsStore } from '@/stores'
+import { SettingsService } from '@/services'
 
 const props = defineProps<{
   tabId: string
@@ -165,7 +166,7 @@ function onIframeLoad() {
     // Prevent duplicate injection
     if (doc.getElementById('haya-metronome-container')) return
 
-    // Inject styles â€?use --ht-* variables from custom_viewer.css for theme consistency
+    // Inject styles ï¿½?use --ht-* variables from custom_viewer.css for theme consistency
     const style = doc.createElement('style')
     style.textContent = `
       .haya-group {
@@ -335,7 +336,7 @@ async function loadPdf() {
   if (!tab.value) return
 
   try {
-    const port = await window.go.app.App.GetFileServerPort()
+    const port = await SettingsService.getFileServerPort()
     // Use streaming endpoint from local server
     const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
 

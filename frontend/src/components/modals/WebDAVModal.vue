@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
+import { CloudService } from '@/services'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -38,7 +39,7 @@ async function testConnection() {
 
   testing.value = true
   try {
-    await window.go.app.App.WebDAVTestConnection(url.value, user.value, password.value)
+    await CloudService.testConnection(url.value, user.value, password.value)
     showToast(t('settings.connectionSuccess'), 'success')
   } catch (err) {
     // Extract error message

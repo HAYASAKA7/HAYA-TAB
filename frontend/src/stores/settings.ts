@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Settings } from '@/types'
 import { setLocale, type Locale } from '@/i18n'
+import { SettingsService, TabService, CloudService } from '@/services'
 
 export const useSettingsStore = defineStore('settings', () => {
   // State
@@ -50,7 +51,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function loadSettings() {
     loading.value = true
     try {
-      const loaded = await window.go.app.App.GetSettings()
+      const loaded = await SettingsService.getSettings()
       if (loaded) {
         settings.value = {
           ...settings.value,
@@ -77,7 +78,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function saveSettings() {
     loading.value = true
     try {
-      await window.go.app.App.SaveSettings(settings.value)
+      await SettingsService.saveSettings(settings.value)
       applyTheme()
       applyLanguage()
       await applyBackground()
@@ -126,7 +127,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
       if (settings.value.bgType === 'local' && !bgUrl.startsWith('http')) {
         try {
-          const b64 = await window.go.app.App.GetCover(bgUrl)
+          const b64 = await TabService.getCover(bgUrl)
           if (b64) {
             bgUrl = `data:image/jpeg;base64,${b64}`
           }
@@ -152,8 +153,8 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   async function triggerSync() {
-    await window.go.app.App.SaveSettings(settings.value)
-    return await window.go.app.App.TriggerSync()
+    await SettingsService.saveSettings(settings.value)
+    return await SettingsService.triggerSync()
   }
 
   // WebDAV connection status check
@@ -170,7 +171,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
 
     try {
-      const connected = await window.go.app.App.WebDAVCheckStatus()
+      const connected = await CloudService.checkStatus()
       webdavConnected.value = connected
       return connected
     } catch (err) {

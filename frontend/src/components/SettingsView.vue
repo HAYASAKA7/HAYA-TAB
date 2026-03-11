@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
+import { FileService, SettingsService } from '@/services'
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
 import { SUPPORTED_LOCALES } from '@/i18n'
 
@@ -93,14 +94,14 @@ async function fetchAudioDevices() {
 }
 
 async function handleAddSyncPath() {
-  const path = await window.go.app.App.SelectFolder()
+  const path = await FileService.selectFolder()
   if (path) {
     settingsStore.addSyncPath(path)
   }
 }
 
 async function handleBrowseBg() {
-  const path = await window.go.app.App.SelectImage()
+  const path = await FileService.selectImage()
   if (path) {
     settingsStore.settings.background = path
   }
@@ -159,7 +160,7 @@ function handleWebDAVToggle() {
 async function handleChangePath(target: 'storage' | 'covers') {
   if (isMigrating.value) return
   const currentPath = target === 'storage' ? settingsStore.settings.storagePath : settingsStore.settings.coversPath
-  let selectedPath = await window.go.app.App.SelectFolder()
+  let selectedPath = await FileService.selectFolder()
   if (!selectedPath) return
   
   // Clean up path by removing trailing slashes
@@ -183,7 +184,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
 
   isMigrating.value = true
   try {
-    const status = await window.go.app.App.CheckMigration(target)
+    const status = await SettingsService.checkMigration(target)
     const count = status.count
     const size = status.size
     if (count > 0) {
@@ -197,7 +198,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
           // Migrate
           try {
             showToast(t('settings.migrating', 'Migrating data, please wait...'), 'info')
-            await window.go.app.App.MigrateData(target, newPath, false)
+            await SettingsService.migrateData(target, newPath, false)
             if (target === 'storage') settingsStore.settings.storagePath = newPath
             else settingsStore.settings.coversPath = newPath
             await settingsStore.saveSettings()
@@ -212,7 +213,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
         async () => {
           // Only Apply
           try {
-            await window.go.app.App.MigrateData(target, newPath, true)
+            await SettingsService.migrateData(target, newPath, true)
             if (target === 'storage') settingsStore.settings.storagePath = newPath
             else settingsStore.settings.coversPath = newPath
             await settingsStore.saveSettings()
