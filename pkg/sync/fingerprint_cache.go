@@ -240,15 +240,18 @@ func (c *FingerprintCache) BatchAddFiles(volumePath string, files []FingerprintF
 		}
 
 		// Create map of existing files for fast lookup
-		existingFiles := make(map[string]bool)
-		for _, file := range bucket.Files {
-			existingFiles[file.RelativePath] = true
+		existingFiles := make(map[string]int)
+		for i, file := range bucket.Files {
+			existingFiles[file.RelativePath] = i
 		}
 
-		// Add new files
+		// Add or update files
 		for _, file := range newFiles {
-			if !existingFiles[file.RelativePath] {
+			if idx, exists := existingFiles[file.RelativePath]; exists {
+				bucket.Files[idx] = file
+			} else {
 				bucket.Files = append(bucket.Files, file)
+				existingFiles[file.RelativePath] = len(bucket.Files) - 1
 			}
 		}
 

@@ -2,6 +2,8 @@ package store
 
 import (
 	"database/sql"
+	"fmt"
+	"time"
 )
 
 // === Category Operations ===
@@ -125,4 +127,73 @@ func (s *DBStore) GetCategory(id string) (*Category, error) {
 		return nil, err
 	}
 	return &c, nil
+}
+
+// GetCategoryByName retrieves a single category by its exact name
+func (s *DBStore) GetCategoryByName(name string) (*Category, error) {
+	var c Category
+	err := s.db.QueryRow(`
+		SELECT c.id, c.name, c.parent_id, c.cover_path,
+		COALESCE(NULLIF(c.cover_path, ''), (SELECT cover_path FROM tabs WHERE category_id = c.id ORDER BY added_at ASC LIMIT 1), '') as effective_cover_path
+		FROM categories c WHERE c.name = ?
+	`, name).Scan(&c.ID, &c.Name, &c.ParentID, &c.CoverPath, &c.EffectiveCoverPath)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &c, nil
+}
+
+// EnsureCategoryByName finds a category by name or creates it if it doesn't exist.
+// Returns the category ID.
+func (s *DBStore) EnsureCategoryByName(name string) (string, error) {
+	if name == "" {
+		return "", nil
+	}
+
+	cat, err := s.GetCategoryByName(name)
+	if err != nil {
+		return "", err
+	}
+	if cat != nil {
+		return cat.ID, nil
+	}
+
+	// Create new category
+	id := fmt.Sprintf("cat_%d", time.Now().UnixNano())
+	newCat := Category{
+		ID:   id,
+		Name: name,
+	}
+	if err := s.AddCategory(newCat); err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+// GetCategoryNamesForTab retrieves all category names for a given tab,
+// excluding the system cloud category.
+func (s *DBStore) GetCategoryNamesForTab(tabID string) ([]string, error) {
+	rows, err := s.db.Query(`
+		SELECT c.name
+		FROM categories c
+		JOIN tab_categories tc ON c.id = tc.category_id
+		WHERE tc.tab_id = ? AND c.id != ?
+	`, tabID, SystemCloudCategoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, nil
 }

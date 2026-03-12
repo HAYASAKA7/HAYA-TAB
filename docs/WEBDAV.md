@@ -29,9 +29,10 @@ HAYA-TAB v2.3.0 introduces a **volume system** for seamless multi-device synchro
 Each cloud drive (or directory served by your WebDAV server) is treated as a **volume**. Each volume:
 
 - Has a unique fingerprint file (`.haya-volume-fingerprint`) that identifies it
-- Contains metadata about all files uploaded via HAYA-TAB to that volume
-- Enables multiple devices to discover and sync with the same cloud drive
+- Contains metadata about all files uploaded via HAYA-TAB to that volume (including Title, Artist, Album, and Categories)
+- Enables multiple devices to discover and sync with the same cloud drive, including automatic reconstruction of category associations
 - Tracks upload history, metadata, and source device information
+- **CloudPath Persistence (v2.3.9+)**: Maintains the remote file mapping (`CloudPath`) even after a cloud tab is downloaded to local storage, ensuring subsequent metadata or category changes can still be synchronized back to the cloud fingerprint.
 
 ### How It Works
 

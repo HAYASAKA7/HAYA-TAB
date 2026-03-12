@@ -19,6 +19,11 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 	addedCount := 0
 	skippedCount := 0
 
+	// Ensure cloud category exists
+	if err := db.EnsureCloudCategory(); err != nil {
+		fmt.Printf("[Warning] Failed to ensure cloud category: %v\n", err)
+	}
+
 	// Read the fingerprint to get files uploaded via the app
 	fingerprint, err := client.ReadVolumeFingerprint(volume.MountPath)
 	if err != nil {
@@ -38,6 +43,19 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 		// Calculate initials for Quick Jump Bar
 		az, kana := metadata.CalculateInitials(fpFile.Title, "")
 
+		// Process categories
+		categoryIDs := []string{store.SystemCloudCategoryID}
+		for _, catName := range fpFile.Categories {
+			catID, err := db.EnsureCategoryByName(catName)
+			if err != nil {
+				fmt.Printf("[Warning] Failed to ensure category %s: %v\n", catName, err)
+				continue
+			}
+			if catID != "" {
+				categoryIDs = append(categoryIDs, catID)
+			}
+		}
+
 		// Create tab record using metadata from fingerprint
 		tab := store.Tab{
 			ID:          generateID(),
@@ -49,7 +67,7 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 			Type:        fpFile.Type,
 			IsManaged:   false,
 			IsCloud:     true,
-			CategoryIDs: []string{store.SystemCloudCategoryID},
+			CategoryIDs: categoryIDs,
 			AddedAt:     time.Now().Unix(),
 			InitialAZ:   az,
 			InitialKana: kana,
@@ -61,7 +79,7 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 		}
 
 		addedCount++
-		fmt.Printf("[Info] Synced file from fingerprint: %s\n", fpFile.RelativePath)
+		fmt.Printf("[Info] Synced file from fingerprint: %s with %d categories\n", fpFile.RelativePath, len(categoryIDs))
 	}
 
 	return addedCount, skippedCount, nil
@@ -240,6 +258,13 @@ func MigrateExistingCloudFilesToFingerprints(client *WebDAVClient, db *store.DBS
 				continue
 			}
 
+			// Get categories for this tab
+			categories, err := db.GetCategoryNamesForTab(tab.ID)
+			if err != nil {
+				fmt.Printf("[Warning] Failed to get categories for tab %s: %v\n", tab.ID, err)
+				categories = []string{}
+			}
+
 			// Add file to fingerprint
 			fpFile := FingerprintFile{
 				RelativePath: tab.FilePath,
@@ -247,6 +272,7 @@ func MigrateExistingCloudFilesToFingerprints(client *WebDAVClient, db *store.DBS
 				Artist:       tab.Artist,
 				Album:        tab.Album,
 				Type:         tab.Type,
+				Categories:   categories,
 				UploadedAt:   time.Unix(tab.AddedAt, 0).UTC().Format(time.RFC3339),
 				UploadedBy:   getDeviceName(),
 			}

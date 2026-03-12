@@ -254,7 +254,7 @@ func (s *DBStore) DeleteVolume(volumeID string) error {
 // GetTabsByVolume retrieves all tabs for a specific volume
 func (s *DBStore) GetTabsByVolume(volumeID string) ([]Tab, error) {
 	query := `
-		SELECT id, title, artist, album, file_path, COALESCE(volume_id, ''), type, is_managed, is_cloud,
+		SELECT id, title, artist, album, file_path, COALESCE(cloud_path, ''), COALESCE(volume_id, ''), type, is_managed, is_cloud,
 		       cover_path, country, language, origin_country, tag, added_at, last_opened,
 		       initial_az, initial_kana
 		FROM tabs
@@ -272,7 +272,7 @@ func (s *DBStore) GetTabsByVolume(volumeID string) ([]Tab, error) {
 		var tab Tab
 		var isManaged, isCloud int
 		if err := rows.Scan(
-			&tab.ID, &tab.Title, &tab.Artist, &tab.Album, &tab.FilePath, &tab.VolumeID,
+			&tab.ID, &tab.Title, &tab.Artist, &tab.Album, &tab.FilePath, &tab.CloudPath, &tab.VolumeID,
 			&tab.Type, &isManaged, &isCloud, &tab.CoverPath, &tab.Country, &tab.Language,
 			&tab.OriginCountry, &tab.Tag, &tab.AddedAt, &tab.LastOpened,
 			&tab.InitialAZ, &tab.InitialKana,
@@ -297,7 +297,7 @@ func (s *DBStore) GetTabsByVolume(volumeID string) ([]Tab, error) {
 // GetTabByVolumeAndPath retrieves a tab by volume ID and relative path
 func (s *DBStore) GetTabByVolumeAndPath(volumeID, relativePath string) (*Tab, error) {
 	query := `
-		SELECT id, title, artist, album, file_path, COALESCE(volume_id, ''), type, is_managed, is_cloud,
+		SELECT id, title, artist, album, file_path, COALESCE(cloud_path, ''), COALESCE(volume_id, ''), type, is_managed, is_cloud,
 		       cover_path, country, language, origin_country, tag, added_at, last_opened,
 		       initial_az, initial_kana
 		FROM tabs
@@ -306,7 +306,7 @@ func (s *DBStore) GetTabByVolumeAndPath(volumeID, relativePath string) (*Tab, er
 	var tab Tab
 	var isManaged, isCloud int
 	err := s.db.QueryRow(query, volumeID, relativePath).Scan(
-		&tab.ID, &tab.Title, &tab.Artist, &tab.Album, &tab.FilePath, &tab.VolumeID,
+		&tab.ID, &tab.Title, &tab.Artist, &tab.Album, &tab.FilePath, &tab.CloudPath, &tab.VolumeID,
 		&tab.Type, &isManaged, &isCloud, &tab.CoverPath, &tab.Country, &tab.Language,
 		&tab.OriginCountry, &tab.Tag, &tab.AddedAt, &tab.LastOpened,
 		&tab.InitialAZ, &tab.InitialKana,

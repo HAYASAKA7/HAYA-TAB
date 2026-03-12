@@ -11,7 +11,7 @@ import (
 
 func (s *DBStore) GetTabs() ([]Tab, error) {
 	rows, err := s.db.Query(`
-		SELECT id, title, artist, album, file_path, type, is_managed, is_cloud, cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
+		SELECT id, title, artist, album, file_path, COALESCE(cloud_path, ''), type, is_managed, is_cloud, cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs
 	`)
 	if err != nil {
@@ -26,7 +26,7 @@ func (s *DBStore) GetTabs() ([]Tab, error) {
 		var t Tab
 		var isManaged, isCloud int
 		var legacyCatID sql.NullString // Handle legacy or null category_id
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
 			return nil, err
 		}
 		t.IsManaged = isManaged == 1
@@ -111,7 +111,7 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 	}
 
 	query := fmt.Sprintf(`
-		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), COALESCE(tabs.origin_country, ''), tabs.added_at, tabs.last_opened, COALESCE(tabs.initial_az, '#'), COALESCE(tabs.initial_kana, '#')
+		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, COALESCE(tabs.cloud_path, ''), tabs.type, tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), COALESCE(tabs.origin_country, ''), tabs.added_at, tabs.last_opened, COALESCE(tabs.initial_az, '#'), COALESCE(tabs.initial_kana, '#')
 		FROM tabs
 		%s
 		%s
@@ -135,7 +135,7 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 		var t Tab
 		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
 			return nil, 0, err
 		}
 		t.IsManaged = isManaged == 1
@@ -240,7 +240,7 @@ func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, sea
 	}
 
 	query := fmt.Sprintf(`
-		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type,
+		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, COALESCE(tabs.cloud_path, ''), tabs.type,
 			   tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id, tabs.country, tabs.language,
 			   COALESCE(tabs.tag, ''), COALESCE(tabs.origin_country, ''), tabs.added_at, tabs.last_opened, COALESCE(tabs.initial_az, '#'), COALESCE(tabs.initial_kana, '#')
 		FROM tabs
@@ -269,7 +269,7 @@ func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, sea
 		var t Tab
 		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
 			return nil, 0, err
 		}
 		t.IsManaged = isManaged == 1
@@ -367,7 +367,7 @@ func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, se
 	}
 
 	query := fmt.Sprintf(`
-		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type, tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), COALESCE(tabs.origin_country, ''), tabs.added_at, tabs.last_opened, COALESCE(tabs.initial_az, '#'), COALESCE(tabs.initial_kana, '#')
+		SELECT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, COALESCE(tabs.cloud_path, ''), tabs.type, tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id, tabs.country, tabs.language, COALESCE(tabs.tag, ''), COALESCE(tabs.origin_country, ''), tabs.added_at, tabs.last_opened, COALESCE(tabs.initial_az, '#'), COALESCE(tabs.initial_kana, '#')
 		FROM tabs
 		%s
 		%s
@@ -391,7 +391,7 @@ func (s *DBStore) getTabsPaginatedLike(categoryId string, page, pageSize int, se
 		var t Tab
 		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
 			return nil, 0, err
 		}
 		t.IsManaged = isManaged == 1
@@ -433,9 +433,9 @@ func (s *DBStore) GetTab(id string) (*Tab, error) {
 	var legacyCatID sql.NullString
 	var volumeID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#'), COALESCE(volume_id, '')
+		SELECT id, title, artist, album, file_path, COALESCE(cloud_path, ''), type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#'), COALESCE(volume_id, '')
 		FROM tabs WHERE id = ?
-	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana, &volumeID)
+	`, id).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana, &volumeID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -487,9 +487,9 @@ func (s *DBStore) AddTab(tab Tab) error {
 	}
 
 	_, err = tx.Exec(`
-		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, volume_id, type, is_managed, is_cloud, cover_path, category_id, country, language, tag, origin_country, added_at, last_opened, initial_az, initial_kana)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.VolumeID, tab.Type, isManaged, isCloud, tab.CoverPath, primaryCatID, tab.Country, tab.Language, tab.Tag, tab.OriginCountry, tab.AddedAt, tab.LastOpened, tab.InitialAZ, tab.InitialKana)
+		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, cloud_path, volume_id, type, is_managed, is_cloud, cover_path, category_id, country, language, tag, origin_country, added_at, last_opened, initial_az, initial_kana)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.CloudPath, tab.VolumeID, tab.Type, isManaged, isCloud, tab.CoverPath, primaryCatID, tab.Country, tab.Language, tab.Tag, tab.OriginCountry, tab.AddedAt, tab.LastOpened, tab.InitialAZ, tab.InitialKana)
 	if err != nil {
 		return err
 	}
@@ -533,8 +533,8 @@ func (s *DBStore) BatchAddTabs(tabs []Tab) (int, error) {
 
 	// Prepare statements for reuse
 	tabStmt, err := tx.Prepare(`
-		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, volume_id, type, is_managed, is_cloud, cover_path, category_id, country, language, tag, origin_country, added_at, last_opened, initial_az, initial_kana)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT OR REPLACE INTO tabs (id, title, artist, album, file_path, cloud_path, volume_id, type, is_managed, is_cloud, cover_path, category_id, country, language, tag, origin_country, added_at, last_opened, initial_az, initial_kana)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return 0, err
@@ -573,7 +573,7 @@ func (s *DBStore) BatchAddTabs(tabs []Tab) (int, error) {
 
 		// Insert tab
 		_, err = tabStmt.Exec(
-			tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.VolumeID,
+			tab.ID, tab.Title, tab.Artist, tab.Album, tab.FilePath, tab.CloudPath, tab.VolumeID,
 			tab.Type, isManaged, isCloud, tab.CoverPath, primaryCatID,
 			tab.Country, tab.Language, tab.Tag, tab.OriginCountry,
 			tab.AddedAt, tab.LastOpened, tab.InitialAZ, tab.InitialKana,
@@ -661,9 +661,9 @@ func (s *DBStore) GetTabByPath(filePath string) (*Tab, error) {
 	var isManaged, isCloud int
 	var legacyCatID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
+		SELECT id, title, artist, album, file_path, COALESCE(cloud_path, ''), type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs WHERE file_path = ?
-	`, filePath).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana)
+	`, filePath).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -694,9 +694,9 @@ func (s *DBStore) GetTabByTitle(title string) (*Tab, error) {
 	var isManaged, isCloud int
 	var legacyCatID sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
+		SELECT id, title, artist, album, file_path, COALESCE(cloud_path, ''), type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs WHERE title = ?
-	`, title).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana)
+	`, title).Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -728,7 +728,7 @@ func (s *DBStore) GetRecentTabs(limit int) ([]Tab, error) {
 	}
 
 	rows, err := s.db.Query(`
-		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
+		SELECT id, title, artist, album, file_path, COALESCE(cloud_path, ''), type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs
 		WHERE last_opened > 0
 		ORDER BY last_opened DESC, added_at DESC
@@ -746,7 +746,7 @@ func (s *DBStore) GetRecentTabs(limit int) ([]Tab, error) {
 		var t Tab
 		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
 			return nil, err
 		}
 		t.IsManaged = isManaged == 1
@@ -786,7 +786,7 @@ func (s *DBStore) GetRecentTabs(limit int) ([]Tab, error) {
 // Used for background backfill of MusicBrainz data
 func (s *DBStore) GetTabsNeedingOriginCountry() ([]Tab, error) {
 	rows, err := s.db.Query(`
-		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
+		SELECT id, title, artist, album, file_path, COALESCE(cloud_path, ''), type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs
 		WHERE cover_path != '' AND (origin_country IS NULL OR origin_country = '') AND artist != ''
 		ORDER BY added_at DESC
@@ -801,7 +801,7 @@ func (s *DBStore) GetTabsNeedingOriginCountry() ([]Tab, error) {
 		var t Tab
 		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
 			return nil, err
 		}
 		t.IsManaged = isManaged == 1
@@ -823,7 +823,7 @@ func (s *DBStore) UpdateTabOriginCountry(tabID, originCountry string) error {
 // Used for background backfill of legacy data
 func (s *DBStore) GetTabsNeedingInitials() ([]Tab, error) {
 	rows, err := s.db.Query(`
-		SELECT id, title, artist, album, file_path, type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
+		SELECT id, title, artist, album, file_path, COALESCE(cloud_path, ''), type, is_managed, COALESCE(is_cloud, 0), cover_path, category_id, country, language, COALESCE(tag, ''), COALESCE(origin_country, ''), added_at, last_opened, COALESCE(initial_az, '#'), COALESCE(initial_kana, '#')
 		FROM tabs
 		WHERE initial_az IS NULL OR initial_az = '' OR initial_az = '#'
 		ORDER BY added_at DESC
@@ -838,7 +838,7 @@ func (s *DBStore) GetTabsNeedingInitials() ([]Tab, error) {
 		var t Tab
 		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
 			return nil, err
 		}
 		t.IsManaged = isManaged == 1
@@ -867,7 +867,7 @@ func (s *DBStore) SearchTabs(query string) ([]Tab, error) {
 	searchTerm := "%" + query + "%"
 
 	rows, err := s.db.Query(`
-		SELECT DISTINCT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, tabs.type,
+		SELECT DISTINCT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, COALESCE(tabs.cloud_path, ''), tabs.type,
 		       tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id,
 		       tabs.country, tabs.language, COALESCE(tabs.tag, ''), COALESCE(tabs.origin_country, ''),
 		       tabs.added_at, tabs.last_opened, COALESCE(tabs.initial_az, '#'), COALESCE(tabs.initial_kana, '#')
@@ -888,7 +888,7 @@ func (s *DBStore) SearchTabs(query string) ([]Tab, error) {
 		var t Tab
 		var isManaged, isCloud int
 		var legacyCatID sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Artist, &t.Album, &t.FilePath, &t.CloudPath, &t.Type, &isManaged, &isCloud, &t.CoverPath, &legacyCatID, &t.Country, &t.Language, &t.Tag, &t.OriginCountry, &t.AddedAt, &t.LastOpened, &t.InitialAZ, &t.InitialKana); err != nil {
 			return nil, err
 		}
 		t.IsManaged = isManaged == 1

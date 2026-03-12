@@ -23,6 +23,7 @@ type Tab struct {
 	Artist        string   `json:"artist"`
 	Album         string   `json:"album"`
 	FilePath      string   `json:"filePath"`      // For local: absolute path. For cloud: relative path within volume
+	CloudPath     string   `json:"cloudPath"`     // Relative path within volume (persists after download)
 	VolumeID      string   `json:"volumeId"`      // Cloud volume ID (empty for local files)
 	Type          string   `json:"type"`          // "pdf" or "gp"
 	IsManaged     bool     `json:"isManaged"`

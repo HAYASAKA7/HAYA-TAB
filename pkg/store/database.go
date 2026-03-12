@@ -100,6 +100,11 @@ func (s *DBStore) Initialize() error {
 		return fmt.Errorf("failed to load settings: %w", err)
 	}
 
+	// Ensure system cloud category exists
+	if err := s.EnsureCloudCategory(); err != nil {
+		fmt.Printf("Warning: failed to ensure cloud category: %v\n", err)
+	}
+
 	return nil
 }
 
@@ -124,7 +129,8 @@ func (s *DBStore) createTables() error {
 		origin_country TEXT DEFAULT '',
 		initial_az TEXT DEFAULT '#',
 		initial_kana TEXT DEFAULT '#',
-		volume_id TEXT DEFAULT ''
+		volume_id TEXT DEFAULT '',
+		cloud_path TEXT DEFAULT ''
 	);
 
 	CREATE TABLE IF NOT EXISTS categories (
@@ -291,6 +297,14 @@ func (s *DBStore) runMigrations() error {
 
 	// Add volume_id column for cloud volume support
 	_, err = s.db.Exec("ALTER TABLE tabs ADD COLUMN volume_id TEXT DEFAULT ''")
+	if err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			// It's okay
+		}
+	}
+
+	// Add cloud_path column
+	_, err = s.db.Exec("ALTER TABLE tabs ADD COLUMN cloud_path TEXT DEFAULT ''")
 	if err != nil {
 		if !strings.Contains(err.Error(), "duplicate column name") {
 			// It's okay

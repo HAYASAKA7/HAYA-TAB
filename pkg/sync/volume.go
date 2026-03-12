@@ -39,13 +39,14 @@ type VolumeFingerprint struct {
 
 // FingerprintFile represents metadata for a file uploaded to this volume
 type FingerprintFile struct {
-	RelativePath string `json:"relative_path"` // Path relative to volume root
-	Title        string `json:"title"`         // Tab title
-	Artist       string `json:"artist"`        // Artist name
-	Album        string `json:"album"`         // Album name
-	Type         string `json:"type"`          // File type (pdf, gp, etc.)
-	UploadedAt   string `json:"uploaded_at"`   // ISO 8601 timestamp
-	UploadedBy   string `json:"uploaded_by"`   // Device name that uploaded this file
+	RelativePath string   `json:"relative_path"` // Path relative to volume root
+	Title        string   `json:"title"`         // Tab title
+	Artist       string   `json:"artist"`        // Artist name
+	Album        string   `json:"album"`         // Album name
+	Type         string   `json:"type"`          // File type (pdf, gp, etc.)
+	Categories   []string `json:"categories"`    // List of category names
+	UploadedAt   string   `json:"uploaded_at"`   // ISO 8601 timestamp
+	UploadedBy   string   `json:"uploaded_by"`   // Device name that uploaded this file
 }
 
 // FingerprintMetadata stores volume-level metadata (stored in bucket-00.json)

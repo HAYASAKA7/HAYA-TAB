@@ -17,6 +17,7 @@ type LogLevel int
 const (
 	LevelDebug LogLevel = iota
 	LevelInfo
+	LevelWarning
 	LevelError
 )
 
@@ -87,6 +88,14 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	}
 	msg := fmt.Sprintf(format, args...)
 	l.logger.Printf("[INFO] %s", msg)
+}
+
+func (l *Logger) Warning(format string, args ...interface{}) {
+	if l.logLevel > LevelWarning {
+		return
+	}
+	msg := fmt.Sprintf(format, args...)
+	l.logger.Printf("[WARN] %s", msg)
 }
 
 func (l *Logger) Error(format string, args ...interface{}) {

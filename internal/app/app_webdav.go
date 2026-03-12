@@ -89,8 +89,29 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 		skippedCount := 0
 		errorCount := 0
 
+		// Get only active volumes for linking
+		volumes, _ := a.store.GetActiveVolumes()
+
 		for i, remotePath := range remotePaths {
 			fileName := filepath.Base(remotePath)
+
+			// Determine if this file belongs to a volume
+			var volumeID string
+			var relativePath string
+			longestMatch := ""
+			for _, vol := range volumes {
+				if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath {
+					if len(vol.MountPath) > len(longestMatch) {
+						longestMatch = vol.MountPath
+						volumeID = vol.ID
+					}
+				}
+			}
+
+			if volumeID != "" {
+				relativePath = strings.TrimPrefix(remotePath, longestMatch)
+				relativePath = strings.TrimPrefix(relativePath, "/")
+			}
 
 			// Create temp file
 			tempFile, err := os.CreateTemp("", "haya-tab-download-*.tmp")
@@ -118,8 +139,14 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 				parsedTab.Title = strings.TrimSuffix(fileName, filepath.Ext(fileName))
 			}
 
+			// Link to volume if detected
+			if volumeID != "" {
+				parsedTab.VolumeID = volumeID
+				parsedTab.CloudPath = relativePath
+			}
+
 			// SaveTab handles ID generation, file moving/renaming, and duplicate checks
-			_, err = a.SaveTab(parsedTab, true)
+			savedTab, err := a.SaveTab(parsedTab, true)
 			if err != nil {
 				if strings.Contains(err.Error(), "already exists") {
 					a.logger.Info("Skipping duplicate file %s: %v", fileName, err)
@@ -134,6 +161,11 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 				successCount++
 				// Clean up temp file (SaveTab copied it)
 				os.Remove(tempPath)
+
+				// If it's linked to a volume, update the fingerprint
+				if volumeID != "" && savedTab != nil {
+					go a.batchAddToFingerprint(volumeID, []store.Tab{*savedTab})
+				}
 			}
 
 			a.emitEvent("cloud-progress", map[string]interface{}{
@@ -204,16 +236,23 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 
 				// If we found a volume, update its fingerprint file
 				if targetVolume != nil {
-					// Get tab metadata if this file is in our library
+					// Get tab metadata and categories if this file is in our library
 					tab, _ := a.store.GetTabByPath(localPath)
 
 					var title, artist, album, fileType string
+					var categories []string
 					if tab != nil {
 						// Use existing metadata from library
 						title = tab.Title
 						artist = tab.Artist
 						album = tab.Album
 						fileType = tab.Type
+
+						// Get category names
+						cats, err := a.store.GetCategoryNamesForTab(tab.ID)
+						if err == nil {
+							categories = cats
+						}
 					} else {
 						// Parse metadata from filename
 						title, artist = parseMetadataFromFilename(fileName)
@@ -244,6 +283,7 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 						Artist:       artist,
 						Album:        album,
 						Type:         fileType,
+						Categories:   categories,
 						UploadedAt:   time.Now().UTC().Format(time.RFC3339),
 						UploadedBy:   getDeviceName(),
 					}
@@ -783,6 +823,7 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 
 		// CRITICAL: Do NOT call ProcessFile - preserve existing metadata
 		// Only update the necessary state fields
+		tab.CloudPath = tab.FilePath // Keep original relative path for fingerprint updates
 		tab.FilePath = localPath
 		tab.IsCloud = false
 		tab.IsManaged = true

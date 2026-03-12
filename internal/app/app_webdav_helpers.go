@@ -194,12 +194,33 @@ func (a *App) batchAddToFingerprint(volumeID string, tabs []store.Tab) {
 	// Convert tabs to fingerprint files
 	fpFiles := make([]syncpkg.FingerprintFile, 0, len(tabs))
 	for _, tab := range tabs {
+		// Get categories for this tab
+		categories, err := a.store.GetCategoryNamesForTab(tab.ID)
+		if err != nil {
+			a.logger.Error("Failed to get categories for tab %s: %v", tab.ID, err)
+			categories = []string{}
+		}
+
+		// Use CloudPath if available, otherwise fallback to FilePath (only for cloud tabs)
+		relativePath := tab.CloudPath
+		if relativePath == "" {
+			if tab.IsCloud {
+				relativePath = tab.FilePath
+			} else {
+				// For local tabs without CloudPath, we can't reliably update fingerprint
+				// unless we calculate it, but for now we skip to avoid bad data
+				a.logger.Warning("Skipping fingerprint update for local tab %s: no CloudPath", tab.ID)
+				continue
+			}
+		}
+
 		fpFile := syncpkg.FingerprintFile{
-			RelativePath: tab.FilePath,
+			RelativePath: relativePath,
 			Title:        tab.Title,
 			Artist:       tab.Artist,
 			Album:        tab.Album,
 			Type:         tab.Type,
+			Categories:   categories,
 			UploadedAt:   time.Unix(tab.AddedAt, 0).UTC().Format(time.RFC3339),
 			UploadedBy:   getDeviceName(),
 		}

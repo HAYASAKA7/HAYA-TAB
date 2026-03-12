@@ -229,6 +229,7 @@ export namespace store {
 	    artist: string;
 	    album: string;
 	    filePath: string;
+	    cloudPath: string;
 	    volumeId: string;
 	    type: string;
 	    isManaged: boolean;
@@ -255,6 +256,7 @@ export namespace store {
 	        this.artist = source["artist"];
 	        this.album = source["album"];
 	        this.filePath = source["filePath"];
+	        this.cloudPath = source["cloudPath"];
 	        this.volumeId = source["volumeId"];
 	        this.type = source["type"];
 	        this.isManaged = source["isManaged"];

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.9] - 2026-03-12
+
+### Added
+- **Multi-Device Category Sync:** Cloud fingerprints now include tab category names, enabling automatic reconstruction of categories on other devices during synchronization.
+- **Persistence of Cloud Mappings:** Added `CloudPath` to the `Tab` model to ensure seamless synchronization and fingerprint updates even after cloud tabs are downloaded to local storage.
+- **Improved Metadata Sync:** Enhanced `FingerprintCache` to correctly overwrite existing metadata in fingerprint buckets, ensuring updates to Title, Artist, and Album are properly flushed to WebDAV.
+- **Logger Enhancements:** Added `Warning` level and method to the internal logger to improve diagnostic reporting.
+
 ## [2.3.8] - 2026-03-12
 
 ### Added

@@ -165,6 +165,11 @@ func (a *App) UpdateTab(tab store.Tab) error {
 		return err
 	}
 
+	// Update fingerprint if it's associated with a cloud volume
+	if tab.IsCloud && tab.VolumeID != "" {
+		go a.batchAddToFingerprint(tab.VolumeID, []store.Tab{tab})
+	}
+
 	// Notify frontend about the update
 	a.emitEvent("tab-updated", tab)
 
@@ -263,6 +268,11 @@ func (a *App) UpdateTabMetadata(id string, title string, artist string, album st
 
 		if err := a.store.UpdateTab(*currentTab); err != nil {
 			return fmt.Errorf("failed to update tab metadata: %w", err)
+		}
+
+		// Update fingerprint if it's associated with a cloud volume
+		if currentTab.VolumeID != "" {
+			go a.batchAddToFingerprint(currentTab.VolumeID, []store.Tab{*currentTab})
 		}
 
 		// Notify frontend about the update
@@ -370,6 +380,10 @@ func (a *App) BatchDeleteTabs(ids []string) (int, error) {
 func (a *App) BatchMoveTabs(ids []string, categoryID string) (int, error) {
 	moved := 0
 	baseTime := time.Now().Unix()
+
+	// Group cloud tabs by volume for batch fingerprint updates
+	volumeTabs := make(map[string][]store.Tab)
+
 	for i, id := range ids {
 		// Increment added time slightly to preserve order
 		// For backward compatibility, "Move" implies setting the single category
@@ -379,8 +393,19 @@ func (a *App) BatchMoveTabs(ids []string, categoryID string) (int, error) {
 		}
 		if err := a.store.SetTabCategories(id, cats, baseTime+int64(i)); err == nil {
 			moved++
+
+			// Track cloud tabs for fingerprint updates (even if local)
+			if tab, _ := a.store.GetTab(id); tab != nil && tab.IsCloud && tab.VolumeID != "" {
+				volumeTabs[tab.VolumeID] = append(volumeTabs[tab.VolumeID], *tab)
+			}
 		}
 	}
+
+	// Update fingerprints for all affected volumes
+	for volumeID, tabs := range volumeTabs {
+		go a.batchAddToFingerprint(volumeID, tabs)
+	}
+
 	return moved, nil
 }
 
@@ -388,6 +413,10 @@ func (a *App) BatchMoveTabs(ids []string, categoryID string) (int, error) {
 func (a *App) BatchAddTabsToCategory(ids []string, categoryID string) (int, error) {
 	added := 0
 	baseTime := time.Now().Unix()
+
+	// Group cloud tabs by volume for batch fingerprint updates
+	volumeTabs := make(map[string][]store.Tab)
+
 	for i, id := range ids {
 		// Get existing tab to check for duplicates
 		tab, err := a.store.GetTab(id)
@@ -410,8 +439,19 @@ func (a *App) BatchAddTabsToCategory(ids []string, categoryID string) (int, erro
 		newCats := append(tab.CategoryIDs, categoryID)
 		if err := a.store.SetTabCategories(id, newCats, baseTime+int64(i)); err == nil {
 			added++
+
+			// Track cloud tabs for fingerprint updates (even if local)
+			if updatedTab, _ := a.store.GetTab(id); updatedTab != nil && updatedTab.VolumeID != "" {
+				volumeTabs[updatedTab.VolumeID] = append(volumeTabs[updatedTab.VolumeID], *updatedTab)
+			}
 		}
 	}
+
+	// Update fingerprints for all affected volumes
+	for volumeID, tabs := range volumeTabs {
+		go a.batchAddToFingerprint(volumeID, tabs)
+	}
+
 	return added, nil
 }
 
@@ -421,12 +461,24 @@ func (a *App) MoveTab(tabID, categoryID string) error {
 	if categoryID != "" {
 		cats = append(cats, categoryID)
 	}
-	return a.store.SetTabCategories(tabID, cats, time.Now().Unix())
+	err := a.store.SetTabCategories(tabID, cats, time.Now().Unix())
+	if err == nil {
+		if tab, _ := a.store.GetTab(tabID); tab != nil && tab.IsCloud && tab.VolumeID != "" {
+			go a.batchAddToFingerprint(tab.VolumeID, []store.Tab{*tab})
+		}
+	}
+	return err
 }
 
 // UpdateTabCategories updates the categories for a tab
 func (a *App) UpdateTabCategories(tabID string, categoryIDs []string) error {
-	return a.store.SetTabCategories(tabID, categoryIDs, time.Now().Unix())
+	err := a.store.SetTabCategories(tabID, categoryIDs, time.Now().Unix())
+	if err == nil {
+		if tab, _ := a.store.GetTab(tabID); tab != nil && tab.IsCloud && tab.VolumeID != "" {
+			go a.batchAddToFingerprint(tab.VolumeID, []store.Tab{*tab})
+		}
+	}
+	return err
 }
 
 // AddTabToCategory adds a tab to a category without removing it from others
@@ -447,7 +499,13 @@ func (a *App) AddTabToCategory(tabID, categoryID string) error {
 	}
 
 	newCats := append(tab.CategoryIDs, categoryID)
-	return a.store.SetTabCategories(tabID, newCats, time.Now().Unix())
+	err = a.store.SetTabCategories(tabID, newCats, time.Now().Unix())
+	if err == nil {
+		if updatedTab, _ := a.store.GetTab(tabID); updatedTab != nil && updatedTab.VolumeID != "" {
+			go a.batchAddToFingerprint(tab.VolumeID, []store.Tab{*updatedTab})
+		}
+	}
+	return err
 }
 
 // RemoveTabFromCategory removes a tab from a category
@@ -480,7 +538,13 @@ func (a *App) RemoveTabFromCategory(tabID, categoryID string) error {
 		return nil
 	}
 
-	return a.store.SetTabCategories(tabID, newCats, time.Now().Unix())
+	err = a.store.SetTabCategories(tabID, newCats, time.Now().Unix())
+	if err == nil {
+		if updatedTab, _ := a.store.GetTab(tabID); updatedTab != nil && updatedTab.VolumeID != "" {
+			go a.batchAddToFingerprint(tab.VolumeID, []store.Tab{*updatedTab})
+		}
+	}
+	return err
 }
 
 // OpenTab opens the file using system default
