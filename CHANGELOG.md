@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.10] - 2026-03-12
+
+### Changed
+- **Default Startup Mode:** The application now defaults to opening in a Maximized window for better screen utilization.
+
 ## [2.3.9] - 2026-03-12
 
 ### Added

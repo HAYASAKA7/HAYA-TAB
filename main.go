@@ -34,6 +34,7 @@ func main() {
 		Title:  "HAYA-TAB",
 		Width:  1024,
 		Height: 768,
+		WindowStartState: options.Maximised,
 		AssetServer: &assetserver.Options{
 			Assets:  assets,
 			Handler: fileHandler,
