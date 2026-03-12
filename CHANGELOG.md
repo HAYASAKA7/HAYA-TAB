@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.8] - 2026-03-12
+
+### Added
+- **True Virtual Grid Optimization:** Refactored the `LibraryView` to use `vue-virtual-scroller`, resolving severe initial render blocking and scrolling lag when dealing with thousands of items.
+- **Improved A-Z Quick Jump Bar:** Re-implemented the alphabetical jump bar navigation logic to calculate dynamic indices, ensuring flawless synchronization with the newly virtualized DOM structure.
+
 ## [2.3.7] - 2026-03-11
 
 ### Added

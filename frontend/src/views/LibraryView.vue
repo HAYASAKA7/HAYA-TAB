@@ -10,6 +10,7 @@ import TabCard from '@/components/grid/TabCard.vue'
 import CategoryCard from '@/components/grid/CategoryCard.vue'
 import BackCard from '@/components/grid/BackCard.vue'
 import SearchBar from '@/components/common/SearchBar.vue'
+import { useElementSize } from '@vueuse/core'
 
 const { t } = useI18n()
 const tabsStore = useTabsStore()
@@ -18,6 +19,12 @@ const settingsStore = useSettingsStore()
 const contextMenu = useContextMenu()
 const { showToast } = useToast()
 const viewMode = ref<'singles' | 'categories'>('singles')
+
+const viewContentRef = ref<HTMLElement | null>(null)
+const { width } = useElementSize(viewContentRef)
+const columns = computed(() => Math.max(1, Math.floor((width.value - 64) / 310))) // 310px item + gap, 64px padding buffer
+
+const scrollerRef = ref<any>(null)
 
 const shouldShowFilters = computed(() => {
   if (viewMode.value === 'singles') return true
@@ -111,13 +118,32 @@ const groupedTabs = computed(() => {
   return orderedGroups
 })
 
+const virtualItems = computed(() => {
+  const items: any[] = []
+  for (const [letter, tabs] of Object.entries(groupedTabs.value)) {
+    items.push({ id: `header-${letter}`, type: 'header', letter })
+    
+    for (let i = 0; i < tabs.length; i += columns.value) {
+      items.push({
+        id: `row-${letter}-${i}`,
+        type: 'row',
+        tabs: tabs.slice(i, i + columns.value)
+      })
+    }
+  }
+  return items
+})
+
 // A-Z Quick Jump Bar - follows same order as groupedTabs
 const availableLetters = computed(() => {
   return Object.keys(groupedTabs.value)
 })
 
 function scrollToLetter(letter: string) {
-  document.getElementById(`group-${letter}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const index = virtualItems.value.findIndex(item => item.id === `header-${letter}`)
+  if (index !== -1 && scrollerRef.value) {
+    scrollerRef.value.scrollToItem(index)
+  }
 }
 
 // Drag/touch to scroll functionality
@@ -289,19 +315,36 @@ async function addTab(isUpload: boolean) {
       <SearchBar :show-filters="shouldShowFilters" />
     </div>
 
-    <div class="view-content" @contextmenu="handleBlankContextMenu">
+    <div ref="viewContentRef" class="view-content" @contextmenu="handleBlankContextMenu">
       <!-- Singles View -->
       <div v-if="viewMode === 'singles'" class="singles-container">
         <div v-if="tabsStore.loading" class="loading-state">{{ t('library.loading') }}</div>
         <div v-else-if="tabsStore.tabs.length === 0" class="empty-state">{{ t('library.noTabs') }}</div>
 
         <template v-else>
-          <div v-for="(group, letter) in groupedTabs" :key="letter" class="letter-group">
-            <div :id="`group-${letter}`" class="group-header">{{ letter }}</div>
-            <div class="tab-grid">
-              <TabCard v-for="tab in group" :key="tab.id" :tab="tab" />
-            </div>
-          </div>
+          <DynamicScroller
+            ref="scrollerRef"
+            :items="virtualItems"
+            :min-item-size="50"
+            key-field="id"
+            class="scroller"
+          >
+            <template v-slot="{ item, index, active }">
+              <DynamicScrollerItem
+                :item="item"
+                :active="active"
+                :size-dependencies="[item.type]"
+                :data-index="index"
+              >
+                <div v-if="item.type === 'header'" class="group-header">
+                  {{ item.letter }}
+                </div>
+                <div v-else class="tab-grid-row">
+                  <TabCard v-for="tab in item.tabs" :key="tab.id" :tab="tab" />
+                </div>
+              </DynamicScrollerItem>
+            </template>
+          </DynamicScroller>
 
           <!-- A-Z Quick Jump Bar -->
           <div
@@ -441,11 +484,27 @@ async function addTab(isUpload: boolean) {
 
 .singles-container {
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.scroller {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.tab-grid-row {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  padding-bottom: 30px;
 }
 
 .alphabet-bar {
   position: fixed;
-  right: 16px;
+  right: 44px; /* Increased to 44px to ensure it completely clears the virtual scroller's scrollbar */
   top: 50%;
   transform: translateY(-50%);
   display: flex;
