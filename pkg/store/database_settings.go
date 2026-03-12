@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -19,6 +20,8 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 	if err != nil {
 		return err
 	}
+
+	midiSettingsJSON, _ := json.Marshal(settings.MidiSettings)
 
 	// Save each setting to DB (no lock needed - relies on database/sql pool + WAL)
 	settingsMap := map[string]string{
@@ -54,6 +57,7 @@ func (s *DBStore) UpdateSettings(settings Settings) error {
 		"keyBindings.autoScroll":      settings.KeyBindings.AutoScroll,
 		"keyBindings.scrollSpeedUp":   settings.KeyBindings.ScrollSpeedUp,
 		"keyBindings.scrollSpeedDown": settings.KeyBindings.ScrollSpeedDown,
+		"midiSettings":                string(midiSettingsJSON),
 	}
 
 	for key, value := range settingsMap {

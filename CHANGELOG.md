@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.11] - 2026-03-12
+### Added
+- MIDI pedal support for page turning and playback control in PDF and Guitar Pro viewers.
+- "MIDI Learn" configuration system in Settings for easy hardware mapping.
+- Support for MIDI expression pedals for smooth scrolling.
+- New piano keyboard style icon for MIDI settings.
+
+### Fixed
+- Fixed TypeScript build errors related to WebMIDI types.
+- Corrected sidebar layout issues when switching between viewers.
+
 ## [2.3.10] - 2026-03-12
 
 ### Changed

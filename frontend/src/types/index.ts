@@ -50,6 +50,20 @@ export interface KeyBindings {
   scrollSpeedDown: string
 }
 
+export interface MidiMapping {
+  type: 'CC' | 'Note'
+  number: number
+  channel: number
+}
+
+export interface MidiSettings {
+  enabled: boolean
+  scrollDown: MidiMapping | null
+  scrollUp: MidiMapping | null
+  playPause: MidiMapping | null
+  expressionScroll: MidiMapping | null
+}
+
 export interface Settings {
   theme: 'dark' | 'light' | 'system'
   language: 'en' | 'zh-CN' | 'zh-TW' | 'ja'
@@ -64,6 +78,7 @@ export interface Settings {
   autoSyncFrequency: 'startup' | 'weekly' | 'monthly' | 'yearly'
   lastSyncTime: number
   keyBindings: KeyBindings
+  midiSettings: MidiSettings
   storagePath: string
   coversPath: string
   // WebDAV

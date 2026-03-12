@@ -316,10 +316,18 @@ function onIframeLoad() {
 onMounted(async () => {
   if (!isPdf.value || !tab.value) return
   await loadPdf()
+  window.addEventListener('midi-scroll-down', handleMidiScrollDown)
+  window.addEventListener('midi-scroll-up', handleMidiScrollUp)
+  window.addEventListener('midi-play-pause', handleMidiPlayPause)
+  window.addEventListener('midi-expression-scroll', handleMidiExpressionScroll as EventListener)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('midi-scroll-down', handleMidiScrollDown)
+  window.removeEventListener('midi-scroll-up', handleMidiScrollUp)
+  window.removeEventListener('midi-play-pause', handleMidiPlayPause)
+  window.removeEventListener('midi-expression-scroll', handleMidiExpressionScroll as EventListener)
   stopMetronome()
   stopAutoScroll()
   if (audioCtx) {
@@ -331,6 +339,36 @@ onUnmounted(() => {
     URL.revokeObjectURL(blobUrl.value)
   }
 })
+
+function handleMidiScrollDown() {
+  if (!props.visible) return
+  scrollPdf(300)
+}
+
+function handleMidiScrollUp() {
+  if (!props.visible) return
+  scrollPdf(-300)
+}
+
+function handleMidiPlayPause() {
+  if (!props.visible) return
+  toggleMetronome()
+}
+
+function handleMidiExpressionScroll(e: CustomEvent<number>) {
+  if (!props.visible || !iframeRef.value) return
+  try {
+    const doc = iframeRef.value.contentDocument
+    if (doc) {
+      const viewerContainer = doc.getElementById('viewerContainer')
+      if (viewerContainer) {
+        const scale = e.detail
+        const maxScroll = viewerContainer.scrollHeight - viewerContainer.clientHeight
+        viewerContainer.scrollTop = maxScroll * scale
+      }
+    }
+  } catch (err) { /* ignore */ }
+}
 
 async function loadPdf() {
   if (!tab.value) return

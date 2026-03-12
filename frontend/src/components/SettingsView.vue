@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useSettingsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { FileService, SettingsService } from '@/services'
+import { midiService } from '@/services/MidiService'
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
 import { SUPPORTED_LOCALES } from '@/i18n'
 
@@ -18,6 +19,33 @@ const syncFilename = ref('')
 const syncCount = ref(0)
 const isSyncing = ref(false)
 const isMigrating = ref(false)
+
+// MIDI Learn state
+const learningAction = ref<string | null>(null)
+
+function startMidiLearn(action: string) {
+  learningAction.value = action
+  midiService.enterLearnMode((mapping) => {
+    // Update the corresponding MIDI mapping based on the action
+    if (learningAction.value === 'scrollDown') settingsStore.settings.midiSettings.scrollDown = mapping
+    else if (learningAction.value === 'scrollUp') settingsStore.settings.midiSettings.scrollUp = mapping
+    else if (learningAction.value === 'playPause') settingsStore.settings.midiSettings.playPause = mapping
+    else if (learningAction.value === 'expressionScroll') settingsStore.settings.midiSettings.expressionScroll = mapping
+    
+    learningAction.value = null
+    showToast(t('settings.midiMapped', 'MIDI Mapping Successful'), 'success')
+  })
+}
+
+function cancelMidiLearn() {
+  learningAction.value = null
+  midiService.cancelLearnMode()
+}
+
+function formatMidiMapping(mapping: any) {
+  if (!mapping) return t('settings.notMapped', 'Not Mapped')
+  return `${mapping.type} ${mapping.number} (Ch ${mapping.channel + 1})`
+}
 
 // Auto-save when settings change (excluding keyBindings which saves on modal close)
 watch(
@@ -34,6 +62,8 @@ watch(
     autoSyncEnabled: settingsStore.settings.autoSyncEnabled,
     autoSyncFrequency: settingsStore.settings.autoSyncFrequency,
     webdavEnabled: settingsStore.settings.webdavEnabled, // Only watch enabled state
+    midiEnabled: settingsStore.settings.midiSettings.enabled,
+    midiMappings: JSON.stringify(settingsStore.settings.midiSettings),
   }),
   async () => {
     try {
@@ -386,6 +416,58 @@ async function handleChangePath(target: 'storage' | 'covers') {
     </section>
 
     <section class="settings-section">
+      <h3><span class="icon-piano"></span> MIDI</h3>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" v-model="settingsStore.settings.midiSettings.enabled">
+          {{ t('settings.enableMidi', 'Enable MIDI Pedal Support') }}
+        </label>
+      </div>
+      <div v-if="settingsStore.settings.midiSettings.enabled" class="midi-config">
+        <div class="form-group">
+          <label>{{ t('settings.midiScrollDown', 'Scroll Down / Next Page') }}</label>
+          <div class="input-with-button">
+            <input type="text" :value="formatMidiMapping(settingsStore.settings.midiSettings.scrollDown)" disabled readonly>
+            <button class="btn" @click="startMidiLearn('scrollDown')" :class="{ 'primary': learningAction === 'scrollDown' }">
+              {{ learningAction === 'scrollDown' ? t('settings.learning', 'Waiting for signal...') : t('settings.learn', 'Learn') }}
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>{{ t('settings.midiScrollUp', 'Scroll Up / Previous Page') }}</label>
+          <div class="input-with-button">
+            <input type="text" :value="formatMidiMapping(settingsStore.settings.midiSettings.scrollUp)" disabled readonly>
+            <button class="btn" @click="startMidiLearn('scrollUp')" :class="{ 'primary': learningAction === 'scrollUp' }">
+              {{ learningAction === 'scrollUp' ? t('settings.learning', 'Waiting for signal...') : t('settings.learn', 'Learn') }}
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>{{ t('settings.midiPlayPause', 'Play / Pause') }}</label>
+          <div class="input-with-button">
+            <input type="text" :value="formatMidiMapping(settingsStore.settings.midiSettings.playPause)" disabled readonly>
+            <button class="btn" @click="startMidiLearn('playPause')" :class="{ 'primary': learningAction === 'playPause' }">
+              {{ learningAction === 'playPause' ? t('settings.learning', 'Waiting for signal...') : t('settings.learn', 'Learn') }}
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>{{ t('settings.midiExpression', 'Expression Pedal (Smooth Scroll)') }}</label>
+          <div class="input-with-button">
+            <input type="text" :value="formatMidiMapping(settingsStore.settings.midiSettings.expressionScroll)" disabled readonly>
+            <button class="btn" @click="startMidiLearn('expressionScroll')" :class="{ 'primary': learningAction === 'expressionScroll' }">
+              {{ learningAction === 'expressionScroll' ? t('settings.learning', 'Waiting for signal...') : t('settings.learn', 'Learn') }}
+            </button>
+          </div>
+        </div>
+        <div v-if="learningAction" class="midi-learn-overlay">
+          <p>{{ t('settings.midiLearnTip', 'Please press or step on your MIDI device...') }}</p>
+          <button class="btn small" @click="cancelMidiLearn">{{ t('common.cancel', 'Cancel') }}</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-section">
       <h3><span class="icon-cloud"></span> WebDAV</h3>
       <div class="form-group">
         <label>
@@ -472,5 +554,21 @@ async function handleChangePath(target: 'storage' | 'covers') {
 
 .input-with-button .btn {
   padding: 0 0.75rem;
+}
+
+.midi-learn-overlay {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--primary-color);
+  border-radius: 4px;
+  text-align: center;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
 }
 </style>

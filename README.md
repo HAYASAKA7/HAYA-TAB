@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-2.3.10-green)
+![Version](https://img.shields.io/badge/version-2.3.11-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
@@ -22,6 +22,7 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 - **Rich Internal Viewer**:
   - **PDF:** Built-in viewer with **Auto-Scroll** (variable speed)
   - **Guitar Pro:** alphaTab engine with **Looping**, **Section Playback**, **Speed Control**, and **Floating Toolbar**
+- **MIDI Pedal Support** - Control page turning, playback (Play/Pause), and **Smooth Scrolling** (via Expression Pedal) with any standard MIDI foot controller; includes **MIDI Learn** for easy mapping.
 - **Internationalization** - Full support for **English, Chinese (Simplified/Traditional), and Japanese**; **Auto-detects system language** on first launch
 - **Modern UI** - Dark/Light theme, **Auto-saving settings**, and responsive Grid/List views
 

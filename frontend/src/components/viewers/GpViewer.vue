@@ -99,13 +99,43 @@ function handleCloudDownload(data: any) {
 
 onMounted(() => {
   EventsOn('cloud-download-single', handleCloudDownload)
+  window.addEventListener('midi-scroll-down', handleMidiScrollDown)
+  window.addEventListener('midi-scroll-up', handleMidiScrollUp)
+  window.addEventListener('midi-play-pause', handleMidiPlayPause)
+  window.addEventListener('midi-expression-scroll', handleMidiExpressionScroll as EventListener)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('midi-scroll-down', handleMidiScrollDown)
+  window.removeEventListener('midi-scroll-up', handleMidiScrollUp)
+  window.removeEventListener('midi-play-pause', handleMidiPlayPause)
+  window.removeEventListener('midi-expression-scroll', handleMidiExpressionScroll as EventListener)
   EventsOff('cloud-download-single')
   destroy()
 })
+
+function handleMidiScrollDown() {
+  if (!props.visible) return
+  scrollGp(300)
+}
+
+function handleMidiScrollUp() {
+  if (!props.visible) return
+  scrollGp(-300)
+}
+
+function handleMidiPlayPause() {
+  if (!props.visible) return
+  playPause()
+}
+
+function handleMidiExpressionScroll(e: CustomEvent<number>) {
+  if (!props.visible || !scrollWrapperRef.value) return
+  const scale = e.detail
+  const maxScroll = scrollWrapperRef.value.scrollHeight - scrollWrapperRef.value.clientHeight
+  scrollWrapperRef.value.scrollTop = maxScroll * scale
+}
 
 async function loadGpTab() {
   if (!tab.value || !containerRef.value) return

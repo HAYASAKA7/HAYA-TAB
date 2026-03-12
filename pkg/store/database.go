@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -446,6 +447,9 @@ func (s *DBStore) loadSettings() error {
 	}
 	if v, ok := settings["keyBindings.scrollSpeedDown"]; ok && v != "" {
 		s.Settings.KeyBindings.ScrollSpeedDown = v
+	}
+	if v, ok := settings["midiSettings"]; ok && v != "" {
+		_ = json.Unmarshal([]byte(v), &s.Settings.MidiSettings)
 	}
 
 	return nil

@@ -67,23 +67,40 @@ type KeyBindings struct {
 	ScrollSpeedDown string `json:"scrollSpeedDown"`
 }
 
+// MidiMapping represents a MIDI message mapping
+type MidiMapping struct {
+	Type    string `json:"type"`    // "CC", "Note"
+	Number  int    `json:"number"`  // CC number or Note number
+	Channel int    `json:"channel"` // 0-15
+}
+
+// MidiSettings represents MIDI-related configuration
+type MidiSettings struct {
+	Enabled          bool         `json:"enabled"`
+	ScrollDown       *MidiMapping `json:"scrollDown"`
+	ScrollUp         *MidiMapping `json:"scrollUp"`
+	PlayPause        *MidiMapping `json:"playPause"`
+	ExpressionScroll *MidiMapping `json:"expressionScroll"`
+}
+
 // Settings represents application configuration
 type Settings struct {
-	Theme             string      `json:"theme"`        // "dark", "light", "system"
-	Language          string      `json:"language"`     // "en", "zh-CN", "zh-TW", "ja"
-	Background        string      `json:"background"`   // URL or path
-	BgType            string      `json:"bgType"`       // "url", "local"
-	OpenMethod        string      `json:"openMethod"`   // "system", "inner"
-	OpenGpMethod      string      `json:"openGpMethod"` // "system", "inner"
-	AudioDevice       string      `json:"audioDevice"`  // Device ID for audio output
-	SyncPaths         []string    `json:"syncPaths"`
-	SyncStrategy      string      `json:"syncStrategy"` // "skip", "overwrite"
-	AutoSyncEnabled   bool        `json:"autoSyncEnabled"`
-	AutoSyncFrequency string      `json:"autoSyncFrequency"` // "startup", "weekly", "monthly", "yearly"
-	LastSyncTime      int64       `json:"lastSyncTime"`      // Unix timestamp
-	KeyBindings       KeyBindings `json:"keyBindings"`
-	StoragePath       string      `json:"storagePath"`       // Custom storage path
-	CoversPath        string      `json:"coversPath"`        // Custom covers path
+	Theme             string       `json:"theme"`        // "dark", "light", "system"
+	Language          string       `json:"language"`     // "en", "zh-CN", "zh-TW", "ja"
+	Background        string       `json:"background"`   // URL or path
+	BgType            string       `json:"bgType"`       // "url", "local"
+	OpenMethod        string       `json:"openMethod"`   // "system", "inner"
+	OpenGpMethod      string       `json:"openGpMethod"` // "system", "inner"
+	AudioDevice       string       `json:"audioDevice"`  // Device ID for audio output
+	SyncPaths         []string     `json:"syncPaths"`
+	SyncStrategy      string       `json:"syncStrategy"` // "skip", "overwrite"
+	AutoSyncEnabled   bool         `json:"autoSyncEnabled"`
+	AutoSyncFrequency string       `json:"autoSyncFrequency"` // "startup", "weekly", "monthly", "yearly"
+	LastSyncTime      int64        `json:"lastSyncTime"`      // Unix timestamp
+	KeyBindings       KeyBindings  `json:"keyBindings"`
+	MidiSettings      MidiSettings `json:"midiSettings"`
+	StoragePath       string       `json:"storagePath"` // Custom storage path
+	CoversPath        string       `json:"coversPath"`  // Custom covers path
 
 	// WebDAV Settings
 	WebDAVEnabled  bool   `json:"webdavEnabled"`

@@ -35,6 +35,13 @@ export const useSettingsStore = defineStore('settings', () => {
       scrollSpeedUp: '.',
       scrollSpeedDown: ','
     },
+    midiSettings: {
+      enabled: false,
+      scrollDown: null,
+      scrollUp: null,
+      playPause: null,
+      expressionScroll: null
+    },
     storagePath: '',
     coversPath: '',
     webdavEnabled: false,
@@ -62,6 +69,10 @@ export const useSettingsStore = defineStore('settings', () => {
           keyBindings: {
             ...settings.value.keyBindings,
             ...(loaded.keyBindings || {})
+          },
+          midiSettings: {
+            ...settings.value.midiSettings,
+            ...(loaded.midiSettings || {})
           }
         }
       }
