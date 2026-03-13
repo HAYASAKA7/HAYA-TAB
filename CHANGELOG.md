@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.12] - 2026-03-13
+### Added
+- Built-in automatic update checker to notify users of new releases on GitHub
+- New settings section for Update Check configuration
+
 ## [2.3.11] - 2026-03-12
 ### Added
 - MIDI pedal support for page turning and playback control in PDF and Guitar Pro viewers.

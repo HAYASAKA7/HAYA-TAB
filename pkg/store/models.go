@@ -102,6 +102,11 @@ type Settings struct {
 	StoragePath       string       `json:"storagePath"` // Custom storage path
 	CoversPath        string       `json:"coversPath"`  // Custom covers path
 
+	// Update Check
+	UpdateCheckEnabled  bool   `json:"updateCheckEnabled"`
+	LastUpdateCheckTime int64  `json:"lastUpdateCheckTime"`
+	LatestVersion       string `json:"latestVersion"`
+
 	// WebDAV Settings
 	WebDAVEnabled  bool   `json:"webdavEnabled"`
 	WebDAVURL      string `json:"webdavUrl"`

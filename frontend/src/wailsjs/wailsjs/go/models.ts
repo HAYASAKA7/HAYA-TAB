@@ -228,6 +228,9 @@ export namespace store {
 	    midiSettings: MidiSettings;
 	    storagePath: string;
 	    coversPath: string;
+	    updateCheckEnabled: boolean;
+	    lastUpdateCheckTime: number;
+	    latestVersion: string;
 	    webdavEnabled: boolean;
 	    webdavUrl: string;
 	    webdavUser: string;
@@ -255,6 +258,9 @@ export namespace store {
 	        this.midiSettings = this.convertValues(source["midiSettings"], MidiSettings);
 	        this.storagePath = source["storagePath"];
 	        this.coversPath = source["coversPath"];
+	        this.updateCheckEnabled = source["updateCheckEnabled"];
+	        this.lastUpdateCheckTime = source["lastUpdateCheckTime"];
+	        this.latestVersion = source["latestVersion"];
 	        this.webdavEnabled = source["webdavEnabled"];
 	        this.webdavUrl = source["webdavUrl"];
 	        this.webdavUser = source["webdavUser"];

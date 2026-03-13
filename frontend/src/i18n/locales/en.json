@@ -106,7 +106,15 @@
     "applyBtn": "Only Apply Path",
     "migrating": "Migrating data, please wait...",
     "migrateSuccess": "Migration completed successfully",
-    "pathApplied": "Path applied successfully"
+    "pathApplied": "Path applied successfully",
+    "update": "Update",
+    "checkUpdates": "Check for Updates",
+    "enableUpdateCheck": "Enable Update Check",
+    "currentVersion": "Current Version",
+    "latestVersion": "Latest Version",
+    "goToUpdate": "Go to Update",
+    "upToDate": "You are up to date",
+    "updateAvailable": "Update Available"
   },
   "cloud": {
     "title": "Cloud Library",

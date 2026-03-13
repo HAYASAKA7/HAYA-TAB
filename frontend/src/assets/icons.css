@@ -122,6 +122,10 @@
 }
 
 /* Apply icon as mask-image for color inheritance */
+.icon-refresh {
+    --icon-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-12.17V20h-2V7.83l-3.59 3.58L6 10l6-6 6 6-1.41 1.41L13 7.83z'/%3E%3C/svg%3E");
+}
+
 .icon-menu,
 .icon-home,
 .icon-settings,
@@ -143,7 +147,8 @@
 .icon-metronome,
 .icon-volume,
 .icon-keyboard,
-.icon-cloud {
+.icon-cloud,
+.icon-refresh {
     display: inline-block;
     width: 1.2em;
     height: 1.2em;
@@ -223,7 +228,8 @@
 .settings-section h3 .icon-sync,
 .settings-section h3 .icon-volume,
 .settings-section h3 .icon-keyboard,
-.settings-section h3 .icon-cloud {
+.settings-section h3 .icon-cloud,
+.settings-section h3 .icon-refresh {
     width: 1.2em;
     height: 1.2em;
     margin-right: 0.4em;

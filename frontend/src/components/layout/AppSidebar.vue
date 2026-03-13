@@ -55,7 +55,10 @@ function toggleSidebar() {
       :class="{ active: uiStore.currentView === 'settings' }"
       @click="goSettings"
     >
-      <span class="icon"><span class="icon-settings"></span></span>
+      <span class="icon settings-icon-container">
+        <span class="icon-settings"></span>
+        <span v-if="uiStore.updateInfo?.hasUpdate" class="update-badge"></span>
+      </span>
       <span class="sidebar-label">{{ t('nav.settings') }}</span>
     </div>
     <div class="sidebar-divider"></div>
@@ -68,3 +71,21 @@ function toggleSidebar() {
     </div>
   </aside>
 </template>
+
+<style scoped>
+.settings-icon-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.update-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent-color, #e74c3c);
+  border-radius: 50%;
+  border: 2px solid var(--sidebar-bg);
+}
+</style>

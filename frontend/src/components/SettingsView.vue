@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
-import { FileService, SettingsService } from '@/services'
+import { FileService, SettingsService, UpdateService } from '@/services'
 import { midiService } from '@/services/MidiService'
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
 import { SUPPORTED_LOCALES } from '@/i18n'
@@ -19,6 +19,7 @@ const syncFilename = ref('')
 const syncCount = ref(0)
 const isSyncing = ref(false)
 const isMigrating = ref(false)
+const isCheckingUpdate = ref(false)
 
 // MIDI Learn state
 const learningAction = ref<string | null>(null)
@@ -47,6 +48,29 @@ function formatMidiMapping(mapping: any) {
   return `${mapping.type} ${mapping.number} (Ch ${mapping.channel + 1})`
 }
 
+async function handleCheckUpdate() {
+  if (isCheckingUpdate.value) return
+  isCheckingUpdate.value = true
+  try {
+    const info = await UpdateService.checkForUpdates(true)
+    if (info) {
+      uiStore.updateInfo = info
+      if (info.hasUpdate) {
+        showToast(t('settings.updateAvailable'), 'info')
+      } else {
+        showToast(t('settings.upToDate'), 'success')
+      }
+    } else {
+      showToast(t('errors.network', { operation: 'update check' }), 'error')
+    }
+  } catch (e) {
+    console.error(e)
+    showToast(t('errors.unknown'), 'error')
+  } finally {
+    isCheckingUpdate.value = false
+  }
+}
+
 // Auto-save when settings change (excluding keyBindings which saves on modal close)
 watch(
   () => ({
@@ -61,6 +85,7 @@ watch(
     syncStrategy: settingsStore.settings.syncStrategy,
     autoSyncEnabled: settingsStore.settings.autoSyncEnabled,
     autoSyncFrequency: settingsStore.settings.autoSyncFrequency,
+    updateCheckEnabled: settingsStore.settings.updateCheckEnabled,
     webdavEnabled: settingsStore.settings.webdavEnabled, // Only watch enabled state
     midiEnabled: settingsStore.settings.midiSettings.enabled,
     midiMappings: JSON.stringify(settingsStore.settings.midiSettings),
@@ -537,6 +562,39 @@ async function handleChangePath(target: 'storage' | 'covers') {
             <span v-if="syncCount > 0" class="sync-count">({{ syncCount }} {{ t('settings.filesProcessed') }})</span>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3><span class="icon-refresh"></span> {{ t('settings.update', 'Update') }}</h3>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" v-model="settingsStore.settings.updateCheckEnabled">
+          {{ t('settings.enableUpdateCheck', 'Enable Update Check') }}
+        </label>
+      </div>
+      <div class="form-group">
+        <label>{{ t('settings.currentVersion', 'Current Version') }}</label>
+        <div class="info-text">{{ uiStore.updateInfo?.currentVersion || settingsStore.settings.latestVersion || '2.3.12' }}</div>
+      </div>
+      <div class="form-group" v-if="uiStore.updateInfo?.hasUpdate">
+        <label>{{ t('settings.latestVersion', 'Latest Version') }}</label>
+        <div class="info-text update-available">{{ uiStore.updateInfo.latestVersion }} ({{ t('settings.updateAvailable', 'Update Available') }})</div>
+      </div>
+      <div class="form-group update-actions">
+        <button class="btn primary" @click="handleCheckUpdate" :disabled="isCheckingUpdate">
+          {{ isCheckingUpdate ? t('settings.syncing', 'Checking...') : t('settings.checkUpdates', 'Check for Updates') }}
+        </button>
+        <a 
+          v-if="uiStore.updateInfo?.hasUpdate" 
+          class="btn primary" 
+          :href="uiStore.updateInfo.releaseUrl" 
+          target="_blank"
+          rel="noopener noreferrer"
+          style="text-decoration: none; display: inline-flex; align-items: center;"
+        >
+          {{ t('settings.goToUpdate', 'Go to Update') }}
+        </a>
       </div>
     </section>
   </div>

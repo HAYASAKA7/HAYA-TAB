@@ -23,6 +23,8 @@ export function DownloadCloudTabToLocal(arg1:string):Promise<void>;
 
 export function ExportTab(arg1:string,arg2:string):Promise<void>;
 
+export function GetAppVersion():Promise<string>;
+
 export function GetCategories():Promise<Array<store.Category>>;
 
 export function GetCover(arg1:string):Promise<string>;

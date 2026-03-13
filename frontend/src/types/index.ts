@@ -81,6 +81,10 @@ export interface Settings {
   midiSettings: MidiSettings
   storagePath: string
   coversPath: string
+  // Update Check
+  updateCheckEnabled: boolean
+  lastUpdateCheckTime: number
+  latestVersion: string
   // WebDAV
   webdavEnabled: boolean
   webdavUrl: string

@@ -107,7 +107,15 @@
     "applyBtn": "僅套用路徑",
     "migrating": "正在遷移資料，請稍候...",
     "migrateSuccess": "遷移成功完成",
-    "pathApplied": "路徑套用成功"
+    "pathApplied": "路徑套用成功",
+    "update": "應用程式更新",
+    "checkUpdates": "檢查更新",
+    "enableUpdateCheck": "啟用更新檢查",
+    "currentVersion": "目前版本",
+    "latestVersion": "最新版本",
+    "goToUpdate": "前往更新",
+    "upToDate": "已是最新版本",
+    "updateAvailable": "有可用更新"
   },
   "cloud": {
     "title": "雲端曲庫",

@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { ViewType } from '@/types'
+import type { UpdateInfo } from '@/services/UpdateService'
 
 export const useUIStore = defineStore('ui', () => {
   // State
   const currentView = ref<ViewType>('home')
   const sidebarCollapsed = ref(true)
+  const updateInfo = ref<UpdateInfo | null>(null)
 
   // Modal states
   const editModalVisible = ref(false)
@@ -154,6 +156,7 @@ export const useUIStore = defineStore('ui', () => {
     // State
     currentView,
     sidebarCollapsed,
+    updateInfo,
     editModalVisible,
     categoryModalVisible,
     moveModalVisible,

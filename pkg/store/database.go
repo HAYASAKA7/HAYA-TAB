@@ -23,12 +23,13 @@ func NewDBStore(dbPath string) *DBStore {
 	return &DBStore{
 		dbPath: dbPath,
 		Settings: Settings{
-			Theme:        "system",
-			Language:     DetectSystemLocale(),
-			OpenMethod:   "inner",
-			OpenGpMethod: "inner",
-			SyncStrategy: "skip",
-			SyncPaths:    []string{},
+			Theme:              "system",
+			Language:           DetectSystemLocale(),
+			OpenMethod:         "inner",
+			OpenGpMethod:       "inner",
+			SyncStrategy:       "skip",
+			UpdateCheckEnabled: true,
+			SyncPaths:          []string{},
 			KeyBindings: KeyBindings{
 				ScrollDown:      "j",
 				ScrollUp:        "k",
@@ -384,6 +385,17 @@ func (s *DBStore) loadSettings() error {
 	}
 	if v, ok := settings["coversPath"]; ok {
 		s.Settings.CoversPath = v
+	}
+	if v, ok := settings["updateCheckEnabled"]; ok {
+		s.Settings.UpdateCheckEnabled = (v == "true")
+	}
+	if v, ok := settings["lastUpdateCheckTime"]; ok {
+		var t int64
+		fmt.Sscanf(v, "%d", &t)
+		s.Settings.LastUpdateCheckTime = t
+	}
+	if v, ok := settings["latestVersion"]; ok {
+		s.Settings.LatestVersion = v
 	}
 
 	// WebDAV Settings

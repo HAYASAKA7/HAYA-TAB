@@ -42,6 +42,10 @@ export function ExportTab(arg1, arg2) {
   return window['go']['app']['App']['ExportTab'](arg1, arg2);
 }
 
+export function GetAppVersion() {
+  return window['go']['app']['App']['GetAppVersion']();
+}
+
 export function GetCategories() {
   return window['go']['app']['App']['GetCategories']();
 }

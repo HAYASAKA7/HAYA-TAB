@@ -106,7 +106,15 @@
     "applyBtn": "パスのみを適用",
     "migrating": "データを移行しています。お待ちください...",
     "migrateSuccess": "移行が正常に完了しました",
-    "pathApplied": "パスが正常に適用されました"
+    "pathApplied": "パスが正常に適用されました",
+    "update": "アップデート",
+    "checkUpdates": "アップデートを確認",
+    "enableUpdateCheck": "アップデート確認を有効にする",
+    "currentVersion": "現在のバージョン",
+    "latestVersion": "最新のバージョン",
+    "goToUpdate": "アップデートへ",
+    "upToDate": "最新のバージョンです",
+    "updateAvailable": "利用可能なアップデートがあります"
   },
   "cloud": {
     "title": "クラウドライブラリ",

@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTabsStore, useSettingsStore, useUIStore, useViewersStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
+import { UpdateService } from '@/services'
 import '@/services/MidiService'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import HomeView from '@/views/HomeView.vue'
@@ -38,6 +39,12 @@ onMounted(async () => {
   // Start WebDAV status monitoring if enabled
   if (settingsStore.settings.webdavEnabled) {
     settingsStore.startWebDAVStatusCheck()
+  }
+
+  // Check for updates
+  const updateInfo = await UpdateService.checkForUpdates()
+  if (updateInfo) {
+    uiStore.updateInfo = updateInfo
   }
 
   // Event listeners

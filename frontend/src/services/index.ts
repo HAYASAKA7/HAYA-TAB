@@ -4,3 +4,4 @@ export * from './SettingsService';
 export * from './FileService';
 export * from './CloudService';
 export * from './api';
+export * from './UpdateService';
