@@ -117,6 +117,32 @@ Device B later accesses the same WebDAV:
   └─ User can now play/view without re-parsing
 ```
 
+## Plugin System Architecture (v2.4.0+)
+
+The plugin system allows extending the core functionality of HAYA-TAB through custom JavaScript scripts evaluated securely at runtime.
+
+### Plugin Components
+
+1. **JavaScript Engine (`dop251/goja`)**
+   - Embedded ECMAScript 5.1+ runtime purely in Go.
+   - Secure execution environment with controlled access to host functions.
+
+2. **Plugin Manager (`internal/app/plugin_manager.go`)**
+   - Discovers, loads, and initializes plugins from the `internal/app/plugins/` directory.
+   - Manages plugin lifecycles and provides a set of injected API functions (e.g., logging, HTTP requests).
+
+3. **Plugin Structure**
+   - `manifest.json`: Defines the plugin ID, name, version, entry point (`index.js`), required hooks, and settings schema.
+   - `index.js`: The JavaScript logic that implements the defined hooks.
+
+4. **Hook System**
+   - The backend fires events at specific lifecycle stages (e.g., `metadata` during sync).
+   - Plugins registered for those hooks intercept the data, manipulate it, and return the modified result back to the host application.
+
+### Built-in Plugins
+
+- **AI Metadata (`ai-metadata`)**: An AI-powered plugin that integrates with an OpenAI-compatible API to automatically infer, complete, and enhance missing tab metadata (title, artist, album, tags) based on the filename or contextual clues.
+
 ## Data Flow
 
 ### Standard Tab Management

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.0] - 2026-03-16
+### Added
+- **Plugin System:** Introduced a new plugin architecture powered by Goja (JavaScript engine) to allow custom extensions.
+- **AI Metadata Plugin:** Added a new built-in plugin `ai-metadata` that uses an OpenAI-compatible API to automatically infer and enhance tab metadata (title, artist, album, tags).
+- **Plugin Sync Workflow:** Added GitHub Actions workflow to automatically sync internal plugins to an external repository.
+
+### Changed
+- Updated internal dependencies to support the new JavaScript runtime.
+
 ## [2.3.12] - 2026-03-13
 ### Added
 - Built-in automatic update checker to notify users of new releases on GitHub
