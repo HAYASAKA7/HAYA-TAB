@@ -1,1 +1,1 @@
-{"id":"ai-metadata","name":"AI Metadata Plugin","version":"1.0.1","entry":"index.js","hooks":["metadata"],"permissions":[],"settingsSchema":{"baseUrl":"string","apiKey":"password","model":"string"}}
+{"id":"ai-metadata","name":"AI Metadata Plugin","version":"1.1.1","entry":"index.js","hooks":["metadata"],"permissions":[],"settingsSchema":{"baseUrl":"string","apiKey":"password","model":"string","confidenceThreshold":"string","maxRequestsPerRun":"string","localizedOutputEnabled":"string"}}

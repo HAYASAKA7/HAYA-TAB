@@ -198,6 +198,7 @@ func (s *SyncService) ProcessFile(path string) store.Tab {
 		s.logger.Error("Error parsing file metadata for %s: %v", path, err)
 		meta = metadata.ParseFilename(path)
 	}
+	settings := s.store.GetSettings()
 
 	ext := strings.ToLower(filepath.Ext(path))
 	typeStr := s.getFileType(ext)
@@ -211,6 +212,7 @@ func (s *SyncService) ProcessFile(path string) store.Tab {
 		Album:       meta.Album,
 		FilePath:    path,
 		Type:        typeStr,
+		Language:    settings.Language,
 		InitialAZ:   az,
 		InitialKana: kana,
 	}
@@ -250,14 +252,14 @@ func (s *SyncService) FetchCoverAsync(tab store.Tab) {
 	}
 
 	coverFilename := tab.ID + ".jpg"
-	
+
 	settings := s.store.GetSettings()
 	coversDir := filepath.Join(s.appDir, "covers")
 	if settings.CoversPath != "" {
 		coversDir = settings.CoversPath
 	}
 	os.MkdirAll(coversDir, 0755)
-	
+
 	coverPath := filepath.Join(coversDir, coverFilename)
 
 	s.coverPool.Submit(coverpool.CoverJob{

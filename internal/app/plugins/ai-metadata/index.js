@@ -40,6 +40,29 @@ function getMaxRequestsPerRun() {
   return n;
 }
 
+function parseBooleanString(v, defaultValue) {
+  if (typeof v !== 'string') return defaultValue;
+  var s = v.trim().toLowerCase();
+  if (s === 'true' || s === '1' || s === 'yes' || s === 'on') return true;
+  if (s === 'false' || s === '0' || s === 'no' || s === 'off') return false;
+  return defaultValue;
+}
+
+function isLocalizedOutputEnabled() {
+  // Backward-compatible default: false
+  // config.localizedOutputEnabled: "true" | "false"
+  if (!config) return false;
+  return parseBooleanString(config.localizedOutputEnabled, false);
+}
+
+function getAppLanguage(tab) {
+  // Use application current language from tab.language.
+  if (tab && typeof tab.language === 'string' && tab.language.trim()) {
+    return tab.language.trim();
+  }
+  return 'en';
+}
+
 module.exports.enhanceMetadata = function (tab) {
   var maxPerRun = getMaxRequestsPerRun();
   if (requestCountThisRun >= maxPerRun) {
@@ -77,37 +100,58 @@ module.exports.enhanceMetadata = function (tab) {
   var userTitle = tab.title || '';
   var userArtist = tab.artist || '';
   var userAlbum = tab.album || '';
+  var localizedOutputEnabled = isLocalizedOutputEnabled();
+  var appLanguage = getAppLanguage(tab);
+
+  log(
+    '[ai-metadata] language mode: localizedOutputEnabled=' + localizedOutputEnabled +
+      ' appLanguage=' + appLanguage
+  );
 
   var prompt =
     'You are a music metadata assistant for a guitar tablature library.\n' +
     'You know many popular songs, artists and albums.\n' +
-    'Given a raw file name and some rough metadata extracted from the file,\n' +
-    'your job is to infer the most likely canonical song title, primary artist and album.\n' +
+    'Given a raw file name and rough metadata extracted from the file,\n' +
+    'infer the most likely canonical song metadata.\n' +
     '\n' +
     'Field definitions:\n' +
-    '- title: The canonical song title only. No artist name, no extra comments, no file extensions, no descriptors like "live", "cover", "tab", "HQ", or website names.\n' +
-    '- artist: The main performing artist or band name only. No song title, no album name, no extra words.\n' +
-    '- album: The official album title if you can infer it with high confidence. Otherwise reuse the existing album value or set it to an empty string.\n' +
-    '- originCountry: Two-letter ISO country code of the artist if you know it with good confidence, otherwise an empty string.\n' +
-    '- tags: A small list (0-6) of short English tags describing genre/instrument/mood.\n' +
-    '        Examples: ["rock","metal","guitar","acoustic","instrumental","ballad"].\n' +
-    '        Never put the title, artist name, album name, long descriptions, or years into tags.\n' +
-    '- confidence: A number between 0 and 1 representing how confident you are about the overall metadata.\n' +
+    '- title: canonical song title only. No artist, no album, no extra comments.\n' +
+    '- artist: primary artist or band only.\n' +
+    '- album: official album title if confident; otherwise keep existing value or empty string.\n' +
+    '- originCountry: two-letter ISO country code if known; otherwise empty string.\n' +
+    '- tags: 0-6 short tags for genre/instrument/mood only.\n' +
+    '- confidence: number between 0 and 1.\n' +
     '\n' +
-    'Requirements:\n' +
-    '1. Use your own knowledge of music to infer artist and album when possible, but do NOT invent random songs or artists.\n' +
-    '2. If you are not reasonably confident, keep the original values for that field and lower the confidence score.\n' +
-    '3. Normalize common noise from filenames, e.g. remove words like "cover", "live", quality tags, and website names when appropriate.\n' +
-    '4. Prefer well-known canonical capitalization for Western artist and song names.\n' +
-    '5. Always respond with STRICT JSON only, no explanation text.\n' +
-    '6. The JSON shape MUST be: {"title":"...","artist":"...","album":"...","originCountry":"..","tags":[],"confidence":0.x}.\n' +
-    '7. Never repeat the same information across title, artist, album and tags.\n';
+    'General requirements:\n' +
+    '1. Do not invent random songs or artists.\n' +
+    '2. If uncertain, keep original values for uncertain fields and reduce confidence.\n' +
+    '3. Clean filename noise such as "cover", "live", quality tags, website names, and file extensions.\n' +
+    '4. Return STRICT JSON only.\n' +
+    '5. Output JSON shape MUST be: {"title":"...","artist":"...","album":"...","originCountry":"..","tags":[],"confidence":0.x}.\n' +
+    '6. Never duplicate the same content across title/artist/album/tags.\n';
+
+  if (localizedOutputEnabled) {
+    prompt +=
+      '\n' +
+      'Language requirements (localized mode ON):\n' +
+      '- title, artist, album MUST be returned in the song release-country language/script when available.\n' +
+      '- tags MUST be returned in the user app language: "' + appLanguage + '".\n' +
+      '- If release-country language form is unknown, use the most canonical native/publicly recognized form.\n';
+  } else {
+    prompt +=
+      '\n' +
+      'Language requirements (localized mode OFF):\n' +
+      '- title, artist, album should use the most globally recognizable canonical form.\n' +
+      '- tags should be in English.\n';
+  }
 
   var userMessage =
     'File name: ' + fileName + '\n' +
     'Initial title: ' + userTitle + '\n' +
     'Initial artist: ' + userArtist + '\n' +
-    'Initial album: ' + userAlbum + '\n';
+    'Initial album: ' + userAlbum + '\n' +
+    'App language: ' + appLanguage + '\n' +
+    'Localized mode: ' + localizedOutputEnabled + '\n';
 
   var payload = {
     model: config.model,

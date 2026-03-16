@@ -3,5 +3,6 @@
     "apiKey": "your-api-key-here",
     "model": "gpt-5-mini",
     "confidenceThreshold": "0.5",
-    "maxRequestsPerRun": "50"
+    "maxRequestsPerRun": "50",
+    "localizedOutputEnabled": "true"
 }

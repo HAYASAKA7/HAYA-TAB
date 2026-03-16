@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.2] - 2026-03-16
+### Added
+- **AI Metadata Plugin:** Added `localizedOutputEnabled` configuration to generate metadata in the native language, and tags in the app's current language.
+- **App:** Passed the current UI language to the tab processing pipeline to improve plugin localization.
+
 ## [2.4.1] - 2026-03-16
 ### Added
 - **Plugin System:** Added per-sync-run rate limiting to prevent excessive API calls during bulk sync operations.
