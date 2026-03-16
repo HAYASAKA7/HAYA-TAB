@@ -23,9 +23,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Add plugins remote
+        env:
+          PLUGINS_REPO_TOKEN: ${{ secrets.PLUGINS_REPO_TOKEN }}
         run: |
           # Use PAT as password for the HAYASAKA7 user
-          git remote add plugins-origin https://HAYASAKA7:${{ secrets.PLUGINS_REPO_TOKEN }}@github.com/HAYASAKA7/HAYA-TAB-Plugins.git
+          git remote add plugins-origin https://HAYASAKA7:${{ env.PLUGINS_REPO_TOKEN }}@github.com/HAYASAKA7/HAYA-TAB-Plugins.git
           git fetch plugins-origin || true
 
       - name: Push internal/app/plugins subtree to plugins repo
