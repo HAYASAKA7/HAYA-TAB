@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
 	syncpkg "haya-tab/pkg/sync"
 	"os"
@@ -434,6 +435,13 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				CategoryIDs: []string{store.SystemCloudCategoryID},
 				AddedAt:     time.Now().Unix(),
 			}
+
+			if a.pluginManager != nil {
+				a.pluginManager.EnhanceMetadata(&tab)
+			}
+			
+			// Always calculate initials (even if no plugin ran, they need to be populated)
+			tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
 
 			// Add to batch
 			tabsToAdd = append(tabsToAdd, tab)

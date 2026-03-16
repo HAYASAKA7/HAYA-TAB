@@ -43,7 +43,7 @@ func setupTestSyncService(t *testing.T) (*SyncService, *store.DBStore, string, f
 	emitter := &mockEventEmitter{}
 	mbWorker := worker.NewMBWorker(testStore, testLogger)
 
-	service := NewSyncService(testStore, testLogger, coverPool, emitter, tmpDir, mbWorker)
+	service := NewSyncService(testStore, testLogger, coverPool, emitter, tmpDir, mbWorker, nil)
 
 	cleanup := func() {
 		testStore.Close()

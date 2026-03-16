@@ -42,13 +42,16 @@ type SyncResult struct {
 }
 
 // SyncService handles file synchronization operations
+type EnhanceMetadataFunc func(*store.Tab)
+
 type SyncService struct {
-	store     *store.DBStore
-	logger    *logger.Logger
-	coverPool *coverpool.CoverPool
-	emitter   EventEmitter
-	appDir    string
-	mbWorker  *worker.MBWorker
+	store           *store.DBStore
+	logger          *logger.Logger
+	coverPool       *coverpool.CoverPool
+	emitter         EventEmitter
+	appDir          string
+	mbWorker        *worker.MBWorker
+	enhanceMetadata EnhanceMetadataFunc
 }
 
 // NewSyncService creates a new SyncService instance
@@ -59,14 +62,16 @@ func NewSyncService(
 	emitter EventEmitter,
 	appDir string,
 	mbWorker *worker.MBWorker,
+	enhanceMetadata EnhanceMetadataFunc,
 ) *SyncService {
 	return &SyncService{
-		store:     store,
-		logger:    logger,
-		coverPool: coverPool,
-		emitter:   emitter,
-		appDir:    appDir,
-		mbWorker:  mbWorker,
+		store:           store,
+		logger:          logger,
+		coverPool:       coverPool,
+		emitter:         emitter,
+		appDir:          appDir,
+		mbWorker:        mbWorker,
+		enhanceMetadata: enhanceMetadata,
 	}
 }
 
@@ -199,7 +204,7 @@ func (s *SyncService) ProcessFile(path string) store.Tab {
 
 	az, kana := metadata.CalculateInitials(meta.Title, "")
 
-	return store.Tab{
+	tab := store.Tab{
 		ID:          fmt.Sprintf("%d", time.Now().UnixNano()),
 		Title:       meta.Title,
 		Artist:      meta.Artist,
@@ -209,6 +214,14 @@ func (s *SyncService) ProcessFile(path string) store.Tab {
 		InitialAZ:   az,
 		InitialKana: kana,
 	}
+
+	if s.enhanceMetadata != nil {
+		s.enhanceMetadata(&tab)
+		// Recalculate initials in case title or origin country was changed
+		tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
+	}
+
+	return tab
 }
 
 // FetchCoverAsync asynchronously downloads album cover art

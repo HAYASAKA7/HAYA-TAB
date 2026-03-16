@@ -61,7 +61,7 @@ func setupTestApp(t *testing.T) (*App, string) {
 	}
 	
 	emitter := &WailsEventEmitter{ctx: nil}
-	app.syncService = syncpkg.NewSyncService(s, l, cp, emitter, appDir, mb)
+	app.syncService = syncpkg.NewSyncService(s, l, cp, emitter, appDir, mb, nil)
 	app.volumeCache = syncpkg.NewVolumeCache(5 * time.Minute)
 
 	return app, tmpDir

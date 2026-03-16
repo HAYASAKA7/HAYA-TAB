@@ -162,6 +162,7 @@ type App struct {
 	fingerprintCache   *syncpkg.FingerprintCache
 	fingerprintCacheMu sync.RWMutex
 	volumeCache        *syncpkg.VolumeCache // Cache for volume metadata to avoid redundant scanning
+	pluginManager      *PluginManager
 }
 
 // NewApp creates a new App application struct
@@ -246,9 +247,16 @@ func (a *App) Startup(ctx context.Context) {
 	a.mbWorker.Start()
 	a.logger.Info("MusicBrainz worker started")
 
+	// Initialize PluginManager
+	a.pluginManager = NewPluginManager(a.logger)
+	pluginsDir := filepath.Join(appDir, "plugins")
+	if err := a.pluginManager.Init(pluginsDir); err != nil {
+		a.logger.Error("Failed to initialize PluginManager: %v", err)
+	}
+
 	// Initialize SyncService
 	emitter := &WailsEventEmitter{ctx: a.ctx}
-	a.syncService = syncpkg.NewSyncService(a.store, a.logger, a.coverPool, emitter, appDir, a.mbWorker)
+	a.syncService = syncpkg.NewSyncService(a.store, a.logger, a.coverPool, emitter, appDir, a.mbWorker, a.pluginManager.EnhanceMetadata)
 	a.logger.Info("SyncService initialized")
 
 	// Initialize volume cache with 5-minute TTL
