@@ -66,7 +66,12 @@ func (a *App) fetchCoverAsync(tab store.Tab) {
 	a.syncService.FetchCoverAsync(tab)
 }
 
-// TriggerSync delegates to SyncService for file synchronization
+// TriggerSync delegates to SyncService for file synchronization.
+// It also notifies the PluginManager that a new sync run is starting so
+// plugins can reset per-run counters (e.g. AI request limits).
 func (a *App) TriggerSync() (string, error) {
+	if a.pluginManager != nil {
+		a.pluginManager.StartSyncRun()
+	}
 	return a.syncService.TriggerSync()
 }

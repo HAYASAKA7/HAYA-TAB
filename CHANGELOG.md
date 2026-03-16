@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.1] - 2026-03-16
+### Added
+- **Plugin System:** Added per-sync-run rate limiting to prevent excessive API calls during bulk sync operations.
+- **AI Metadata Plugin:** Added `maxRequestsPerRun` configuration (default: 50) to limit AI requests per sync run.
+- **Plugins Directory:** Added README.md documentation for the plugins system.
+
 ## [2.4.0] - 2026-03-16
 ### Added
 - **Plugin System:** Introduced a new plugin architecture powered by Goja (JavaScript engine) to allow custom extensions.

@@ -79,10 +79,10 @@ export const UpdateService = {
         // @ts-ignore
         return await window['go']['main']['App']['GetAppVersion']()
       }
-      return '2.4.0' // Fallback
+      return '2.4.1' // Fallback
     } catch (e) {
       console.warn('Failed to get app version from backend', e)
-      return '2.4.0'
+      return '2.4.1'
     }
   },
 

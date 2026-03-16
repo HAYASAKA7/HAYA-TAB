@@ -9,6 +9,13 @@ function safeJSONParse(s) {
   }
 }
 
+// Per-sync-run counter. Go side (PluginManager.StartSyncRun) resets this to 0
+// at the beginning of each TriggerSync invocation. We keep the fallback here
+// in case the variable was not initialized for some reason.
+if (typeof requestCountThisRun !== 'number') {
+  requestCountThisRun = 0;
+}
+
 function getConfidenceThreshold() {
   if (!config || typeof config.confidenceThreshold !== 'string') {
     return 0.5;
@@ -21,7 +28,25 @@ function getConfidenceThreshold() {
   return t;
 }
 
+function getMaxRequestsPerRun() {
+  if (!config || typeof config.maxRequestsPerRun !== 'string') {
+    return 50;
+  }
+  var n = parseInt(config.maxRequestsPerRun, 10);
+  if (isNaN(n) || n <= 0) {
+    log('[ai-metadata] invalid maxRequestsPerRun in config, falling back to 50');
+    return 50;
+  }
+  return n;
+}
+
 module.exports.enhanceMetadata = function (tab) {
+  var maxPerRun = getMaxRequestsPerRun();
+  if (requestCountThisRun >= maxPerRun) {
+    log('[ai-metadata] skipped: reached maxRequestsPerRun=' + maxPerRun);
+    return tab;
+  }
+
   // If the plugin is not configured, do nothing.
   if (!config || !config.apiKey || !config.model || !config.baseUrl) {
     log('[ai-metadata] skipped: missing config (baseUrl/model/apiKey).');
@@ -97,6 +122,7 @@ module.exports.enhanceMetadata = function (tab) {
     '[ai-metadata] sending AI request: baseUrl=' + config.baseUrl +
       ' model=' + config.model
   );
+  requestCountThisRun++;
 
   var res = httpRequest({
     method: 'POST',

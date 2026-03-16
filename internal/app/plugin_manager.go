@@ -76,6 +76,20 @@ func (pm *PluginManager) Init(pluginsDir string) error {
 	return nil
 }
 
+// StartSyncRun should be called at the beginning of each sync run.
+// It resets per-run counters in all plugins so that they can enforce
+// limits such as "maxRequestsPerRun" within a single sync invocation.
+func (pm *PluginManager) StartSyncRun() {
+	pm.logger.Info("PluginManager: starting new sync run, resetting per-run counters")
+	for _, p := range pm.plugins {
+		if p.VM == nil {
+			continue
+		}
+		// Ignore error; failing to set the counter should not break sync.
+		_ = p.VM.Set("requestCountThisRun", 0)
+	}
+}
+
 // loadPluginConfig loads a plugin-local configuration from "config.json"
 // inside the plugin directory. The file is expected to be a simple
 // JSON object with string values, e.g.:
