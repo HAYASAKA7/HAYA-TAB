@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'internal/app/plugins/**'
 
 jobs:
   sync-plugins:
@@ -22,15 +24,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Add plugins remote
+      - name: Sync Plugin Subfolder
         env:
-          PLUGINS_REPO_TOKEN: ${{ secrets.PLUGINS_REPO_TOKEN }}
+          EXTERNAL_TOKEN: ${{ secrets.PLUGINS_REPO_TOKEN }}
         run: |
-          # Use PAT as password for the HAYASAKA7 user
-          git remote add plugins-origin https://HAYASAKA7:${{ env.PLUGINS_REPO_TOKEN }}@github.com/HAYASAKA7/HAYA-TAB-Plugins.git
-          git fetch plugins-origin || true
-
-      - name: Push internal/app/plugins subtree to plugins repo
-        run: |
-          git subtree push --prefix=internal/app/plugins plugins-origin main
-
+          git subtree split --prefix=internal/app/plugins -b sync-branch
+          git push https://HAYASAKA7:${EXTERNAL_TOKEN}@github.com/HAYASAKA7/HAYA-TAB-Plugins.git sync-branch:main --force
