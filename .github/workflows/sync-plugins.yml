@@ -1,0 +1,33 @@
+name: Sync Plugins to External Repo
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync-plugins:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add plugins remote
+        run: |
+          git remote add plugins-origin https://x-access-token:${{ secrets.PLUGINS_REPO_TOKEN }}@github.com/HAYASAKA7/HAYA-TAB-Plugins.git
+          git fetch plugins-origin || true
+
+      - name: Push internal/app/plugins subtree to plugins repo
+        run: |
+          git subtree push --prefix=internal/app/plugins plugins-origin main
+
