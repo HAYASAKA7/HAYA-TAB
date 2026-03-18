@@ -3,7 +3,16 @@
     "home": "首页",
     "library": "曲库",
     "settings": "设置",
+    "plugins": "插件",
     "back": ".. (返回)"
+  },
+  "plugins": {
+    "title": "插件管理",
+    "no_plugins": "未发现已安装的插件",
+    "settings": "插件设置",
+    "save_success": "插件配置已保存",
+    "save_error": "保存配置失败",
+    "toggle_error": "切换插件状态失败"
   },
   "home": {
     "title": "首页",

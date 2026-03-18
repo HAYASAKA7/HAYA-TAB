@@ -126,114 +126,6 @@
     --icon-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-12.17V20h-2V7.83l-3.59 3.58L6 10l6-6 6 6-1.41 1.41L13 7.83z'/%3E%3C/svg%3E");
 }
 
-.icon-menu,
-.icon-home,
-.icon-settings,
-.icon-palette,
-.icon-document,
-.icon-sync,
-.icon-back,
-.icon-folder,
-.icon-music,
-.icon-piano,
-.icon-edit,
-.icon-close,
-.icon-trash,
-.icon-pin,
-.icon-checkbox,
-.icon-play,
-.icon-pause,
-.icon-stop,
-.icon-metronome,
-.icon-volume,
-.icon-keyboard,
-.icon-cloud,
-.icon-refresh {
-    display: inline-block;
-    width: 1.2em;
-    height: 1.2em;
-    background-color: currentColor;
-    -webkit-mask-image: var(--icon-svg);
-    mask-image: var(--icon-svg);
-    -webkit-mask-size: contain;
-    mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-    vertical-align: middle;
-}
-
-/* Size variants */
-.icon-sm {
-    width: 0.9em;
-    height: 0.9em;
-}
-
-.icon-lg {
-    width: 1.5em;
-    height: 1.5em;
-}
-
-.icon-xl {
-    width: 2em;
-    height: 2em;
-}
-
-/* Placeholder cover with music icon - larger for cards */
-.placeholder-cover .icon-music {
-    width: 3rem;
-    height: 3rem;
-    color: var(--text-muted);
-}
-
-/* Folder icon in cards */
-.cover-wrapper .icon-folder,
-.cover-wrapper .icon-back {
-    width: 3rem;
-    height: 3rem;
-    color: var(--text-muted);
-}
-
-/* Edit button icon */
-.edit-btn .icon-edit {
-    width: 1em;
-    height: 1em;
-}
-
-/* Close tab icon */
-.close-tab .icon-close {
-    width: 0.85em;
-    height: 0.85em;
-}
-
-/* Sidebar icons */
-.sidebar-item .icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.sidebar-item .icon-home,
-.sidebar-item .icon-settings,
-.sidebar-item .icon-document,
-.sidebar-item .icon-pin {
-    width: 1.1em;
-    height: 1.1em;
-}
-
-/* Settings section header icons */
-.settings-section h3 .icon-palette,
-.settings-section h3 .icon-document,
-.settings-section h3 .icon-sync,
-.settings-section h3 .icon-volume,
-.settings-section h3 .icon-keyboard,
-.settings-section h3 .icon-cloud,
-.settings-section h3 .icon-refresh {
-    width: 1.2em;
-    height: 1.2em;
-    margin-right: 0.4em;
-}
 /* Icon: Volume */
 .icon-volume {
     --icon-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z'/%3E%3C/svg%3E");
@@ -274,6 +166,35 @@
     --icon-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z'/%3E%3C/svg%3E");
 }
 
+/* Icon: Plugins (Extension) */
+.icon-plugins {
+    --icon-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5c0-1.38-1.12-2.5-2.5-2.5S8 2.12 8 3.5V5H4c-1.1 0-2 .9-2 2v4h1.5c1.38 0 2.5 1.12 2.5 2.5S4.88 15 3.5 15H2v4c0 1.1.9 2 2 2h4v-1.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5V21h4c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z'/%3E%3C/svg%3E");
+}
+
+.icon-menu,
+.icon-home,
+.icon-settings,
+.icon-palette,
+.icon-document,
+.icon-sync,
+.icon-back,
+.icon-folder,
+.icon-music,
+.icon-piano,
+.icon-edit,
+.icon-close,
+.icon-trash,
+.icon-pin,
+.icon-checkbox,
+.icon-play,
+.icon-pause,
+.icon-stop,
+.icon-metronome,
+.icon-volume,
+.icon-keyboard,
+.icon-cloud,
+.icon-refresh,
+.icon-plugins,
 .icon-chevron-left,
 .icon-chevron-right,
 .icon-loop,
@@ -294,4 +215,50 @@
     -webkit-mask-position: center;
     mask-position: center;
     vertical-align: middle;
+}
+
+/* Size variants */
+.icon-sm {
+    width: 0.9em;
+    height: 0.9em;
+}
+
+.icon-lg {
+    width: 1.5em;
+    height: 1.5em;
+}
+
+.icon-xl {
+    width: 2em;
+    height: 2em;
+}
+
+/* Sidebar icons */
+.sidebar-item .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-item .icon-home,
+.sidebar-item .icon-library,
+.sidebar-item .icon-settings,
+.sidebar-item .icon-plugins,
+.sidebar-item .icon-document,
+.sidebar-item .icon-pin {
+    width: 1.1em;
+    height: 1.1em;
+}
+
+/* Settings section header icons */
+.settings-section h3 .icon-palette,
+.settings-section h3 .icon-document,
+.settings-section h3 .icon-sync,
+.settings-section h3 .icon-volume,
+.settings-section h3 .icon-keyboard,
+.settings-section h3 .icon-cloud,
+.settings-section h3 .icon-refresh {
+    width: 1.2em;
+    height: 1.2em;
+    margin-right: 0.4em;
 }

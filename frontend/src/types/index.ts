@@ -127,4 +127,4 @@ export interface Toast {
 }
 
 // ViewType represents the current view
-export type ViewType = 'home' | 'library' | 'settings' | `pdf-${string}` | `gp-${string}`
+export type ViewType = 'home' | 'library' | 'settings' | 'plugins' | `pdf-${string}` | `gp-${string}`

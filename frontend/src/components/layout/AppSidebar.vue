@@ -61,6 +61,16 @@ function toggleSidebar() {
       </span>
       <span class="sidebar-label">{{ t('nav.settings') }}</span>
     </div>
+    <div
+      v-if="uiStore.hasPlugins"
+      id="nav-plugins"
+      class="sidebar-item"
+      :class="{ active: uiStore.currentView === 'plugins' }"
+      @click="uiStore.switchView('plugins')"
+    >
+      <span class="icon"><span class="icon-plugins"></span></span>
+      <span class="sidebar-label">{{ t('nav.plugins') }}</span>
+    </div>
     <div class="sidebar-divider"></div>
     <div id="opened-tabs-list">
       <SidebarTabItem

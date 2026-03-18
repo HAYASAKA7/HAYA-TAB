@@ -33,6 +33,8 @@ export function GetCoversDir():Promise<string>;
 
 export function GetFileServerPort():Promise<number>;
 
+export function GetPlugins():Promise<Array<app.PluginInfo>>;
+
 export function GetRecentCategories(arg1:number):Promise<Array<store.Category>>;
 
 export function GetRecentTabs(arg1:number):Promise<Array<store.Tab>>;
@@ -44,6 +46,8 @@ export function GetStorageDir():Promise<string>;
 export function GetTabs():Promise<Array<store.Tab>>;
 
 export function GetTabsPaginated(arg1:string,arg2:number,arg3:number,arg4:string,arg5:Array<string>,arg6:boolean,arg7:string,arg8:boolean):Promise<app.TabsResponse>;
+
+export function HasPlugins():Promise<boolean>;
 
 export function MarkAsOpened(arg1:string):Promise<void>;
 
@@ -80,6 +84,8 @@ export function SetFileServerPort(arg1:number):Promise<void>;
 export function StartFileServer():Promise<number>;
 
 export function TriggerSync():Promise<string>;
+
+export function UpdatePluginConfig(arg1:string,arg2:Record<string, string>,arg3:boolean):Promise<void>;
 
 export function UpdateTab(arg1:store.Tab):Promise<void>;
 

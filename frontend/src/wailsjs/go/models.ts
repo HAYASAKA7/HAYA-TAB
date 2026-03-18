@@ -1,5 +1,41 @@
-export namespace main {
+export namespace app {
 	
+	export class MigrationStatus {
+	    count: number;
+	    size: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new MigrationStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.count = source["count"];
+	        this.size = source["size"];
+	    }
+	}
+	export class PluginInfo {
+	    id: string;
+	    name: string;
+	    version: string;
+	    settingsSchema: Record<string, string>;
+	    config: Record<string, string>;
+	    enabled: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PluginInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.version = source["version"];
+	        this.settingsSchema = source["settingsSchema"];
+	        this.config = source["config"];
+	        this.enabled = source["enabled"];
+	    }
+	}
 	export class TabsResponse {
 	    tabs: store.Tab[];
 	    total: number;
@@ -47,6 +83,8 @@ export namespace store {
 	    id: string;
 	    name: string;
 	    parentId: string;
+	    coverPath: string;
+	    effectiveCoverPath: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Category(source);
@@ -57,85 +95,126 @@ export namespace store {
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.parentId = source["parentId"];
+	        this.coverPath = source["coverPath"];
+	        this.effectiveCoverPath = source["effectiveCoverPath"];
 	    }
 	}
-	export class Settings {
-	    theme: string;
-	    background: string;
-	    bgType: string;
-	    openMethod: string;
-	    openGpMethod: string;
-	    syncPaths: string[];
-	    syncStrategy: string;
-	    autoSyncEnabled: boolean;
-	    autoSyncFrequency: string;
-	    lastSyncTime: number;
-	    webdavEnabled: boolean;
-	    webdavUrl: string;
-	    webdavUser: string;
-	    webdavPassword: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new Settings(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.theme = source["theme"];
-	        this.background = source["background"];
-	        this.bgType = source["bgType"];
-	        this.openMethod = source["openMethod"];
-	        this.openGpMethod = source["openGpMethod"];
-	        this.syncPaths = source["syncPaths"];
-	        this.syncStrategy = source["syncStrategy"];
-	        this.autoSyncEnabled = source["autoSyncEnabled"];
-	        this.autoSyncFrequency = source["autoSyncFrequency"];
-	        this.lastSyncTime = source["lastSyncTime"];
-	        this.webdavEnabled = source["webdavEnabled"];
-	        this.webdavUrl = source["webdavUrl"];
-	        this.webdavUser = source["webdavUser"];
-	        this.webdavPassword = source["webdavPassword"];
-	    }
-	}
-	export class Tab {
+	export class CloudVolume {
 	    id: string;
-	    title: string;
-	    artist: string;
-	    album: string;
-	    filePath: string;
-	    type: string;
-	    isManaged: boolean;
-	    coverPath: string;
-	    categoryId: string;
-	    country: string;
-	    language: string;
-	    tag: string;
+	    name: string;
+	    mountPath: string;
+	    fingerprintPath: string;
+	    createdAt: number;
+	    lastSeenAt: number;
+	    isAvailable: boolean;
 	
 	    static createFrom(source: any = {}) {
-	        return new Tab(source);
+	        return new CloudVolume(source);
 	    }
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
-	        this.title = source["title"];
-	        this.artist = source["artist"];
-	        this.album = source["album"];
-	        this.filePath = source["filePath"];
-	        this.type = source["type"];
-	        this.isManaged = source["isManaged"];
-	        this.coverPath = source["coverPath"];
-	        this.categoryId = source["categoryId"];
-	        this.country = source["country"];
-	        this.language = source["language"];
-	        this.tag = source["tag"];
+	        this.name = source["name"];
+	        this.mountPath = source["mountPath"];
+	        this.fingerprintPath = source["fingerprintPath"];
+	        this.createdAt = source["createdAt"];
+	        this.lastSeenAt = source["lastSeenAt"];
+	        this.isAvailable = source["isAvailable"];
 	    }
 	}
-
-}
-
-export namespace sync {
+	export class KeyBindings {
+	    scrollDown: string;
+	    scrollUp: string;
+	    metronome: string;
+	    playPause: string;
+	    stop: string;
+	    bpmPlus: string;
+	    bpmMinus: string;
+	    toggleLoop: string;
+	    clearSelection: string;
+	    jumpToBar: string;
+	    jumpToStart: string;
+	    autoScroll: string;
+	    scrollSpeedUp: string;
+	    scrollSpeedDown: string;
 	
+	    static createFrom(source: any = {}) {
+	        return new KeyBindings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.scrollDown = source["scrollDown"];
+	        this.scrollUp = source["scrollUp"];
+	        this.metronome = source["metronome"];
+	        this.playPause = source["playPause"];
+	        this.stop = source["stop"];
+	        this.bpmPlus = source["bpmPlus"];
+	        this.bpmMinus = source["bpmMinus"];
+	        this.toggleLoop = source["toggleLoop"];
+	        this.clearSelection = source["clearSelection"];
+	        this.jumpToBar = source["jumpToBar"];
+	        this.jumpToStart = source["jumpToStart"];
+	        this.autoScroll = source["autoScroll"];
+	        this.scrollSpeedUp = source["scrollSpeedUp"];
+	        this.scrollSpeedDown = source["scrollSpeedDown"];
+	    }
+	}
+	export class MidiMapping {
+	    type: string;
+	    number: number;
+	    channel: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new MidiMapping(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.number = source["number"];
+	        this.channel = source["channel"];
+	    }
+	}
+	export class MidiSettings {
+	    enabled: boolean;
+	    scrollDown?: MidiMapping;
+	    scrollUp?: MidiMapping;
+	    playPause?: MidiMapping;
+	    expressionScroll?: MidiMapping;
+	
+	    static createFrom(source: any = {}) {
+	        return new MidiSettings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.scrollDown = this.convertValues(source["scrollDown"], MidiMapping);
+	        this.scrollUp = this.convertValues(source["scrollUp"], MidiMapping);
+	        this.playPause = this.convertValues(source["playPause"], MidiMapping);
+	        this.expressionScroll = this.convertValues(source["expressionScroll"], MidiMapping);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class RemoteFile {
 	    name: string;
 	    path: string;
@@ -152,6 +231,130 @@ export namespace sync {
 	        this.path = source["path"];
 	        this.size = source["size"];
 	        this.isDir = source["isDir"];
+	    }
+	}
+	export class Settings {
+	    theme: string;
+	    language: string;
+	    background: string;
+	    bgType: string;
+	    openMethod: string;
+	    openGpMethod: string;
+	    audioDevice: string;
+	    syncPaths: string[];
+	    syncStrategy: string;
+	    autoSyncEnabled: boolean;
+	    autoSyncFrequency: string;
+	    lastSyncTime: number;
+	    keyBindings: KeyBindings;
+	    midiSettings: MidiSettings;
+	    storagePath: string;
+	    coversPath: string;
+	    updateCheckEnabled: boolean;
+	    lastUpdateCheckTime: number;
+	    latestVersion: string;
+	    webdavEnabled: boolean;
+	    webdavUrl: string;
+	    webdavUser: string;
+	    webdavPassword: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Settings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.theme = source["theme"];
+	        this.language = source["language"];
+	        this.background = source["background"];
+	        this.bgType = source["bgType"];
+	        this.openMethod = source["openMethod"];
+	        this.openGpMethod = source["openGpMethod"];
+	        this.audioDevice = source["audioDevice"];
+	        this.syncPaths = source["syncPaths"];
+	        this.syncStrategy = source["syncStrategy"];
+	        this.autoSyncEnabled = source["autoSyncEnabled"];
+	        this.autoSyncFrequency = source["autoSyncFrequency"];
+	        this.lastSyncTime = source["lastSyncTime"];
+	        this.keyBindings = this.convertValues(source["keyBindings"], KeyBindings);
+	        this.midiSettings = this.convertValues(source["midiSettings"], MidiSettings);
+	        this.storagePath = source["storagePath"];
+	        this.coversPath = source["coversPath"];
+	        this.updateCheckEnabled = source["updateCheckEnabled"];
+	        this.lastUpdateCheckTime = source["lastUpdateCheckTime"];
+	        this.latestVersion = source["latestVersion"];
+	        this.webdavEnabled = source["webdavEnabled"];
+	        this.webdavUrl = source["webdavUrl"];
+	        this.webdavUser = source["webdavUser"];
+	        this.webdavPassword = source["webdavPassword"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class Tab {
+	    id: string;
+	    title: string;
+	    artist: string;
+	    album: string;
+	    filePath: string;
+	    cloudPath: string;
+	    volumeId: string;
+	    type: string;
+	    isManaged: boolean;
+	    isCloud: boolean;
+	    coverPath: string;
+	    categoryIds: string[];
+	    country: string;
+	    language: string;
+	    originCountry: string;
+	    tag: string;
+	    addedAt: number;
+	    lastOpened: number;
+	    initialAz: string;
+	    initialKana: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Tab(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.title = source["title"];
+	        this.artist = source["artist"];
+	        this.album = source["album"];
+	        this.filePath = source["filePath"];
+	        this.cloudPath = source["cloudPath"];
+	        this.volumeId = source["volumeId"];
+	        this.type = source["type"];
+	        this.isManaged = source["isManaged"];
+	        this.isCloud = source["isCloud"];
+	        this.coverPath = source["coverPath"];
+	        this.categoryIds = source["categoryIds"];
+	        this.country = source["country"];
+	        this.language = source["language"];
+	        this.originCountry = source["originCountry"];
+	        this.tag = source["tag"];
+	        this.addedAt = source["addedAt"];
+	        this.lastOpened = source["lastOpened"];
+	        this.initialAz = source["initialAz"];
+	        this.initialKana = source["initialKana"];
 	    }
 	}
 

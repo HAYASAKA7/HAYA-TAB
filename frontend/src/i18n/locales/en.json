@@ -3,7 +3,16 @@
     "home": "Home",
     "library": "Library",
     "settings": "Settings",
+    "plugins": "Plugins",
     "back": ".. (Back)"
+  },
+  "plugins": {
+    "title": "Plugin Management",
+    "no_plugins": "No plugins installed",
+    "settings": "Plugin Settings",
+    "save_success": "Configuration saved",
+    "save_error": "Failed to save configuration",
+    "toggle_error": "Failed to toggle plugin state"
   },
   "home": {
     "title": "Home",

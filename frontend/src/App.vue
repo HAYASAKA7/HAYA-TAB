@@ -9,6 +9,7 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import HomeView from '@/views/HomeView.vue'
 import LibraryView from '@/views/LibraryView.vue'
 import SettingsView from '@/components/SettingsView.vue'
+import PluginsView from '@/components/PluginsView.vue'
 import PdfViewer from '@/components/viewers/PdfViewer.vue'
 import GpViewer from '@/components/viewers/GpViewer.vue'
 import Toast from '@/components/common/Toast.vue'
@@ -22,8 +23,10 @@ import KeyBindingModal from '@/components/modals/KeyBindingModal.vue'
 import CloudPickerModal from '@/components/modals/CloudPickerModal.vue'
 import CloudUploadModal from '@/components/modals/CloudUploadModal.vue'
 import WebDAVModal from '@/components/modals/WebDAVModal.vue'
+import PluginSettingsModal from '@/components/modals/PluginSettingsModal.vue'
 import BatchActionBar from '@/components/BatchActionBar.vue'
 import SyncTaskToast from '@/components/common/SyncTaskToast.vue'
+import { PluginService } from '@/services/PluginService'
 
 const tabsStore = useTabsStore()
 const settingsStore = useSettingsStore()
@@ -35,6 +38,13 @@ const { t } = useI18n()
 onMounted(async () => {
   await tabsStore.refreshData()
   await settingsStore.loadSettings()
+
+  // Check if plugins exist
+  try {
+    uiStore.hasPlugins = await PluginService.hasPlugins()
+  } catch (e) {
+    console.error('Failed to check plugins:', e)
+  }
 
   // Start WebDAV status monitoring if enabled
   if (settingsStore.settings.webdavEnabled) {
@@ -103,6 +113,9 @@ function isViewActive(viewType: string): boolean {
   if (viewType === 'settings') {
     return uiStore.currentView === 'settings'
   }
+  if (viewType === 'plugins') {
+    return uiStore.currentView === 'plugins'
+  }
   if (viewType === 'pdf') {
     return uiStore.currentView.startsWith('pdf-')
   }
@@ -145,6 +158,15 @@ function isViewActive(viewType: string): boolean {
         <SettingsView />
       </div>
 
+      <!-- Plugins View -->
+      <div
+        id="view-plugins"
+        class="view"
+        :class="{ hidden: !isViewActive('plugins') }"
+      >
+        <PluginsView />
+      </div>
+
       <!-- PDF Views Container -->
       <div
         id="pdf-views-container"
@@ -185,6 +207,7 @@ function isViewActive(viewType: string): boolean {
     <CloudPickerModal />
     <CloudUploadModal />
     <WebDAVModal />
+    <PluginSettingsModal />
 
     <!-- Toast & Context Menu -->
     <Toast />

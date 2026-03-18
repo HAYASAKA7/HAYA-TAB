@@ -367,7 +367,10 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 
 .form-group { margin-bottom: 20px; }
 .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
-.form-group input[type="text"], .form-group select {
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="number"],
+.form-group select {
     width: 100%;
     padding: 10px;
     background: var(--card-bg);
@@ -375,6 +378,8 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
     color: var(--text);
     border-radius: 4px;
     box-sizing: border-box;
+    font-family: inherit;
+    font-size: 0.95rem;
 }
 .radio-group { display: flex; gap: 20px; }
 .radio-group label { cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: normal; }
@@ -560,6 +565,7 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 }
 
 .form-group input[type="text"],
+.form-group input[type="password"],
 .form-group input[type="number"],
 .form-group select {
     width: 100%;

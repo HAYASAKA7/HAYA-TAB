@@ -2,10 +2,20 @@
   "nav": {
     "home": "首頁",
     "library": "曲庫",
-    "settings": "設定",
+    "settings": "設置",
+    "plugins": "外掛",
     "back": ".. (返回)"
-  },
-  "home": {
+    },
+    "plugins": {
+    "title": "外掛管理",
+    "no_plugins": "未發現已安裝的外掛",
+    "settings": "外掛設置",
+    "save_success": "外掛配置已保存",
+    "save_error": "保存配置失敗",
+    "toggle_error": "切換外掛狀態失敗"
+    },
+    "home": {
+
     "title": "首頁",
     "recent": "最近",
     "recentCategories": "最近分類",

@@ -27,10 +27,21 @@ type PluginManifest struct {
 	SettingsSchema map[string]string `json:"settingsSchema,omitempty"`
 }
 
+type PluginInfo struct {
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	Version        string            `json:"version"`
+	SettingsSchema map[string]string `json:"settingsSchema"`
+	Config         map[string]string `json:"config"`
+	Enabled        bool              `json:"enabled"`
+}
+
 type Plugin struct {
 	Manifest PluginManifest
 	Dir      string
 	VM       *goja.Runtime
+	Enabled  bool
+	Config   map[string]string
 }
 
 type PluginManager struct {
@@ -226,6 +237,13 @@ func (pm *PluginManager) loadPlugin(pluginDir string) {
 
 	// Load configuration for this plugin (if any) and expose as global "config".
 	cfg := pm.loadPluginConfig(pluginDir)
+	enabled := true
+	if val, ok := cfg["__enabled"]; ok && val == "false" {
+		enabled = false
+	}
+	// Do not expose __enabled to JS to keep it clean
+	delete(cfg, "__enabled")
+
 	vm.Set("config", cfg)
 
 	// Inject module.exports = {} setup so script can export its functions
@@ -245,12 +263,97 @@ func (pm *PluginManager) loadPlugin(pluginDir string) {
 		Manifest: manifest,
 		Dir:      pluginDir,
 		VM:       vm,
+		Enabled:  enabled,
+		Config:   cfg,
 	})
 	pm.logger.Info("Loaded plugin: %s (%s)", manifest.Name, manifest.Version)
 }
 
-func (pm *PluginManager) EnhanceMetadata(tab *store.Tab) {
+func (pm *PluginManager) GetPlugins() []PluginInfo {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+
+	var infos []PluginInfo
 	for _, p := range pm.plugins {
+		infos = append(infos, PluginInfo{
+			ID:             p.Manifest.ID,
+			Name:           p.Manifest.Name,
+			Version:        p.Manifest.Version,
+			SettingsSchema: p.Manifest.SettingsSchema,
+			Config:         p.Config,
+			Enabled:        p.Enabled,
+		})
+	}
+	return infos
+}
+
+func (pm *PluginManager) HasPlugins() bool {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+	return len(pm.plugins) > 0
+}
+
+func (pm *PluginManager) UpdatePluginConfig(id string, config map[string]string, enabled bool) error {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	var targetPlugin *Plugin
+	for i := range pm.plugins {
+		if pm.plugins[i].Manifest.ID == id {
+			targetPlugin = &pm.plugins[i]
+			break
+		}
+	}
+
+	if targetPlugin == nil {
+		return fmt.Errorf("plugin %s not found", id)
+	}
+
+	targetPlugin.Enabled = enabled
+	if config == nil {
+		targetPlugin.Config = make(map[string]string)
+	} else {
+		targetPlugin.Config = config
+	}
+
+	// Save to config.json
+	saveMap := make(map[string]string)
+	for k, v := range targetPlugin.Config {
+		saveMap[k] = v
+	}
+	if enabled {
+		saveMap["__enabled"] = "true"
+	} else {
+		saveMap["__enabled"] = "false"
+	}
+
+	cfgPath := filepath.Join(targetPlugin.Dir, "config.json")
+	data, err := json.MarshalIndent(saveMap, "", "  ")
+	if err != nil {
+		return err
+	}
+	
+	if err := os.WriteFile(cfgPath, data, 0644); err != nil {
+		return err
+	}
+
+	// Update VM config
+	if targetPlugin.VM != nil {
+		targetPlugin.VM.Set("config", targetPlugin.Config)
+	}
+
+	return nil
+}
+
+func (pm *PluginManager) EnhanceMetadata(tab *store.Tab) {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+
+	for _, p := range pm.plugins {
+		if !p.Enabled {
+			continue
+		}
+
 		// Check if it has metadata hook
 		hasHook := false
 		for _, h := range p.Manifest.Hooks {

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.3] - 2026-03-17
+### Added
+- **Plugin System UI:** Added a new Plugins management view and settings modal to enable/disable plugins and configure their settings.
+- **Plugin API:** Extended internal plugin manager to support configuration updates and state toggling.
+
+### Changed
+- Refactored Wails bindings output directory structure.
+
 ## [2.4.2] - 2026-03-16
 ### Added
 - **AI Metadata Plugin:** Added `localizedOutputEnabled` configuration to generate metadata in the native language, and tags in the app's current language.

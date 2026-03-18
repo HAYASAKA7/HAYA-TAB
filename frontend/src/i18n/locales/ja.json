@@ -3,7 +3,16 @@
     "home": "ホーム",
     "library": "ライブラリ",
     "settings": "設定",
+    "plugins": "プラグイン",
     "back": ".. (戻る)"
+  },
+  "plugins": {
+    "title": "プラグイン管理",
+    "no_plugins": "インストールされているプラグインはありません",
+    "settings": "プラグイン設定",
+    "save_success": "設定を保存しました",
+    "save_error": "設定の保存に失敗しました",
+    "toggle_error": "プラグインの状態変更に失敗しました"
   },
   "home": {
     "title": "ホーム",

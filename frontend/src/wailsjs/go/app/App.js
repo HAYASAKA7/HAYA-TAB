@@ -62,6 +62,10 @@ export function GetFileServerPort() {
   return window['go']['app']['App']['GetFileServerPort']();
 }
 
+export function GetPlugins() {
+  return window['go']['app']['App']['GetPlugins']();
+}
+
 export function GetRecentCategories(arg1) {
   return window['go']['app']['App']['GetRecentCategories'](arg1);
 }
@@ -84,6 +88,10 @@ export function GetTabs() {
 
 export function GetTabsPaginated(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
   return window['go']['app']['App']['GetTabsPaginated'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+}
+
+export function HasPlugins() {
+  return window['go']['app']['App']['HasPlugins']();
 }
 
 export function MarkAsOpened(arg1) {
@@ -156,6 +164,10 @@ export function StartFileServer() {
 
 export function TriggerSync() {
   return window['go']['app']['App']['TriggerSync']();
+}
+
+export function UpdatePluginConfig(arg1, arg2, arg3) {
+  return window['go']['app']['App']['UpdatePluginConfig'](arg1, arg2, arg3);
 }
 
 export function UpdateTab(arg1) {

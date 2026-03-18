@@ -8,6 +8,7 @@ export const useUIStore = defineStore('ui', () => {
   const currentView = ref<ViewType>('home')
   const sidebarCollapsed = ref(true)
   const updateInfo = ref<UpdateInfo | null>(null)
+  const hasPlugins = ref(false)
 
   // Modal states
   const editModalVisible = ref(false)
@@ -20,6 +21,10 @@ export const useUIStore = defineStore('ui', () => {
   const cloudUploadModalVisible = ref(false)
   const webdavModalVisible = ref(false)
   const cloudUploadFiles = ref<string[]>([])
+
+  // Plugin modal
+  const pluginModalVisible = ref(false)
+  const currentPlugin = ref<any>(null)
 
   // Modal data
   const editModalData = ref<any>(null)
@@ -140,6 +145,16 @@ export const useUIStore = defineStore('ui', () => {
     webdavModalVisible.value = false
   }
 
+  function showPluginModal(plugin: any) {
+    currentPlugin.value = plugin
+    pluginModalVisible.value = true
+  }
+
+  function hidePluginModal() {
+    pluginModalVisible.value = false
+    currentPlugin.value = null
+  }
+
   function showContextMenu(x: number, y: number, items: any[]) {
     contextMenuX.value = x
     contextMenuY.value = y
@@ -157,6 +172,7 @@ export const useUIStore = defineStore('ui', () => {
     currentView,
     sidebarCollapsed,
     updateInfo,
+    hasPlugins,
     editModalVisible,
     categoryModalVisible,
     moveModalVisible,
@@ -167,6 +183,8 @@ export const useUIStore = defineStore('ui', () => {
     cloudUploadModalVisible,
     webdavModalVisible,
     cloudUploadFiles,
+    pluginModalVisible,
+    currentPlugin,
     editModalData,
     categoryModalData,
     moveModalTabId,
@@ -197,6 +215,8 @@ export const useUIStore = defineStore('ui', () => {
     hideCloudUploadModal,
     showWebdavModal,
     hideWebdavModal,
+    showPluginModal,
+    hidePluginModal,
     showContextMenu,
     hideContextMenu
   }
