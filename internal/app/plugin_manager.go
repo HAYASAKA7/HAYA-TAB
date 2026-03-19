@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"haya-tab/pkg/logger"
+	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
 
 	"github.com/dop251/goja"
@@ -404,4 +405,97 @@ func (pm *PluginManager) EnhanceMetadata(tab *store.Tab) {
 			json.Unmarshal(resJSON, tab)
 		}
 	}
+}
+
+func (pm *PluginManager) DownloadCover(artist, album, title, country, lang, dstPath string) error {
+	pm.mu.RLock()
+	plugins := make([]Plugin, len(pm.plugins))
+	copy(plugins, pm.plugins)
+	pm.mu.RUnlock()
+
+	for _, p := range plugins {
+		if !p.Enabled {
+			continue
+		}
+
+		hasHook := false
+		for _, h := range p.Manifest.Hooks {
+			if h == "cover" {
+				hasHook = true
+				break
+			}
+		}
+		if !hasHook {
+			continue
+		}
+
+		exportsVal := p.VM.Get("module").ToObject(p.VM).Get("exports")
+		if exportsVal == nil || goja.IsUndefined(exportsVal) {
+			continue
+		}
+		exports := exportsVal.ToObject(p.VM)
+		getCoverUrlFn := exports.Get("getCoverUrl")
+
+		if getCoverUrlFn == nil || goja.IsUndefined(getCoverUrlFn) {
+			continue
+		}
+
+		fn, ok := goja.AssertFunction(getCoverUrlFn)
+		if !ok {
+			pm.logger.Error("Plugin %s getCoverUrl is not a function", p.Manifest.Name)
+			continue
+		}
+
+		res, err := fn(goja.Undefined(), p.VM.ToValue(artist), p.VM.ToValue(album), p.VM.ToValue(title), p.VM.ToValue(country), p.VM.ToValue(lang))
+		if err != nil {
+			pm.logger.Error("Plugin %s getCoverUrl error: %v", p.Manifest.Name, err)
+			continue
+		}
+
+		if res == nil || goja.IsUndefined(res) || goja.IsNull(res) {
+			continue // plugin didn't find anything
+		}
+
+		urlStr := res.String()
+		if urlStr != "" {
+			pm.logger.Info("Plugin %s provided cover URL: %s", p.Manifest.Name, urlStr)
+			// Download the URL
+			err := pm.downloadFile(urlStr, dstPath)
+			if err == nil {
+				return nil // Success
+			}
+			pm.logger.Error("Plugin %s failed to download cover from %s: %v", p.Manifest.Name, urlStr, err)
+		}
+	}
+
+	// Fallback to iTunes
+	return metadata.DownloadCover(artist, album, title, country, lang, dstPath)
+}
+
+func (pm *PluginManager) downloadFile(urlStr, dstPath string) error {
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return err
+	}
+	// Add common User-Agent
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+	resp, err := pm.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	out, err := os.Create(dstPath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	return err
 }

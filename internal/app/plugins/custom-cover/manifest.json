@@ -1,0 +1,13 @@
+{
+  "id": "custom-cover",
+  "name": "Custom Cover Provider",
+  "version": "1.0.0",
+  "entry": "index.js",
+  "hooks": ["cover"],
+  "permissions": ["network"],
+  "settingsSchema": {
+    "priority": "string",
+    "searchQueryTemplate": "string",
+    "useFallback": "string"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "__enabled": "true",
+  "priority": "high",
+  "searchQueryTemplate": "{artist} - {album}",
+  "useFallback": "true"
+}

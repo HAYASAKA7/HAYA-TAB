@@ -24,8 +24,8 @@ import (
 var idCounter uint64
 
 // AppVersion is the application version
-// Can be set via ldflags during build: -ldflags "-X haya-tab/internal/app.AppVersion=2.3.10"
-var AppVersion = "2.4.3"
+// Can be set via ldflags during build: -ldflags "-X haya-tab/internal/app.AppVersion=2.4.4"
+var AppVersion = "2.4.4"
 
 // getAppDir returns the directory where the database and logs should be stored.
 // It is forced to the user's config directory so that it's accessible even if a custom storage drive is offline.
@@ -237,8 +237,15 @@ func (a *App) Startup(ctx context.Context) {
 		}
 	}
 
+	// Initialize PluginManager
+	a.pluginManager = NewPluginManager(a.logger)
+	pluginsDir := filepath.Join(appDir, "plugins")
+	if err := a.pluginManager.Init(pluginsDir); err != nil {
+		a.logger.Error("Failed to initialize PluginManager: %v", err)
+	}
+
 	// Initialize cover download worker pool (3 concurrent downloads max)
-	a.coverPool = coverpool.NewCoverPool(3, metadata.DownloadCover)
+	a.coverPool = coverpool.NewCoverPool(3, a.pluginManager.DownloadCover)
 	a.coverPool.Start()
 	a.logger.Info("Cover download pool started with 3 workers")
 
@@ -246,13 +253,6 @@ func (a *App) Startup(ctx context.Context) {
 	a.mbWorker = worker.NewMBWorker(a.store, a.logger)
 	a.mbWorker.Start()
 	a.logger.Info("MusicBrainz worker started")
-
-	// Initialize PluginManager
-	a.pluginManager = NewPluginManager(a.logger)
-	pluginsDir := filepath.Join(appDir, "plugins")
-	if err := a.pluginManager.Init(pluginsDir); err != nil {
-		a.logger.Error("Failed to initialize PluginManager: %v", err)
-	}
 
 	// Initialize SyncService
 	emitter := &WailsEventEmitter{ctx: a.ctx}

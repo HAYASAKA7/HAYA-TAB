@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.4] - 2026-03-19
+### Added
+- **Plugin API:** Added `cover` hook support. Plugins can now export `getCoverUrl` to provide custom cover art sources.
+- **Plugin System:** Cover art downloading is now managed by the Plugin Manager, enabling custom cover art sources via plugins.
+
 ## [2.4.3] - 2026-03-17
 ### Added
 - **Plugin System UI:** Added a new Plugins management view and settings modal to enable/disable plugins and configure their settings.
