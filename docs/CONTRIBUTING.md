@@ -62,6 +62,86 @@ If you encounter a bug or have a feature idea, please open an issue describing t
 - **Vue (Frontend):** Use Vue 3 Composition API with `<script setup>`. Use TypeScript for strong typing. Manage global state with Pinia (`src/stores`).
 - **Documentation:** Keep documentation (like `README.md`, `ARCHITECTURE.md`, and inline comments) up-to-date with your changes.
 
+## Plugin Development
+
+HAYA-TAB plugins are JavaScript modules loaded by `PluginManager` at startup from the user app directory:
+
+- `<os.UserConfigDir()>/HAYA-TAB/plugins/<plugin-id>/`
+
+For this repository, built-in/distributed plugins are maintained in:
+
+- `internal/app/plugins/<plugin-id>/`
+
+### Plugin Coding Guidelines
+
+- Keep plugin files self-contained and deterministic. A plugin should either return useful data or return `null`/original data without side effects.
+- Fail gracefully: wrap parsing/network logic with guards and return safely when inputs are invalid or API calls fail.
+- Never hardcode secrets in `index.js` or `manifest.json`. Use `config` values from `config.json`.
+- Validate and sanitize all external data (HTTP responses, JSON payloads) before applying it to metadata fields.
+- Keep logs concise and prefixed (for example `[my-plugin] ...`) so plugin behavior is easy to debug.
+- Keep compatibility with the current runtime (`goja` JS execution); use plain JavaScript patterns already used in existing plugins.
+- Only request permissions/hooks your plugin needs in `manifest.json`.
+
+### How to Add a Plugin
+
+1. Create a new plugin directory:
+   - `internal/app/plugins/<plugin-id>/`
+2. Add `manifest.json` with:
+   - `id`, `name`, `version`, `entry`, `hooks`, `permissions`, and optional `settingsSchema`.
+3. Add the entry file referenced by `entry` (usually `index.js`).
+4. Export hook functions that match declared hooks:
+   - `metadata` hook requires `module.exports.enhanceMetadata = function(tab) { ... return tab; }`
+   - `cover` hook requires `module.exports.getCoverUrl = function(artist, album, title, country, lang) { ... return urlOrNull; }`
+5. (Recommended) Add `config.json.example` documenting required settings.
+6. Test by copying/syncing the plugin folder into local runtime plugins directory:
+   - `<os.UserConfigDir()>/HAYA-TAB/plugins/<plugin-id>/`
+7. Start the app (`wails dev`) and verify:
+   - The plugin appears in settings.
+   - Hook behavior works without runtime errors.
+8. After `git push`, sync plugin subtree to the plugins repository:
+   - One-time setup (if `plugins-repo` remote does not exist yet):
+   ```bash
+   git remote add plugins-repo https://github.com/HAYASAKA7/HAYA-TAB-Plugins.git
+   ```
+   - Push the plugins subtree:
+   ```bash
+   git subtree push --prefix=internal/app/plugins plugins-repo main
+   ```
+
+### Recommended Plugin Structure
+
+```text
+<plugin-id>/
+  manifest.json
+  index.js
+  config.json.example   # optional but recommended
+  README.md             # optional plugin-specific docs
+```
+
+`manifest.json` template:
+
+```json
+{
+  "id": "my-plugin",
+  "name": "My Plugin",
+  "version": "1.0.0",
+  "entry": "index.js",
+  "hooks": ["metadata"],
+  "permissions": ["network"],
+  "settingsSchema": {
+    "apiKey": "password",
+    "baseUrl": "string"
+  }
+}
+```
+
+Runtime globals available in plugin scripts:
+
+- `log(message)` for plugin logs.
+- `fetch(url)` for simple GET requests.
+- `httpRequest({ method, url, headers, body })` for advanced HTTP.
+- `config` object loaded from `config.json` (if present).
+
 ## Building for Production
 
 To create a production-ready binary for your current platform:
