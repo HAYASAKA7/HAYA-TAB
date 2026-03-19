@@ -128,16 +128,28 @@ The plugin system allows extending the core functionality of HAYA-TAB through cu
    - Secure execution environment with controlled access to host functions.
 
 2. **Plugin Manager (`internal/app/plugin_manager.go`)**
-   - Discovers, loads, and initializes plugins from the `internal/app/plugins/` directory.
+   - On app startup, resolves runtime plugin directory as `<os.UserConfigDir()>/HAYA-TAB/plugins` and loads plugins from there.
    - Manages plugin lifecycles and provides a set of injected API functions (e.g., logging, HTTP requests).
+   - Reads plugin-local `config.json` and exposes it to JavaScript as global `config`.
+   - Supports enable/disable state via `__enabled` in plugin config.
 
 3. **Plugin Structure**
-   - `manifest.json`: Defines the plugin ID, name, version, entry point (`index.js`), required hooks, and settings schema.
-   - `index.js`: The JavaScript logic that implements the defined hooks.
+   - Runtime path: `<os.UserConfigDir()>/HAYA-TAB/plugins/<plugin-id>/`
+   - Repository source path: `internal/app/plugins/<plugin-id>/` (for built-in/distributed plugins)
+   - `manifest.json`: Defines the plugin ID, name, version, entry point (`index.js`), hooks, permissions, and optional settings schema.
+   - `index.js`: JavaScript entry script using `module.exports`.
+   - Optional `config.json`: plugin-local runtime config (string key/value map).
 
 4. **Hook System**
-   - The backend fires events at specific lifecycle stages (e.g., `metadata` during sync).
-   - Plugins registered for those hooks intercept the data, manipulate it, and return the modified result back to the host application.
+   - `metadata` hook: called during sync; plugin exports `enhanceMetadata(tab)` and returns modified tab data.
+   - `cover` hook: called during cover lookup; plugin exports `getCoverUrl(artist, album, title, country, lang)` and returns a URL or `null`.
+   - Plugins registered for a hook are invoked only when enabled.
+
+5. **Injected Runtime APIs**
+   - `log(message)` for plugin-scoped logging.
+   - `fetch(url)` for simple GET requests.
+   - `httpRequest({ method, url, headers, body })` for advanced HTTP use cases.
+   - `config` global populated from `config.json`.
 
 ### Built-in Plugins
 

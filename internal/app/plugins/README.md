@@ -4,9 +4,37 @@ This repository serves as the official plugin distribution for **HAYA-TAB**. It 
 
 ## Usage
 
-To install a plugin, simply download the desired files and place them into your local installation directory:
+At runtime, HAYA-TAB loads plugins from the user config directory:
 
-`HAYA-TAB/plugins/`
+- `<os.UserConfigDir()>/HAYA-TAB/plugins/<plugin-id>/`
+
+To install a plugin, copy the plugin folder into that directory.
+
+## Plugin Structure
+
+Each plugin should follow this structure:
+
+```text
+<plugin-id>/
+  manifest.json
+  index.js
+  config.json.example   # optional
+```
+
+### `manifest.json` fields
+
+- `id`: unique plugin ID (should match folder name)
+- `name`: display name
+- `version`: semantic version
+- `entry`: entry script path (usually `index.js`)
+- `hooks`: supported hooks (`metadata`, `cover`)
+- `permissions`: required permissions (for example `network`)
+- `settingsSchema`: optional settings definition for UI
+
+### Required exports by hook
+
+- `metadata` hook -> `module.exports.enhanceMetadata = function(tab) { return tab; }`
+- `cover` hook -> `module.exports.getCoverUrl = function(artist, album, title, country, lang) { return null; }`
 
 ## Note
 

@@ -92,8 +92,11 @@ To fix this:
 │       ├── app_files.go              # File dialogs & sync triggers
 │       ├── app_settings.go           # Settings persistence
 │       ├── app_migration.go          # Data migration utilities
+│       ├── app_plugins.go            # Plugin management APIs
 │       ├── app_webdav.go             # WebDAV cloud operations & volume system
 │       ├── app_webdav_helpers.go     # WebDAV fingerprint helpers (batch operations)
+│       ├── plugin_manager.go         # JS plugin runtime loader/executor
+│       ├── plugins/                  # Built-in/distributed plugin source
 │       ├── server.go                 # HTTP file server
 │       ├── disk_unix.go              # Unix disk operations
 │       └── disk_windows.go           # Windows disk operations
