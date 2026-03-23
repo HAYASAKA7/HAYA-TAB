@@ -1,6 +1,6 @@
 ﻿# HAYA-TAB Go API Documentation
 
-> Generated from Go code using `go doc` command. Updated for v2.4.4
+> Generated from Go code using `go doc` command. Updated for v2.4.5
 
 ## Package: haya-tab/internal/app
 
@@ -9,9 +9,9 @@ package app // import "haya-tab/internal/app"
 
 VARIABLES
 
-var AppVersion = "2.4.4"
+var AppVersion = "2.4.5"
     AppVersion is the application version. Can be set via ldflags during build: 
-    -ldflags "-X haya-tab/internal/app.AppVersion=2.4.4"
+    -ldflags "-X haya-tab/internal/app.AppVersion=2.4.5"
 FUNCTIONS
 
 func GetDiskFreeSpace(path string) (uint64, error)
@@ -92,6 +92,10 @@ func (a *App) GetTabs() []store.Tab
 func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) TabsResponse
     GetTabsPaginated returns a paginated list of tabs with optional search
 
+func (a *App) GetTabAnnotations(tabID string, pageNumber int) (string, error)
+    GetTabAnnotations returns page-level annotation JSON data for a tab.
+    Returns "[]" when no annotation exists for this page.
+
 func (a *App) MarkAsOpened(id string) error
     MarkAsOpened updates the LastOpened timestamp for a tab without opening it
 
@@ -130,6 +134,9 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) (*store.Tab, error)
     SaveTab saves the tab. copyFile determines if we import it to internal
     storage. The passed tab should have the user-confirmed Metadata. Returns the
     saved tab on success.
+
+func (a *App) SaveTabAnnotations(tabID string, pageNumber int, jsonData string) error
+    SaveTabAnnotations saves page-level annotation JSON data for a tab.
 
 func (a *App) SelectFiles() []string
     SelectFiles opens a file dialog and returns the selected file paths
@@ -507,7 +514,7 @@ func (s *DBStore) EnsureCloudCategory() error
 
 func (s *DBStore) EnsureCloudTabsHaveCloudCategory() (int, error)
     EnsureCloudTabsHaveCloudCategory adds the syscloud category to all cloud
-    tabs that don't have it. This is a migration for tabs created before the
+    tabs that do not have it. This is a migration for tabs created before the
     automatic category assignment was implemented.
 
 func (s *DBStore) GetAllTabs() ([]Tab, error)
@@ -763,6 +770,9 @@ func (c *WebDAVClient) ListRemoteDirectories(dir string) ([]string, error)
     ListRemoteDirectories returns a list of directories in the given path
     (non-recursive)
 
+func (c *WebDAVClient) ReadBytes(remotePath string) ([]byte, error)
+    ReadBytes reads all bytes from a remote file path.
+
 func (c *WebDAVClient) ReadStream(remotePath string) (io.ReadCloser, error)
     ReadStream returns a read stream for the remote file (for streaming/proxy)
 
@@ -773,6 +783,10 @@ func (c *WebDAVClient) TestConnection() error
 
 func (c *WebDAVClient) UploadFile(localPath, remoteDir string) error
     UploadFile uploads a single file to the remote directory
+
+func (c *WebDAVClient) WriteBytes(remotePath string, data []byte) error
+    WriteBytes writes bytes to a remote file path, creating parent directories
+    if needed.
 
 ```
 

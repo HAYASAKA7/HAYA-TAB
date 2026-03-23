@@ -176,5 +176,19 @@ export const TabService = {
    */
   async getCover(path: string): Promise<string> {
     return await callBackend<string>('GetCover', path);
+  },
+
+  /**
+   * Save annotations for a PDF page.
+   */
+  async saveTabAnnotations(tabId: string, pageNumber: number, jsonData: string): Promise<void> {
+    return await callBackend<void>('SaveTabAnnotations', tabId, pageNumber, jsonData);
+  },
+
+  /**
+   * Get annotations for a PDF page.
+   */
+  async getTabAnnotations(tabId: string, pageNumber: number): Promise<string> {
+    return await callBackend<string>('GetTabAnnotations', tabId, pageNumber);
   }
 };

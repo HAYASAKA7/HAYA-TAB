@@ -18,6 +18,7 @@ Communication between the frontend and backend happens via Wails' IPC (Inter-Pro
 - **Styling:** Custom CSS with a responsive grid layout.
 - **Viewers:**
   - **PDF.js:** For rendering standard PDF documents.
+    - A custom non-destructive annotation overlay is injected on top of PDF pages and persisted as JSON.
   - **alphaTab:** A music notation and guitar tablature rendering engine for playing `.gp`, `.gp5`, `.gpx`, and MusicXML files.
 - **Components:** Modular components organized into grids, layouts, modals, viewers, and common UI elements.
 
@@ -28,11 +29,13 @@ The Go backend is structured into distinct, modular packages:
 - **`internal/app`:** The core application logic. It initializes the Wails app lifecycle and exposes methods bound to the frontend (e.g., managing tabs, categories, file dialogs, settings, migrations, and WebDAV operations).
   - `app_webdav.go` - Main WebDAV entry points (initialize, discover volumes, health checks, reconnect)
   - `app_webdav_helpers.go` - Fingerprint batch operations (add/remove files from fingerprints)
+  - `app_annotations.go` - Annotation remote path mapping and lightweight WebDAV sync helpers
   - `app_tabs.go` - Tab CRUD, batch operations (with cloud tab support)
   - `app_settings.go` - Settings persistence (tracks WebDAV configuration changes)
   
 - **`pkg/store`:** The data persistence layer. Uses SQLite (via `modernc.org/sqlite`) for local storage, implementing Full-Text Search (FTS5) for fast querying.
   - Core database operations in `database.go`
+  - Annotation persistence in `database_annotations.go` (`tab_annotations` table)
   - Cloud volume operations in `database_volumes.go` (add, update, delete, query volumes)
   - Volume migration in `database_migration_volumes.go` (legacy tab migration, orphan cleanup)
   - Data models including `CloudVolume` struct in `models.go`
@@ -66,11 +69,12 @@ The volume system enables seamless multi-device synchronization by treating each
    - Creation and last-seen timestamps
    - Availability status
 
-2. **Fingerprint File** (`.haya-volume-fingerprint`)
-   - Contains volume metadata (ID, name, creation date, app version, device name)
-   - Lists all files uploaded via HAYA-TAB with their metadata
-   - Updated whenever files are added/uploaded
+2. **Metadata Directory** (`haya-metadata/`)
+   - Stores volume metadata and fingerprint buckets (`bucket-00.json` ... `bucket-15.json`)
+   - Contains metadata (ID, name, creation date, app version, device name)
+   - Stores file records uploaded via HAYA-TAB with metadata
    - Enables other devices to discover and sync the volume autonomously
+   - Also stores non-destructive PDF annotation JSON under `haya-metadata/annotations/...`
 
 3. **Database Operations** (`pkg/store/database_volumes.go`, `pkg/store/database_migration_volumes.go`)
    - `cloud_volumes` table stores volume information
@@ -85,14 +89,15 @@ The volume system enables seamless multi-device synchronization by treating each
    - `ScanVolumes()` - Discover all volumes in WebDAV root
    - `DiscoverAndRegisterVolumes()` - Register discovered volumes with auto-create for new directories
 
-5. **App-Level Integration** (`internal/app/app_webdav.go`, `internal/app/app_webdav_helpers.go`)
-   - `WebDAVInitialize()` - Initialize volume system on startup
-   - `WebDAVDiscoverVolumes()` - Scan and register all volumes
-   - `WebDAVCheckVolumeHealth()` - Monitor volume accessibility
+5. **App-Level Integration** (`internal/app/app_webdav.go`, `internal/app/app_webdav_helpers.go`, `internal/app/app_annotations.go`)
+  - `WebDAVInitialize()` - Initialize volume system on startup
+  - `WebDAVDiscoverVolumes()` - Scan and register all volumes
+  - `WebDAVCheckVolumeHealth()` - Monitor volume accessibility
    - `WebDAVMigrateCloudTabs()` - Migrate legacy cloud tabs
-   - `WebDAVReconnect()` - Reconnect and reinitialize on connection restore
-   - `monitorWebDAVConnection()` - Background monitor (checks every 30 seconds)
-   - Fingerprint batch operations for efficient uploads/deletions
+  - `WebDAVReconnect()` - Reconnect and reinitialize on connection restore
+  - `monitorWebDAVConnection()` - Background monitor (checks every 30 seconds)
+  - Fingerprint batch operations for efficient uploads/deletions
+  - Annotation sync uses relative paths and stores JSON in metadata subdirectory
 
 ### Multi-Device Sync Flow
 

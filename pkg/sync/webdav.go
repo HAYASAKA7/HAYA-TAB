@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -172,7 +173,7 @@ func (c *WebDAVClient) MkdirAll(remotePath string) error {
 	if err == nil {
 		return nil // Successfully created directly (parent existed)
 	}
-	
+
 	// Check if it failed because it already exists
 	if _, statErr := c.metadataClient.Stat(targetPath); statErr == nil {
 		return nil // Already exists
@@ -406,4 +407,31 @@ func (c *WebDAVClient) GetHTTPClient() *http.Client {
 // GetURL returns the base WebDAV URL
 func (c *WebDAVClient) GetURL() string {
 	return c.url
+}
+
+// ReadBytes reads all bytes from a remote file path.
+func (c *WebDAVClient) ReadBytes(remotePath string) ([]byte, error) {
+	stream, err := c.ReadStream(remotePath)
+	if err != nil {
+		return nil, err
+	}
+	defer stream.Close()
+	return io.ReadAll(stream)
+}
+
+// WriteBytes writes bytes to a remote file path, creating parent directories if needed.
+func (c *WebDAVClient) WriteBytes(remotePath string, data []byte) error {
+	remotePath = sanitizePath(remotePath)
+	parentDir := path.Dir(remotePath)
+	if parentDir != "." && parentDir != "/" {
+		if err := c.MkdirAll(parentDir); err != nil {
+			return fmt.Errorf("failed to create parent directory %s: %w", parentDir, err)
+		}
+	}
+
+	reader := bytes.NewReader(data)
+	if err := c.streamClient.WriteStream(remotePath, reader, 0644); err != nil {
+		return fmt.Errorf("failed to write remote file %s: %w", remotePath, err)
+	}
+	return nil
 }

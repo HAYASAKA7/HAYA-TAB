@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-2.4.4-green)
+![Version](https://img.shields.io/badge/version-2.4.5-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
@@ -13,6 +13,7 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 - **Advanced Search** - **Instant Full-Text Search (FTS5)** across titles, artists, and albums with fuzzy matching
 - **Real-time Sync** - Automatically watches synced folders for changes; **Non-destructive** import (renames duplicates)
 - **Cloud Sync** - **WebDAV** integration with multi-device support via volume fingerprints; on-demand cloud file access and uploads with automatic metadata tracking
+- **PDF Annotation Layer** - Non-destructive transparent canvas annotations (pen/highlighter/eraser) stored as lightweight JSON, without modifying original PDF files
 - **Smart Metadata** - Auto-parse info from filenames; **Bi-directional sync** with Guitar Pro internal metadata
 - **Tag Support** - Add version/part tags (e.g., "Lead Guitar", "Bass", "First Version")
 - **Plugin System** - Extend functionality with JavaScript plugins (e.g., AI Metadata Enhancer)
@@ -21,7 +22,7 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 - **Categories** - Organize tabs into virtual folders
 - **Batch Operations** - Select and move/delete multiple tabs at once
 - **Rich Internal Viewer**:
-  - **PDF:** Built-in viewer with **Auto-Scroll** (variable speed)
+  - **PDF:** Built-in viewer with **Auto-Scroll** and non-destructive **Annotation Layer** (pen/highlighter/eraser)
   - **Guitar Pro:** alphaTab engine with **Looping**, **Section Playback**, **Speed Control**, and **Floating Toolbar**
 - **MIDI Pedal Support** - Control page turning, playback (Play/Pause), and **Smooth Scrolling** (via Expression Pedal) with any standard MIDI foot controller; includes **MIDI Learn** for easy mapping.
 - **Internationalization** - Full support for **English, Chinese (Simplified/Traditional), and Japanese**; **Auto-detects system language** on first launch
@@ -74,8 +75,9 @@ To fix this:
 2. **Organize**: Create categories and move tabs into them
 3. **Sync Folders**: Go to Settings → Add sync paths to auto-import tabs from folders
 4. **Cloud Sync**: Configure WebDAV in Settings to access your cloud library. See [WebDAV Guide](docs/WEBDAV.md).
-5. **View Tabs**: Click a tab to open with system default, or right-click → "Open with Inner Viewer"
-6. **Key Bindings**: Customize viewer controls (Loop, Auto-scroll, etc.) in Settings
+5. **PDF Annotation**: In the PDF viewer, toggle annotation mode and draw on the non-destructive overlay layer.
+6. **View Tabs**: Click a tab to open with system default, or right-click → "Open with Inner Viewer"
+7. **Key Bindings**: Customize viewer controls (Loop, Auto-scroll, etc.) in Settings
 
 ## 📁 Project Structure
 
@@ -94,6 +96,7 @@ To fix this:
 │       ├── app_migration.go          # Data migration utilities
 │       ├── app_plugins.go            # Plugin management APIs
 │       ├── app_webdav.go             # WebDAV cloud operations & volume system
+│       ├── app_annotations.go        # Annotation WebDAV path mapping & sync helpers
 │       ├── app_webdav_helpers.go     # WebDAV fingerprint helpers (batch operations)
 │       ├── plugin_manager.go         # JS plugin runtime loader/executor
 │       ├── plugins/                  # Built-in/distributed plugin source
@@ -148,6 +151,7 @@ To fix this:
 │   │   └── gp_binary.go              # Binary format handlers
 │   ├── store/                        # SQLite database layer
 │   │   ├── database.go               # DB connection & management
+│   │   ├── database_annotations.go   # PDF annotation persistence
 │   │   ├── database_volumes.go       # Cloud volume operations
 │   │   ├── database_migration_volumes.go    # Volume system migrations
 │   │   ├── models.go                 # Data models (includes CloudVolume)

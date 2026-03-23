@@ -43,6 +43,8 @@ export function GetSettings():Promise<store.Settings>;
 
 export function GetStorageDir():Promise<string>;
 
+export function GetTabAnnotations(arg1:string,arg2:number):Promise<string>;
+
 export function GetTabs():Promise<Array<store.Tab>>;
 
 export function GetTabsPaginated(arg1:string,arg2:number,arg3:number,arg4:string,arg5:Array<string>,arg6:boolean,arg7:string,arg8:boolean):Promise<app.TabsResponse>;
@@ -72,6 +74,8 @@ export function ResolveTabPath(arg1:string,arg2:boolean):Promise<string>;
 export function SaveSettings(arg1:store.Settings):Promise<void>;
 
 export function SaveTab(arg1:store.Tab,arg2:boolean):Promise<store.Tab>;
+
+export function SaveTabAnnotations(arg1:string,arg2:number,arg3:string):Promise<void>;
 
 export function SelectFiles():Promise<Array<string>>;
 

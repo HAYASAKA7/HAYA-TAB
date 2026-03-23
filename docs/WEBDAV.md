@@ -28,7 +28,7 @@ HAYA-TAB v2.3.0 introduces a **volume system** for seamless multi-device synchro
 
 Each cloud drive (or directory served by your WebDAV server) is treated as a **volume**. Each volume:
 
-- Has a unique fingerprint file (`.haya-volume-fingerprint`) that identifies it
+- Has a hidden metadata directory (`haya-metadata/`) that identifies and tracks the volume
 - Contains metadata about all files uploaded via HAYA-TAB to that volume (including Title, Artist, Album, and Categories)
 - Enables multiple devices to discover and sync with the same cloud drive, including automatic reconstruction of category associations
 - Tracks upload history, metadata, and source device information
@@ -43,14 +43,26 @@ Each cloud drive (or directory served by your WebDAV server) is treated as a **v
    - Each device can independently discover the same volumes
 
 2. **Fingerprint Files**
-   - Each volume root directory contains a `.haya-volume-fingerprint` file (hidden)
-   - This file contains:
+   - Each volume root directory contains a hidden metadata directory: `haya-metadata/`
+   - This metadata directory contains:
      - Volume ID (unique identifier for the drive)
      - Volume name (e.g., "Google Drive", "OneDrive")
      - Creation date and last seen date
      - List of all files uploaded via HAYA-TAB, with metadata (title, artist, album, type, upload date, source device)
+   - Fingerprint buckets are stored under:
+     - `haya-metadata/bucket-00.json` ... `haya-metadata/bucket-15.json`
 
-3. **Multi-Device Workflow**
+3. **PDF Annotation Sync (v2.4.5+)**
+   - PDF annotations are synced as lightweight JSON files (non-destructive; original PDF is never modified).
+   - Annotation files are stored inside the same hidden metadata directory:
+     - `haya-metadata/annotations/<relative_file_path>.p<page>.json`
+   - Example:
+     - PDF relative path: `scores/etude.pdf`
+     - Page: `3`
+     - Remote annotation JSON path: `haya-metadata/annotations/scores/etude.pdf.p3.json`
+   - This avoids creating extra visible directories in user content areas and keeps path mapping stable across devices.
+
+4. **Multi-Device Workflow**
    ```
    Device A: Uploads file.gp5 to /gdrive/ → Fingerprint updated
                            ↓
@@ -59,7 +71,7 @@ Each cloud drive (or directory served by your WebDAV server) is treated as a **v
              Now knows about file.gp5 from Device A
    ```
 
-4. **Metadata Persistence**
+5. **Metadata Persistence**
    - When you upload a file, its metadata (title, artist, album) is saved in the fingerprint
    - When another device discovers the same volume, it automatically imports files with their metadata
    - This ensures consistent metadata across all devices without re-parsing files

@@ -166,11 +166,21 @@ func (s *DBStore) createTables() error {
 		is_available INTEGER DEFAULT 1
 	);
 
+	CREATE TABLE IF NOT EXISTS tab_annotations (
+		tab_id TEXT NOT NULL,
+		page_number INTEGER NOT NULL,
+		annotation_data TEXT NOT NULL,
+		updated_at INTEGER DEFAULT 0,
+		PRIMARY KEY (tab_id, page_number),
+		FOREIGN KEY(tab_id) REFERENCES tabs(id) ON DELETE CASCADE
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_tabs_category ON tabs(category_id);
 	CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
 	CREATE INDEX IF NOT EXISTS idx_tab_categories_tab ON tab_categories(tab_id);
 	CREATE INDEX IF NOT EXISTS idx_tab_categories_cat ON tab_categories(category_id);
 	CREATE INDEX IF NOT EXISTS idx_cloud_volumes_mount ON cloud_volumes(mount_path);
+	CREATE INDEX IF NOT EXISTS idx_tab_annotations_updated_at ON tab_annotations(updated_at);
 	`
 
 	if _, err := s.db.Exec(schema); err != nil {

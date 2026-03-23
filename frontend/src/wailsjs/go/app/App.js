@@ -82,6 +82,10 @@ export function GetStorageDir() {
   return window['go']['app']['App']['GetStorageDir']();
 }
 
+export function GetTabAnnotations(arg1, arg2) {
+  return window['go']['app']['App']['GetTabAnnotations'](arg1, arg2);
+}
+
 export function GetTabs() {
   return window['go']['app']['App']['GetTabs']();
 }
@@ -140,6 +144,10 @@ export function SaveSettings(arg1) {
 
 export function SaveTab(arg1, arg2) {
   return window['go']['app']['App']['SaveTab'](arg1, arg2);
+}
+
+export function SaveTabAnnotations(arg1, arg2, arg3) {
+  return window['go']['app']['App']['SaveTabAnnotations'](arg1, arg2, arg3);
 }
 
 export function SelectFiles() {

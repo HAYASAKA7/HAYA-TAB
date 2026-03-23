@@ -593,6 +593,35 @@ func (a *App) MarkAsOpened(id string) error {
 	return a.store.UpdateTab(*targetTab)
 }
 
+// SaveTabAnnotations saves page-level annotation JSON data for a tab.
+func (a *App) SaveTabAnnotations(tabID string, pageNumber int, jsonData string) error {
+	if err := a.store.SaveTabAnnotation(tabID, pageNumber, jsonData); err != nil {
+		return err
+	}
+
+	// Best-effort cloud sync: store annotations under fingerprint metadata directory.
+	go a.syncAnnotationToWebDAV(tabID, pageNumber, jsonData)
+	return nil
+}
+
+// GetTabAnnotations returns page-level annotation JSON data for a tab.
+// Returns "[]" when no annotation exists for this page.
+func (a *App) GetTabAnnotations(tabID string, pageNumber int) (string, error) {
+	jsonData, err := a.store.GetTabAnnotation(tabID, pageNumber)
+	if err != nil {
+		return "", err
+	}
+
+	// Lazy pull from WebDAV when local cache is empty.
+	if strings.TrimSpace(jsonData) == "[]" {
+		if remoteData, ok := a.fetchAnnotationFromWebDAV(tabID, pageNumber); ok {
+			return remoteData, nil
+		}
+	}
+
+	return jsonData, nil
+}
+
 // RecalculateAllInitials forces recalculation of initials for all tabs
 func (a *App) RecalculateAllInitials() (int, error) {
 	tabs, err := a.store.GetTabs()
