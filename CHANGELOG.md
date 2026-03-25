@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.7] - 2026-03-25
+
+### Added
+
+- **WebDAV Settings Validation:** Extracted WebDAV parameter validation into a dedicated `validateWebDAV` function (`app_settings.go`) that checks URL, username, and password before attempting a connection, returning localized `errors.*` keys.
+- **i18n Error Keys for WebDAV:** Added translation entries for WebDAV validation errors (empty URL, username, password) across all locales (en, ja, zh-CN, zh-TW).
+
+### Fixed
+
+- **WebDAV Connection Validation:** Fixed missing pre-flight parameter checks in `WebDAVTestConnection` — URL, username, and password are now validated before the connection attempt, with user-friendly localized error messages.
+- **Localized Error Display:** Fixed `SettingsView` and `WebDAVModal` to translate `errors.*` i18n keys returned from the backend before showing them in toasts.
+
 ## [2.4.6] - 2026-03-25
 
 ### Changed
