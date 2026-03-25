@@ -32,6 +32,7 @@ interface AnnotationStroke { id: string; type: 'pen' | 'highlight'; color: strin
 interface PageAnnotation { pageNumber: number; width: number; height: number; strokes: AnnotationStroke[] }
 
 const annotationEnabled = ref(false)
+const annotationPanelOpen = ref(false)
 const annotationTool = ref<AnnotationTool>('pen')
 const annotationColor = ref('#ff3b30')
 const annotationLineWidth = ref(0.005)
@@ -53,6 +54,7 @@ const STOP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" wi
 const SCROLL_DOWN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M8 2v10M4 8l4 4 4-4"/></svg>`
 const SCROLL_PAUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><rect fill="currentColor" x="4" y="3" width="3" height="10" rx="1"/><rect fill="currentColor" x="9" y="3" width="3" height="10" rx="1"/></svg>`
 const ANNO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M11.9 1.4a1.5 1.5 0 012.1 2.1l-8.6 8.6-3.2.8.8-3.2 8.9-8.3z"/></svg>`
+const CURSOR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 1l9.5 4.3-4.1 1.5 2.1 5.2-1.6.7-2.1-5.2L2 10.3V1z"/></svg>`
 const PEN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M11.6 1.2l3.2 3.2-7.5 7.5H4.1V8.7l7.5-7.5zm-8 11.6h8.8v1.2H3.6v-1.2z"/></svg>`
 const HIGHLIGHT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M1 10h10v4H1v-4zm3.2-8l6.6 6.6-1.9 1.9-6.6-6.6L4.2 2z"/></svg>`
 const ERASER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M6.2 2l7.8 7.8-2.2 2.2H4L1 8.9 6.2 2zm-3.4 7L4.5 11h6.8l1.1-1.1L6.2 3.7 2.8 9z"/></svg>`
@@ -416,10 +418,24 @@ function hideNativePdfAnnotationButtons(doc: Document) {
 function updateAnnotationToolbarUI() {
   const doc = getIframeDoc()
   if (!doc) return
-  doc.getElementById('haya-annotation-toggle-btn')?.classList.toggle('toggled', annotationEnabled.value)
-  doc.getElementById('haya-annotation-pen-btn')?.classList.toggle('toggled', annotationTool.value === 'pen')
-  doc.getElementById('haya-annotation-highlight-btn')?.classList.toggle('toggled', annotationTool.value === 'highlight')
-  doc.getElementById('haya-annotation-eraser-btn')?.classList.toggle('toggled', annotationTool.value === 'eraser')
+  const toggleBtn = doc.getElementById('haya-annotation-toggle-btn') as HTMLButtonElement | null
+  if (toggleBtn) {
+    const icon = !annotationEnabled.value
+      ? CURSOR_SVG
+      : annotationTool.value === 'pen'
+        ? PEN_SVG
+        : annotationTool.value === 'highlight'
+          ? HIGHLIGHT_SVG
+          : ERASER_SVG
+    toggleBtn.innerHTML = icon
+    toggleBtn.title = !annotationEnabled.value ? 'Selection mode' : `Current tool: ${annotationTool.value}`
+  }
+  doc.getElementById('haya-annotation-entry')?.classList.toggle('open', annotationPanelOpen.value)
+  doc.getElementById('haya-annotation-toggle-btn')?.classList.toggle('toggled', annotationPanelOpen.value)
+  doc.getElementById('haya-annotation-select-btn')?.classList.toggle('toggled', !annotationEnabled.value)
+  doc.getElementById('haya-annotation-pen-btn')?.classList.toggle('toggled', annotationEnabled.value && annotationTool.value === 'pen')
+  doc.getElementById('haya-annotation-highlight-btn')?.classList.toggle('toggled', annotationEnabled.value && annotationTool.value === 'highlight')
+  doc.getElementById('haya-annotation-eraser-btn')?.classList.toggle('toggled', annotationEnabled.value && annotationTool.value === 'eraser')
 
   const colorInput = doc.getElementById('haya-annotation-color') as HTMLInputElement | null
   if (colorInput && colorInput.value !== annotationColor.value) colorInput.value = annotationColor.value
@@ -431,9 +447,57 @@ function updateAnnotationToolbarUI() {
   }
 }
 
+function toggleAnnotationEntry() {
+  annotationPanelOpen.value = !annotationPanelOpen.value
+}
+
+function setSelectionMode() {
+  annotationEnabled.value = false
+}
+
+function setAnnotationTool(tool: AnnotationTool) {
+  if (annotationEnabled.value && annotationTool.value === tool) {
+    annotationEnabled.value = false
+    return
+  }
+  annotationTool.value = tool
+  annotationEnabled.value = true
+  annotationPanelOpen.value = true
+}
+
+function closeAnnotationPanel() {
+  if (!annotationPanelOpen.value) return
+  annotationPanelOpen.value = false
+}
+
+function isInsideAnnotationEntry(target: EventTarget | null, doc: Document) {
+  const entry = doc.getElementById('haya-annotation-entry')
+  if (!entry || !target) return false
+  const nodeType = (target as { nodeType?: unknown }).nodeType
+  if (typeof nodeType !== 'number') return false
+  return entry.contains(target as Node)
+}
+
+function handleIframePointerDown(e: PointerEvent) {
+  if (!annotationPanelOpen.value) return
+  const doc = getIframeDoc()
+  if (!doc) return
+  if (isInsideAnnotationEntry(e.target, doc)) return
+  closeAnnotationPanel()
+}
+
+function handleHostPointerDown(e: PointerEvent) {
+  if (!annotationPanelOpen.value) return
+  const iframe = iframeRef.value
+  if (!iframe) return
+  const target = e.target
+  if (target instanceof Node && (target === iframe || iframe.contains(target))) return
+  closeAnnotationPanel()
+}
+
 function injectAnnotationToolbar(doc: Document) {
   const toolbarRight = doc.getElementById('toolbarViewerRight')
-  if (!toolbarRight || doc.getElementById('haya-annotation-container')) return
+  if (!toolbarRight || doc.getElementById('haya-annotation-entry')) return
 
   const button = (id: string, title: string, icon: string, onClick: () => void) => {
     const btn = doc.createElement('button')
@@ -445,13 +509,19 @@ function injectAnnotationToolbar(doc: Document) {
     return btn
   }
 
+  const entry = doc.createElement('div')
+  entry.id = 'haya-annotation-entry'
+  entry.className = 'haya-annotation-entry'
+
+  entry.appendChild(button('haya-annotation-toggle-btn', 'Toggle annotation', ANNO_SVG, () => toggleAnnotationEntry()))
+
   const container = doc.createElement('div')
   container.id = 'haya-annotation-container'
-  container.className = 'haya-group'
-  container.appendChild(button('haya-annotation-toggle-btn', 'Toggle annotation', ANNO_SVG, () => (annotationEnabled.value = !annotationEnabled.value)))
-  container.appendChild(button('haya-annotation-pen-btn', 'Pen', PEN_SVG, () => { annotationTool.value = 'pen'; annotationEnabled.value = true }))
-  container.appendChild(button('haya-annotation-highlight-btn', 'Highlighter', HIGHLIGHT_SVG, () => { annotationTool.value = 'highlight'; annotationEnabled.value = true }))
-  container.appendChild(button('haya-annotation-eraser-btn', 'Eraser', ERASER_SVG, () => { annotationTool.value = 'eraser'; annotationEnabled.value = true }))
+  container.className = 'haya-group haya-annotation-panel'
+  container.appendChild(button('haya-annotation-select-btn', 'Selection mode', CURSOR_SVG, () => setSelectionMode()))
+  container.appendChild(button('haya-annotation-pen-btn', 'Pen', PEN_SVG, () => setAnnotationTool('pen')))
+  container.appendChild(button('haya-annotation-highlight-btn', 'Highlighter', HIGHLIGHT_SVG, () => setAnnotationTool('highlight')))
+  container.appendChild(button('haya-annotation-eraser-btn', 'Eraser', ERASER_SVG, () => setAnnotationTool('eraser')))
   container.appendChild(button('haya-annotation-undo-btn', 'Undo page', UNDO_SVG, () => undoAnnotation()))
   container.appendChild(button('haya-annotation-clear-btn', 'Clear page', CLEAR_SVG, () => clearCurrentPageAnnotations()))
 
@@ -484,7 +554,8 @@ function injectAnnotationToolbar(doc: Document) {
   wLabel.textContent = '%'
   container.appendChild(wLabel)
 
-  toolbarRight.insertBefore(container, toolbarRight.firstChild)
+  entry.appendChild(container)
+  toolbarRight.insertBefore(entry, toolbarRight.firstChild)
   updateAnnotationToolbarUI()
 }
 
@@ -523,11 +594,16 @@ function onIframeLoad() {
     const isLight = document.body.getAttribute('data-theme') === 'light'
     doc.body.classList.add(isLight ? 'theme-light' : 'theme-dark')
     doc.addEventListener('keydown', handleKeydown)
+    if (!doc.body.dataset.hayaAnnotationOutsideBound) {
+      doc.addEventListener('pointerdown', handleIframePointerDown, true)
+      doc.body.dataset.hayaAnnotationOutsideBound = '1'
+    }
 
     if (!doc.getElementById('haya-custom-style')) {
       const style = doc.createElement('style')
       style.id = 'haya-custom-style'
       style.textContent = `
+        #toolbarContainer, #toolbarViewer { overflow: visible; }
         .haya-group { display: flex; align-items: center; gap: 4px; padding: 0 4px; margin-inline-end: 4px; border-inline-end: 1px solid var(--ht-border, #3e3e42); }
         .haya-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: 2px; background: transparent; color: var(--ht-text, #fff); cursor: pointer; padding: 0; }
         .haya-btn:hover { background: var(--ht-hover, #3e3e42); color: var(--ht-text, #fff); }
@@ -537,6 +613,28 @@ function onIframeLoad() {
         .haya-input:focus { outline: none; border-color: var(--ht-primary, #965233); }
         .haya-color { width: 28px; height: 24px; padding: 0; border: 1px solid var(--ht-border, #3e3e42); background: transparent; border-radius: 2px; cursor: pointer; }
         .haya-label { font-size: 11px; color: var(--ht-text-muted, #aaa); user-select: none; }
+        .haya-annotation-entry { position: relative; float: var(--inline-start); margin-inline-end: 4px; }
+        #haya-annotation-entry .haya-btn,
+        #haya-annotation-entry .haya-color,
+        #haya-annotation-entry .haya-input,
+        #haya-annotation-entry .haya-label { float: none !important; }
+        .haya-annotation-panel {
+          position: absolute;
+          inset-inline-end: 0;
+          top: calc(100% + 6px);
+          display: none;
+          align-items: center;
+          padding: 6px;
+          margin-inline-end: 0;
+          border: 1px solid var(--ht-border, #3e3e42);
+          border-inline-end: 1px solid var(--ht-border, #3e3e42);
+          border-radius: 4px;
+          background: var(--ht-bg, #1e1e1e);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+          z-index: 100;
+          white-space: nowrap;
+        }
+        .haya-annotation-entry.open .haya-annotation-panel { display: flex; }
         .page { position: relative; }
         .haya-annotation-layer { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 30; touch-action: none; pointer-events: none; background: transparent; }
       `
@@ -621,6 +719,7 @@ function onIframeLoad() {
 onMounted(async () => {
   if (!isPdf.value || !tab.value) return
   await loadPdf()
+  window.addEventListener('pointerdown', handleHostPointerDown, true)
   window.addEventListener('midi-scroll-down', handleMidiScrollDown)
   window.addEventListener('midi-scroll-up', handleMidiScrollUp)
   window.addEventListener('midi-play-pause', handleMidiPlayPause)
@@ -629,6 +728,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('pointerdown', handleHostPointerDown, true)
   window.removeEventListener('midi-scroll-down', handleMidiScrollDown)
   window.removeEventListener('midi-scroll-up', handleMidiScrollUp)
   window.removeEventListener('midi-play-pause', handleMidiPlayPause)
@@ -740,6 +840,7 @@ watch(annotationTool, () => {
 })
 watch(annotationColor, () => updateAnnotationToolbarUI())
 watch(annotationLineWidth, () => updateAnnotationToolbarUI())
+watch(annotationPanelOpen, () => updateAnnotationToolbarUI())
 </script>
 
 <template>

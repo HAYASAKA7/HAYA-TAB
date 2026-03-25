@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Version](https://img.shields.io/badge/version-2.4.5-green)
+![Version](https://img.shields.io/badge/version-2.4.6-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
@@ -13,7 +13,7 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 - **Advanced Search** - **Instant Full-Text Search (FTS5)** across titles, artists, and albums with fuzzy matching
 - **Real-time Sync** - Automatically watches synced folders for changes; **Non-destructive** import (renames duplicates)
 - **Cloud Sync** - **WebDAV** integration with multi-device support via volume fingerprints; on-demand cloud file access and uploads with automatic metadata tracking
-- **PDF Annotation Layer** - Non-destructive transparent canvas annotations (pen/highlighter/eraser) stored as lightweight JSON, without modifying original PDF files
+- **PDF Annotation Layer** - Non-destructive transparent canvas annotations (pen/highlighter/eraser) stored as lightweight JSON, without modifying original PDF files; includes a compact toolbar menu with current-tool icon indicator
 - **Smart Metadata** - Auto-parse info from filenames; **Bi-directional sync** with Guitar Pro internal metadata
 - **Tag Support** - Add version/part tags (e.g., "Lead Guitar", "Bass", "First Version")
 - **Plugin System** - Extend functionality with JavaScript plugins (e.g., AI Metadata Enhancer)
@@ -75,7 +75,7 @@ To fix this:
 2. **Organize**: Create categories and move tabs into them
 3. **Sync Folders**: Go to Settings → Add sync paths to auto-import tabs from folders
 4. **Cloud Sync**: Configure WebDAV in Settings to access your cloud library. See [WebDAV Guide](docs/WEBDAV.md).
-5. **PDF Annotation**: In the PDF viewer, toggle annotation mode and draw on the non-destructive overlay layer.
+5. **PDF Annotation**: In the PDF viewer, open the annotation menu from the toolbar, choose tools (selection/pen/highlighter/eraser), and draw on the non-destructive overlay layer.
 6. **View Tabs**: Click a tab to open with system default, or right-click → "Open with Inner Viewer"
 7. **Key Bindings**: Customize viewer controls (Loop, Auto-scroll, etc.) in Settings
 

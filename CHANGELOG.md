@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.6] - 2026-03-25
+
+### Changed
+
+- **PDF Viewer UX:** Refined custom annotation toolbar layout to avoid overlap with PDF.js zoom controls by moving annotation controls into a compact dropdown panel.
+- **Annotation Tooling UX:** Decoupled toolbar menu toggle from drawing mode selection, adding an explicit selection mode and preserving access to non-annotation interactions.
+
+### Fixed
+
+- **PDF Toolbar Layout:** Fixed annotation menu/control item overlap caused by PDF.js toolbar float rules in the embedded iframe.
+- **Annotation Panel Interaction:** Fixed cross-frame pointer target detection so annotation panel actions (tool switch, clear, erase, undo) remain clickable while outside-click close behavior still works.
+- **Current Tool Visibility:** Updated annotation toolbar entry icon to reflect the active tool (selection/pen/highlighter/eraser) for faster mode recognition.
+
 ## [2.4.5] - 2026-03-23
 
 ### Added
