@@ -22,12 +22,12 @@ func getDeviceName() string {
 
 // WebDAVTestConnection tests the WebDAV connection
 func (a *App) WebDAVTestConnection(url, user, password string) error {
-	url = strings.TrimRight(url, "/")
-
-	// Validate URL format
-	if url == "" {
-		return fmt.Errorf("WebDAV URL cannot be empty")
+	// Validate URL format and settings
+	if err := a.validateWebDAV(url, user, password); err != nil {
+		return err
 	}
+
+	url = strings.TrimRight(url, "/")
 
 	client := syncpkg.NewWebDAVClient(url, user, password)
 	err := client.TestConnection()

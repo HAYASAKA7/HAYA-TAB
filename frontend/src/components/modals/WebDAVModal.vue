@@ -43,7 +43,8 @@ async function testConnection() {
     showToast(t('settings.connectionSuccess'), 'success')
   } catch (err) {
     // Extract error message
-    const errorMsg = String(err)
+    const errorKey = String(err)
+    const errorMsg = errorKey.startsWith('errors.') ? t(errorKey) : errorKey
     showToast(t('settings.connectionFailed') + ': ' + errorMsg, 'error')
   } finally {
     testing.value = false
@@ -55,11 +56,16 @@ async function save() {
   const oldUser = settingsStore.settings.webdavUser
   const oldPass = settingsStore.settings.webdavPassword
 
-  settingsStore.settings.webdavUrl = url.value
-  settingsStore.settings.webdavUser = user.value
-  settingsStore.settings.webdavPassword = password.value
-
   if (oldUrl !== url.value || oldUser !== user.value || oldPass !== password.value) {
+    // Temporarily update to validate
+    const prevUrl = settingsStore.settings.webdavUrl
+    const prevUser = settingsStore.settings.webdavUser
+    const prevPass = settingsStore.settings.webdavPassword
+
+    settingsStore.settings.webdavUrl = url.value
+    settingsStore.settings.webdavUser = user.value
+    settingsStore.settings.webdavPassword = password.value
+
     try {
       await settingsStore.saveSettings()
       showToast(t('settings.settingsSaved'))
@@ -68,12 +74,20 @@ async function save() {
       if (settingsStore.settings.webdavEnabled) {
         await settingsStore.checkWebDAVStatus()
       }
+      uiStore.hideWebdavModal()
     } catch (err) {
-      showToast(t('settings.errorSaving') + ': ' + err, 'error')
+      // Revert if failed
+      settingsStore.settings.webdavUrl = prevUrl
+      settingsStore.settings.webdavUser = prevUser
+      settingsStore.settings.webdavPassword = prevPass
+      
+      const errorKey = String(err)
+      const errorMsg = errorKey.startsWith('errors.') ? t(errorKey) : errorKey
+      showToast(t('settings.errorSaving') + ': ' + errorMsg, 'error')
     }
+  } else {
+    uiStore.hideWebdavModal()
   }
-
-  uiStore.hideWebdavModal()
 }
 
 function cancel() {

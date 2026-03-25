@@ -339,6 +339,13 @@
     "musicbrainz": "MusicBrainz 查询 {artist} 失败",
     "invalidInput": "{field} 无效：{reason}",
     "permission": "{operation} 权限被拒绝",
+    "webdavUrlTooLong": "WebDAV URL 过长（最多 2048 个字符）",
+    "webdavUserTooLong": "WebDAV 用户名过长（最多 256 个字符）",
+    "webdavPasswordTooLong": "WebDAV 密码过长（最多 256 个字符）",
+    "webdavUrlEmpty": "WebDAV URL 不能为空",
+    "webdavInvalidUrl": "无效的 WebDAV URL 格式",
+    "webdavInvalidProtocol": "WebDAV URL 必须使用 http 或 https 协议",
+    "webdavInvalidPort": "端口号必须在 1 到 65535 之间",
     "unknown": "发生未知错误"
   }
 }

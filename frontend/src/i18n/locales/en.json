@@ -339,6 +339,13 @@
     "musicbrainz": "MusicBrainz lookup failed for {artist}",
     "invalidInput": "Invalid {field}: {reason}",
     "permission": "Permission denied for {operation}",
+    "webdavUrlTooLong": "WebDAV URL is too long (maximum 2048 characters)",
+    "webdavUserTooLong": "WebDAV username is too long (maximum 256 characters)",
+    "webdavPasswordTooLong": "WebDAV password is too long (maximum 256 characters)",
+    "webdavUrlEmpty": "WebDAV URL cannot be empty",
+    "webdavInvalidUrl": "Invalid WebDAV URL format",
+    "webdavInvalidProtocol": "WebDAV URL must use http or https protocol",
+    "webdavInvalidPort": "Port must be between 1 and 65535",
     "unknown": "An unexpected error occurred"
   }
 }

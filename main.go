@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		println("Error starting file server:", err.Error())
 		// In a GUI app, we might want to show a dialog, but main() runs before wails.Run,
-		// so we can't use wails runtime dialogs yet. Standard output is best effort here.
+		// so we can't use wails runtime dialogs yet. Standard output is the best effort here.
 		return
 	}
 	application.SetFileServerPort(port)
@@ -31,9 +31,9 @@ func main() {
 
 	// Create application with options
 	err = wails.Run(&options.App{
-		Title:  "HAYA-TAB",
-		Width:  1024,
-		Height: 768,
+		Title:            "HAYA-TAB",
+		Width:            1024,
+		Height:           768,
 		WindowStartState: options.Maximised,
 		AssetServer: &assetserver.Options{
 			Assets:  assets,

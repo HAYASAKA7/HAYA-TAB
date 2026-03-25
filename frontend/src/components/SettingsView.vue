@@ -94,7 +94,8 @@ watch(
     try {
       await settingsStore.saveSettings()
     } catch (err) {
-      showToast(t('settings.errorSaving') + ': ' + err, 'error')
+      const errMsg = typeof err === 'string' && err.startsWith('errors.') ? t(err) : err
+      showToast(t('settings.errorSaving') + ': ' + errMsg, 'error')
     }
   },
   { deep: true }

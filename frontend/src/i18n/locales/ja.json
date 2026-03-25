@@ -339,6 +339,13 @@
     "musicbrainz": "{artist} の MusicBrainz 検索に失敗しました",
     "invalidInput": "{field} が無効です：{reason}",
     "permission": "{operation} の権限が拒否されました",
+    "webdavUrlTooLong": "WebDAV URLが長すぎます（最大2048文字）",
+    "webdavUserTooLong": "WebDAVユーザー名が長すぎます（最大256文字）",
+    "webdavPasswordTooLong": "WebDAVパスワードが長すぎます（最大256文字）",
+    "webdavUrlEmpty": "WebDAV URLを空にすることはできません",
+    "webdavInvalidUrl": "無効なWebDAV URL形式です",
+    "webdavInvalidProtocol": "WebDAV URLはhttpまたはhttpsプロトコルを使用する必要があります",
+    "webdavInvalidPort": "ポート番号は1から65535の間である必要があります",
     "unknown": "予期しないエラーが発生しました"
   }
 }

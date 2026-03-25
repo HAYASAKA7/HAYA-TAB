@@ -1,8 +1,11 @@
 package app
 
 import (
+	"fmt"
 	"haya-tab/pkg/store"
 	"haya-tab/pkg/watcher"
+	"net/url"
+	"strconv"
 )
 
 // GetSettings returns the current settings
@@ -12,6 +15,13 @@ func (a *App) GetSettings() store.Settings {
 
 // SaveSettings updates the settings
 func (a *App) SaveSettings(s store.Settings) error {
+	// Validate settings if WebDAV is enabled
+	if s.WebDAVEnabled {
+		if err := a.validateWebDAVSettings(s); err != nil {
+			return err
+		}
+	}
+
 	// Update file watcher paths if they changed
 	oldSettings := a.store.GetSettings()
 	if err := a.store.UpdateSettings(s); err != nil {
@@ -73,6 +83,52 @@ func (a *App) SaveSettings(s store.Settings) error {
 
 	if pathsChanged && len(s.SyncPaths) > 0 && a.logger != nil {
 		a.logger.Info("File watcher updated with %d paths", len(s.SyncPaths))
+	}
+
+	return nil
+}
+
+// validateWebDAVSettings checks WebDAV settings for validity
+func (a *App) validateWebDAVSettings(s store.Settings) error {
+	return a.validateWebDAV(s.WebDAVURL, s.WebDAVUser, s.WebDAVPassword)
+}
+
+// validateWebDAV checks WebDAV connection info for validity
+func (a *App) validateWebDAV(webdavURL, user, password string) error {
+	// 1. Max length checks
+	if len(webdavURL) > 2048 {
+		return fmt.Errorf("errors.webdavUrlTooLong")
+	}
+	if len(user) > 256 {
+		return fmt.Errorf("errors.webdavUserTooLong")
+	}
+	if len(password) > 256 {
+		return fmt.Errorf("errors.webdavPasswordTooLong")
+	}
+
+	// 2. URL format validation
+	if webdavURL == "" {
+		return fmt.Errorf("errors.webdavUrlEmpty")
+	}
+
+	u, err := url.Parse(webdavURL)
+	if err != nil {
+		return fmt.Errorf("errors.webdavInvalidUrl")
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("errors.webdavInvalidProtocol")
+	}
+
+	// 3. Port range validation
+	if u.Port() != "" {
+		port, err := strconv.Atoi(u.Port())
+		if err != nil {
+			return fmt.Errorf("errors.webdavInvalidPort")
+		}
+		if port < 1 || port > 65535 {
+			return fmt.Errorf("errors.webdavInvalidPort")
+		}
 	}
 
 	return nil

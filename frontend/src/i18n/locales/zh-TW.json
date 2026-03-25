@@ -341,6 +341,13 @@
     "musicbrainz": "MusicBrainz 查詢 {artist} 失敗",
     "invalidInput": "{field} 無效：{reason}",
     "permission": "{operation} 權限被拒絕",
+    "webdavUrlTooLong": "WebDAV URL 過長（最多 2048 個字元）",
+    "webdavUserTooLong": "WebDAV 用戶名過長（最多 256 個字元）",
+    "webdavPasswordTooLong": "WebDAV 密碼過長（最多 256 個字元）",
+    "webdavUrlEmpty": "WebDAV URL 不能為空",
+    "webdavInvalidUrl": "無效的 WebDAV URL 格式",
+    "webdavInvalidProtocol": "WebDAV URL 必須使用 http 或 https 協定",
+    "webdavInvalidPort": "連接埠號碼必須在 1 到 65535 之間",
     "unknown": "發生未知錯誤"
   }
 }
