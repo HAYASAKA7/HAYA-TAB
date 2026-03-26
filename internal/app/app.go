@@ -251,7 +251,7 @@ func (a *App) Startup(ctx context.Context) {
 	// Initialize cover download worker pool (concurrent downloads max)
 	a.coverPool = coverpool.NewCoverPool(WorkersLimit, a.pluginManager.DownloadCover)
 	a.coverPool.Start()
-	a.logger.Info("Cover download pool started with 3 workers")
+	a.logger.Info("Cover download pool started with %d workers", WorkersLimit)
 
 	// Initialize MusicBrainz worker (1 request per second rate limit)
 	a.mbWorker = worker.NewMBWorker(a.store, a.logger)
