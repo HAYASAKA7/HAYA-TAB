@@ -165,7 +165,7 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 
 				// If it's linked to a volume, update the fingerprint
 				if volumeID != "" && savedTab != nil {
-					go a.batchAddToFingerprint(volumeID, []store.Tab{*savedTab})
+					a.batchAddToFingerprint(volumeID, []store.Tab{*savedTab})
 				}
 			}
 

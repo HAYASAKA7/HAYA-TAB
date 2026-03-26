@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.8] - 2026-03-26
+
+### Changed
+
+- **WebDAV Fingerprinting:** Changed `batchAddToFingerprint` to run synchronously during WebDAV file downloads to ensure database consistency and prevent race conditions when updating tab fingerprints.
+
+### Fixed
+
+- **FTS5 Search Safety:** Implemented `sanitizeFTS5Query` to escape special characters and remove boolean keywords from search queries, preventing potential FTS5 syntax errors and query manipulation in the `GetTabsPaginated` function.
+
 ## [2.4.7] - 2026-03-25
 
 ### Added

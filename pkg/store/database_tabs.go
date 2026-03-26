@@ -5,7 +5,62 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 )
+
+// sanitizeFTS5Query escapes a query string for safe use in FTS5 MATCH expressions.
+// FTS5 has special characters and keywords that could break queries or cause issues:
+// - Quotes (") must be escaped by doubling
+// - Parentheses, asterisks, and carets are removed
+// - Boolean keywords (AND, OR, NOT) are removed to prevent query manipulation
+// - Control characters and non-printable characters are removed
+func sanitizeFTS5Query(query string) string {
+	// Remove control characters and non-printable characters
+	var cleaned strings.Builder
+	cleaned.Grow(len(query))
+	for _, r := range query {
+		if unicode.IsPrint(r) && r != '\n' && r != '\r' && r != '\t' {
+			cleaned.WriteRune(r)
+		}
+	}
+	result := cleaned.String()
+
+	// Remove FTS5 special characters that could break queries
+	result = strings.Map(func(r rune) rune {
+		switch r {
+		case '(', ')', '*', '^', '{', '}':
+			return -1 // Remove these characters
+		default:
+			return r
+		}
+	}, result)
+
+	// Escape double quotes by doubling them
+	result = strings.ReplaceAll(result, "\"", "\"\"")
+
+	// Remove FTS5 boolean keywords (case-insensitive) to prevent query manipulation
+	// We do this by replacing them with spaces to avoid creating new words
+	upper := strings.ToUpper(result)
+	for _, keyword := range []string{" AND ", " OR ", " NOT ", " NEAR ", " COLUMN "} {
+		if strings.Contains(upper, keyword) {
+			// Find and replace in original case string
+			idx := strings.Index(upper, keyword)
+			for idx != -1 {
+				result = result[:idx] + strings.Repeat(" ", len(keyword)) + result[idx+len(keyword):]
+				upper = strings.ToUpper(result)
+				idx = strings.Index(upper, keyword)
+			}
+		}
+	}
+
+	// Trim spaces and collapse multiple spaces
+	result = strings.TrimSpace(result)
+	for strings.Contains(result, "  ") {
+		result = strings.ReplaceAll(result, "  ", " ")
+	}
+
+	return result
+}
 
 // === Tab Operations ===
 
@@ -173,15 +228,20 @@ func (s *DBStore) GetTabsPaginated(categoryId string, page, pageSize int, search
 
 // getTabsPaginatedFTS uses FTS5 for fast full-text search
 func (s *DBStore) getTabsPaginatedFTS(categoryId string, page, pageSize int, searchQuery string, filterBy []string, isGlobal bool, sortBy string, sortDesc bool) ([]Tab, int, error) {
+	// Sanitize the search query for FTS5 safety
+	sanitizedQuery := sanitizeFTS5Query(searchQuery)
+	if sanitizedQuery == "" {
+		return nil, 0, fmt.Errorf("empty search query after sanitization")
+	}
+
 	// Build FTS5 match query with column filters
 	// FTS5 supports column filters like: title:query OR artist:query
 	var ftsTerms []string
 	for _, field := range filterBy {
 		switch field {
 		case "title", "artist", "album", "tag":
-			// Escape special FTS5 characters and add wildcards for prefix matching
-			escapedQuery := strings.ReplaceAll(searchQuery, "\"", "\"\"")
-			ftsTerms = append(ftsTerms, fmt.Sprintf("%s:\"%s\"*", field, escapedQuery))
+			// Quote is already escaped by sanitizeFTS5Query, add wildcards for prefix matching
+			ftsTerms = append(ftsTerms, fmt.Sprintf("%s:\"%s\"*", field, sanitizedQuery))
 		}
 	}
 
