@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+const (
+	PendingBuffer = 100
+)
+
 // CoverJob represents a cover download task
 type CoverJob struct {
 	TabID      string
@@ -34,7 +38,7 @@ func NewCoverPool(workers int, downloadFn func(artist, album, title, country, la
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	pool := &CoverPool{
-		jobs:       make(chan CoverJob, 100), // Buffer for pending jobs
+		jobs:       make(chan CoverJob, PendingBuffer), // Buffer for pending jobs
 		workers:    workers,
 		ctx:        ctx,
 		cancel:     cancel,

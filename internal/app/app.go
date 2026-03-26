@@ -20,6 +20,10 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+const (
+	WorkersLimit = 3
+)
+
 // idCounter is used to ensure unique IDs even when called in rapid succession
 var idCounter uint64
 
@@ -244,8 +248,8 @@ func (a *App) Startup(ctx context.Context) {
 		a.logger.Error("Failed to initialize PluginManager: %v", err)
 	}
 
-	// Initialize cover download worker pool (3 concurrent downloads max)
-	a.coverPool = coverpool.NewCoverPool(3, a.pluginManager.DownloadCover)
+	// Initialize cover download worker pool (concurrent downloads max)
+	a.coverPool = coverpool.NewCoverPool(WorkersLimit, a.pluginManager.DownloadCover)
 	a.coverPool.Start()
 	a.logger.Info("Cover download pool started with 3 workers")
 

@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+const (
+	JobBuffer = 1000
+)
+
 // MBJob represents a job to fetch artist origin country from MusicBrainz
 type MBJob struct {
 	TabID      string
@@ -38,7 +42,7 @@ func NewMBWorker(store *store.DBStore, logger Logger) *MBWorker {
 	return &MBWorker{
 		store:    store,
 		client:   metadata.NewMusicBrainzClient(),
-		jobQueue: make(chan MBJob, 1000), // Buffer up to 1000 jobs
+		jobQueue: make(chan MBJob, JobBuffer), // Buffer up to 1000 jobs
 		quit:     make(chan struct{}),
 		logger:   logger,
 	}
