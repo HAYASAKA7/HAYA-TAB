@@ -9,7 +9,7 @@ import { CloudService } from '@/services'
 const { t } = useI18n()
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
-const { showToast } = useToast()
+const { showToast, showErrorToast } = useToast()
 
 const directories = ref<string[]>([])
 const loading = ref(false)
@@ -59,7 +59,7 @@ async function listDirectories(path: string) {
     }
   } catch (err) {
     console.error(err)
-    showToast(t('cloud.listDirectoriesFailed') + ': ' + err, 'error')
+    showErrorToast(err, t('cloud.listDirectoriesFailed'))
   } finally {
     loading.value = false
   }
@@ -91,7 +91,7 @@ async function handleUpload() {
     )
   } catch (err) {
     loading.value = false
-    showToast(t('cloud.uploadFailed') + ': ' + err, 'error')
+    showErrorToast(err, t('cloud.uploadFailed'))
   }
 }
 </script>

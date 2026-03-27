@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.12] - 2026-03-27
+
+### Added
+
+- **Structured Error Handling:** Introduced a comprehensive `AppError` system in `pkg/errors` to provide consistent error reporting across the application.
+- **i18n Support for Errors:** All application errors now support internationalization keys and arguments, enabling localized error messages in the frontend.
+
+### Changed
+
+- **Backend Refactoring:** Updated `internal/app` and `plugin_manager` to use the new structured error system, improving error clarity and maintainability.
+- **Frontend Error Display:** Enhanced `useToast` and various modals to handle structured error payloads, displaying user-friendly localized messages.
+
 ## [2.4.11] - 2026-03-27
 
 ### Changed

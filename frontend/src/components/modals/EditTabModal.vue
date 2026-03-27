@@ -8,7 +8,7 @@ import type { Tab } from '@/types'
 const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
-const { showToast } = useToast()
+const { showToast, showErrorToast } = useToast()
 
 const isEditMode = computed(() => !!uiStore.editModalData?.id && tabsStore.tabs.some(t => t.id === uiStore.editModalData?.id))
 
@@ -86,7 +86,7 @@ async function handleSave() {
     showToast(t('toast.saved'))
     uiStore.hideEditModal()
   } catch (err) {
-    showToast(String(err), 'error')
+    showErrorToast(err)
   }
 }
 </script>

@@ -8,7 +8,7 @@ import { CloudService } from '@/services'
 const { t } = useI18n()
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
-const { showToast } = useToast()
+const { showToast, showErrorToast } = useToast()
 
 const url = ref('')
 const user = ref('')
@@ -42,10 +42,7 @@ async function testConnection() {
     await CloudService.testConnection(url.value, user.value, password.value)
     showToast(t('settings.connectionSuccess'), 'success')
   } catch (err) {
-    // Extract error message
-    const errorKey = String(err)
-    const errorMsg = errorKey.startsWith('errors.') ? t(errorKey) : errorKey
-    showToast(t('settings.connectionFailed') + ': ' + errorMsg, 'error')
+    showErrorToast(err, t('settings.connectionFailed'))
   } finally {
     testing.value = false
   }
@@ -80,10 +77,8 @@ async function save() {
       settingsStore.settings.webdavUrl = prevUrl
       settingsStore.settings.webdavUser = prevUser
       settingsStore.settings.webdavPassword = prevPass
-      
-      const errorKey = String(err)
-      const errorMsg = errorKey.startsWith('errors.') ? t(errorKey) : errorKey
-      showToast(t('settings.errorSaving') + ': ' + errorMsg, 'error')
+
+      showErrorToast(err, t('settings.errorSaving'))
     }
   } else {
     uiStore.hideWebdavModal()

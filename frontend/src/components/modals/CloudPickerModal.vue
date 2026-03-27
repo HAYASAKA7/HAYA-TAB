@@ -10,7 +10,7 @@ const { t } = useI18n()
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
 const tabsStore = useTabsStore()
-const { showToast } = useToast()
+const { showToast, showErrorToast } = useToast()
 
 interface RemoteFile {
   name: string
@@ -103,7 +103,7 @@ async function loadDirectory(path: string) {
     })
   } catch (err) {
     console.error(err)
-    showToast(t('cloud.scanError') + ': ' + err, 'error')
+    showErrorToast(err, t('cloud.scanError'))
     // Go up if failed (e.g. permission error on folder)
     if (path !== '/') {
       goUp()
@@ -171,7 +171,7 @@ async function handleDownload() {
     // Progress events will handle completion
   } catch (err) {
     loading.value = false
-    showToast(t('cloud.downloadFailed') + ': ' + err, 'error')
+    showErrorToast(err, t('cloud.downloadFailed'))
   }
 }
 
@@ -190,7 +190,7 @@ async function handleAddOnline() {
     // Progress events will handle completion
   } catch (err) {
     loading.value = false
-    showToast(t('cloud.addOnlineFailed') + ': ' + err, 'error')
+    showErrorToast(err, t('cloud.addOnlineFailed'))
   }
 }
 

@@ -8,7 +8,7 @@ import { SYSTEM_CLOUD_CATEGORY_ID } from '@/types'
 const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
-const { showToast } = useToast()
+const { showToast, showErrorToast } = useToast()
 
 const selectedCategoryId = ref('')
 
@@ -28,7 +28,7 @@ async function handleSave() {
     showToast(t('batch.addedToCategory'))
     uiStore.hideMoveModal()
   } catch (err) {
-    showToast(String(err), 'error')
+    showErrorToast(err)
   }
 }
 </script>

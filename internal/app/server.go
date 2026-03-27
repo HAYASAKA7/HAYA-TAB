@@ -1,15 +1,16 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
+	apperrors "haya-tab/pkg/errors"
+	syncpkg "haya-tab/pkg/sync"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-
-	syncpkg "haya-tab/pkg/sync"
 )
 
 // StartFileServer starts a local HTTP server to serve files
@@ -97,23 +98,32 @@ func (h *FileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
+func writeAPIError(w http.ResponseWriter, status int, err error) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": false,
+		"error":   apperrors.ToPayload(err),
+	})
+}
+
 func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id string) {
 	fmt.Printf("[ServeTabFile] Request for ID: %s\n", id)
 	if h.app == nil || h.app.store == nil {
 		fmt.Println("[ServeTabFile] Store is nil")
-		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		writeAPIError(w, http.StatusServiceUnavailable, apperrors.NewAppError("errors.serviceUnavailable", "service unavailable", nil, nil))
 		return
 	}
 
 	tab, err := h.app.store.GetTab(id)
 	if err != nil {
 		fmt.Printf("[ServeTabFile] Error getting tab %s: %v\n", id, err)
-		http.Error(w, "Tab not found", http.StatusBadRequest)
+		writeAPIError(w, http.StatusBadRequest, apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "get_tab"}))
 		return
 	}
 	if tab == nil {
 		fmt.Printf("[ServeTabFile] Tab not found for ID: %s\n", id)
-		http.Error(w, "Tab not found", http.StatusBadRequest)
+		writeAPIError(w, http.StatusBadRequest, apperrors.TabNotFoundError(id))
 		return
 	}
 
@@ -130,7 +140,7 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 	// Check if file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		fmt.Printf("[ServeTabFile] File not found: %s\n", fullPath)
-		http.Error(w, "File not found: the path is invalid or the file has been moved", http.StatusNotFound)
+		writeAPIError(w, http.StatusNotFound, apperrors.FileNotFoundError(fullPath, err))
 		return
 	}
 
@@ -138,7 +148,7 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 	file, err := os.Open(fullPath)
 	if err != nil {
 		fmt.Printf("[ServeTabFile] Failed to open file %s: %v\n", fullPath, err)
-		http.Error(w, "File not found", http.StatusInternalServerError)
+		writeAPIError(w, http.StatusInternalServerError, apperrors.FileAccessError(fullPath, err))
 		return
 	}
 	defer file.Close()
@@ -147,7 +157,7 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 	stat, err := file.Stat()
 	if err != nil {
 		fmt.Printf("[ServeTabFile] Failed to stat file: %v\n", err)
-		http.Error(w, "Cannot read file", http.StatusInternalServerError)
+		writeAPIError(w, http.StatusInternalServerError, apperrors.FileAccessError(fullPath, err))
 		return
 	}
 

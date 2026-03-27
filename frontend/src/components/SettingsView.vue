@@ -11,7 +11,7 @@ import { SUPPORTED_LOCALES } from '@/i18n'
 const { t } = useI18n()
 const settingsStore = useSettingsStore()
 const uiStore = useUIStore()
-const { showToast } = useToast()
+const { showToast, showErrorToast } = useToast()
 const audioDevices = ref<MediaDeviceInfo[]>([])
 const isAudioOutputSupported = ref(false)
 const syncStatus = ref('')
@@ -94,8 +94,7 @@ watch(
     try {
       await settingsStore.saveSettings()
     } catch (err) {
-      const errMsg = typeof err === 'string' && err.startsWith('errors.') ? t(err) : err
-      showToast(t('settings.errorSaving') + ': ' + errMsg, 'error')
+      showErrorToast(err, t('settings.errorSaving'))
     }
   },
   { deep: true }
@@ -145,7 +144,7 @@ async function fetchAudioDevices() {
     audioDevices.value = devices.filter(d => d.kind === 'audiooutput')
   } catch (e) {
     console.error('Error fetching audio devices', e)
-    showToast(t('toast.failedAudioDevices') + ': ' + e, 'error')
+    showToast(t('toast.failedAudioDevices'), 'error')
   }
 }
 
@@ -186,7 +185,7 @@ async function handleSync() {
     showToast(msg)
     syncStatus.value = t('settings.syncCompleted')
   } catch (err) {
-    showToast(t('toast.syncError') + ': ' + err, 'error')
+    showErrorToast(err, t('toast.syncError'))
     syncStatus.value = t('settings.syncFailed')
   } finally {
     EventsOff('sync-progress')
@@ -260,7 +259,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
             await settingsStore.saveSettings()
             showToast(t('settings.migrateSuccess', 'Migration completed successfully'), 'success')
           } catch (e) {
-            showToast(String(e), 'error')
+            showErrorToast(e)
           } finally {
             isMigrating.value = false
           }
@@ -275,7 +274,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
             await settingsStore.saveSettings()
             showToast(t('settings.pathApplied', 'Path applied successfully'), 'success')
           } catch (e) {
-            showToast(String(e), 'error')
+            showErrorToast(e)
           } finally {
             isMigrating.value = false
           }
@@ -290,7 +289,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
       isMigrating.value = false
     }
   } catch (err) {
-    showToast(String(err), 'error')
+    showErrorToast(err)
     isMigrating.value = false
   }
 }
@@ -576,7 +575,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
       </div>
       <div class="form-group">
         <label>{{ t('settings.currentVersion', 'Current Version') }}</label>
-        <div class="info-text">{{ uiStore.updateInfo?.currentVersion || settingsStore.settings.latestVersion || '2.4.11' }}</div>
+        <div class="info-text">{{ uiStore.updateInfo?.currentVersion || settingsStore.settings.latestVersion || '2.4.12' }}</div>
       </div>
       <div class="form-group" v-if="uiStore.updateInfo?.hasUpdate">
         <label>{{ t('settings.latestVersion', 'Latest Version') }}</label>

@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	apperrors "haya-tab/pkg/errors"
 	"haya-tab/pkg/logger"
 	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
@@ -68,12 +68,12 @@ func NewPluginManager(logger *logger.Logger) *PluginManager {
 func (pm *PluginManager) Init(pluginsDir string) error {
 	pm.logger.Info("Initializing PluginManager from: %s", pluginsDir)
 	if err := os.MkdirAll(pluginsDir, 0755); err != nil {
-		return fmt.Errorf("failed to create plugins directory: %w", err)
+		return apperrors.NewAppError("errors.pluginDirCreateFailed", "failed to create plugins directory", nil, err)
 	}
 
 	entries, err := os.ReadDir(pluginsDir)
 	if err != nil {
-		return fmt.Errorf("failed to read plugins directory: %w", err)
+		return apperrors.NewAppError("errors.pluginDirReadFailed", "failed to read plugins directory", nil, err)
 	}
 
 	for _, entry := range entries {
@@ -307,7 +307,7 @@ func (pm *PluginManager) UpdatePluginConfig(id string, config map[string]string,
 	}
 
 	if targetPlugin == nil {
-		return fmt.Errorf("plugin %s not found", id)
+		return apperrors.PluginNotFoundError(id)
 	}
 
 	targetPlugin.Enabled = enabled
@@ -487,7 +487,7 @@ func (pm *PluginManager) downloadFile(urlStr, dstPath string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
+		return apperrors.NewAppError("errors.pluginDownloadFailed", "plugin download failed", map[string]interface{}{"status": resp.Status}, nil)
 	}
 
 	out, err := os.Create(dstPath)

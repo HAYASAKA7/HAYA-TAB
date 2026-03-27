@@ -8,7 +8,7 @@ import { FileService } from '@/services'
 const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
-const { showToast } = useToast()
+const { showErrorToast } = useToast()
 
 const categoryId = ref('')
 const categoryName = ref('')
@@ -51,7 +51,7 @@ async function handleSave() {
 
     uiStore.hideCategoryModal()
   } catch (err) {
-    showToast(String(err), 'error')
+    showErrorToast(err)
   }
 }
 </script>

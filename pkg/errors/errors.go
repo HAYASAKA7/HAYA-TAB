@@ -1,6 +1,7 @@
 package errors
 
 import (
+	stderrors "errors"
 	"fmt"
 )
 
@@ -172,7 +173,8 @@ func PermissionError(operation string, cause error) *AppError {
 
 // WrapError wraps an existing error with i18n key
 func WrapError(err error, i18nKey string, i18nArgs map[string]interface{}) *AppError {
-	if appErr, ok := err.(*AppError); ok {
+	var appErr *AppError
+	if stderrors.As(err, &appErr) {
 		return appErr
 	}
 	return NewAppError(
@@ -180,5 +182,213 @@ func WrapError(err error, i18nKey string, i18nArgs map[string]interface{}) *AppE
 		err.Error(),
 		i18nArgs,
 		err,
+	)
+}
+
+// ErrorPayload represents a serializable error for API responses
+type ErrorPayload struct {
+	Code      string                 `json:"code"`
+	I18nKey   string                 `json:"i18nKey"`
+	I18nArgs  map[string]interface{} `json:"i18nArgs,omitempty"`
+	Message   string                 `json:"message"`
+	Technical string                 `json:"technical,omitempty"`
+}
+
+// ToPayload converts any error to ErrorPayload
+func ToPayload(err error) ErrorPayload {
+	if err == nil {
+		return ErrorPayload{
+			Code:    ErrCodeUnknown,
+			I18nKey: ErrCodeUnknown,
+			Message: "unknown error",
+		}
+	}
+
+	var appErr *AppError
+	if stderrors.As(err, &appErr) {
+		return ErrorPayload{
+			Code:      appErr.Code,
+			I18nKey:   appErr.I18nKey,
+			I18nArgs:  appErr.I18nArgs,
+			Message:   appErr.Technical,
+			Technical: appErr.Technical,
+		}
+	}
+
+	return ErrorPayload{
+		Code:      ErrCodeUnknown,
+		I18nKey:   ErrCodeUnknown,
+		Message:   err.Error(),
+		Technical: err.Error(),
+	}
+}
+
+// TabNotFoundError creates an error for missing tabs
+func TabNotFoundError(id string) *AppError {
+	return NewAppError(
+		"errors.tabNotFound",
+		fmt.Sprintf("tab not found: %s", id),
+		map[string]interface{}{"id": id},
+		nil,
+	)
+}
+
+// TabDuplicateError creates an error for duplicate tabs
+func TabDuplicateError(name string) *AppError {
+	return NewAppError(
+		"errors.tabDuplicate",
+		fmt.Sprintf("tab already exists: %s", name),
+		map[string]interface{}{"name": name},
+		nil,
+	)
+}
+
+// CategoryMoveToSelfError creates an error when trying to move a category into itself
+func CategoryMoveToSelfError() *AppError {
+	return NewAppError(
+		"errors.categoryMoveToSelf",
+		"cannot move category into itself",
+		nil,
+		nil,
+	)
+}
+
+// WebDAVNotEnabledError creates an error when WebDAV operations are attempted without WebDAV enabled
+func WebDAVNotEnabledError() *AppError {
+	return NewAppError(
+		"errors.webdavNotEnabled",
+		"WebDAV is not enabled",
+		nil,
+		nil,
+	)
+}
+
+// WebDAVDiscoverVolumesError creates an error when volume discovery fails
+func WebDAVDiscoverVolumesError(cause error) *AppError {
+	return NewAppError(
+		"errors.webdavDiscoverVolumesFailed",
+		"failed to discover WebDAV volumes",
+		nil,
+		cause,
+	)
+}
+
+// WebDAVConnectionTestFailedError creates an error when WebDAV connection test fails
+func WebDAVConnectionTestFailedError() *AppError {
+	return NewAppError(
+		"errors.webdavConnectionTestFailed",
+		"WebDAV connection test failed",
+		nil,
+		nil,
+	)
+}
+
+// WebDAVVolumeHealthCheckError creates an error when volume health check fails
+func WebDAVVolumeHealthCheckError(cause error) *AppError {
+	return NewAppError(
+		"errors.webdavVolumeHealthCheckFailed",
+		"failed to check volume health",
+		nil,
+		cause,
+	)
+}
+
+// TabNotCloudError creates an error when a cloud operation is attempted on a non-cloud tab
+func TabNotCloudError() *AppError {
+	return NewAppError(
+		"errors.tabNotCloud",
+		"tab is not a cloud tab",
+		nil,
+		nil,
+	)
+}
+
+// MigrationTargetError creates an error for invalid migration target
+func MigrationTargetError(target string) *AppError {
+	return NewAppError(
+		"errors.migrationInvalidTarget",
+		fmt.Sprintf("invalid migration target: %s", target),
+		map[string]interface{}{"target": target},
+		nil,
+	)
+}
+
+// MigrationDiskSpaceError creates an error when there's not enough disk space
+func MigrationDiskSpaceError(required, available uint64) *AppError {
+	return NewAppError(
+		"errors.migrationInsufficientDiskSpace",
+		fmt.Sprintf("insufficient disk space: required %d bytes, available %d bytes", required, available),
+		map[string]interface{}{"required": required, "available": available},
+		nil,
+	)
+}
+
+// MigrationFileCopyError creates an error when file copy fails during migration
+func MigrationFileCopyError(filename string, cause error) *AppError {
+	return NewAppError(
+		"errors.migrationFileCopyFailed",
+		fmt.Sprintf("failed to copy file %s", filename),
+		map[string]interface{}{"filename": filename},
+		cause,
+	)
+}
+
+// MigrationSizeMismatchError creates an error when migration verification fails
+func MigrationSizeMismatchError(expected, actual int64) *AppError {
+	return NewAppError(
+		"errors.migrationSizeMismatch",
+		fmt.Sprintf("migration verification failed: expected %d bytes, got %d bytes", expected, actual),
+		map[string]interface{}{"expected": expected, "actual": actual},
+		nil,
+	)
+}
+
+// PluginManagerNotInitializedError creates an error when plugin operations are attempted before initialization
+func PluginManagerNotInitializedError() *AppError {
+	return NewAppError(
+		"errors.pluginManagerNotInitialized",
+		"plugin manager not initialized",
+		nil,
+		nil,
+	)
+}
+
+// PluginNotFoundError creates an error when a plugin cannot be found
+func PluginNotFoundError(id string) *AppError {
+	return NewAppError(
+		"errors.pluginNotFound",
+		fmt.Sprintf("plugin not found: %s", id),
+		map[string]interface{}{"id": id},
+		nil,
+	)
+}
+
+// InvalidVolumeNameError creates an error for empty or invalid volume names
+func InvalidVolumeNameError() *AppError {
+	return NewAppError(
+		"errors.invalidVolumeName",
+		"volume name cannot be empty",
+		nil,
+		nil,
+	)
+}
+
+// VolumeCreationError creates an error when WebDAV volume creation fails
+func VolumeCreationError(cause error) *AppError {
+	return NewAppError(
+		"errors.volumeCreateFailed",
+		"failed to create WebDAV volume",
+		nil,
+		cause,
+	)
+}
+
+// VolumeRegistrationError creates an error when cloud volume registration fails
+func VolumeRegistrationError(cause error) *AppError {
+	return NewAppError(
+		"errors.volumeRegisterFailed",
+		"failed to register cloud volume",
+		nil,
+		cause,
 	)
 }

@@ -32,7 +32,7 @@ const tabsStore = useTabsStore()
 const settingsStore = useSettingsStore()
 const uiStore = useUIStore()
 const viewersStore = useViewersStore()
-const { showToast } = useToast()
+const { showToast, showErrorToast } = useToast()
 const { t } = useI18n()
 
 onMounted(async () => {
@@ -95,7 +95,7 @@ onMounted(async () => {
       showToast(t('cloud.downloadSuccess'), 'success')
       tabsStore.refreshData()
     } else if (data.status === 'error') {
-      showToast(t('cloud.downloadFailed') + ': ' + data.error, 'error')
+      showErrorToast({ i18nKey: data.messageKey, i18nArgs: data.errorArgs }, t('cloud.downloadFailed'))
     }
   })
 

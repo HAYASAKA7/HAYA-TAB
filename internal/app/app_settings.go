@@ -1,7 +1,7 @@
 package app
 
 import (
-	"fmt"
+	apperrors "haya-tab/pkg/errors"
 	"haya-tab/pkg/store"
 	"haya-tab/pkg/watcher"
 	"net/url"
@@ -97,37 +97,37 @@ func (a *App) validateWebDAVSettings(s store.Settings) error {
 func (a *App) validateWebDAV(webdavURL, user, password string) error {
 	// 1. Max length checks
 	if len(webdavURL) > 2048 {
-		return fmt.Errorf("errors.webdavUrlTooLong")
+		return apperrors.NewAppError("errors.webdavUrlTooLong", "WebDAV URL is too long", nil, nil)
 	}
 	if len(user) > 256 {
-		return fmt.Errorf("errors.webdavUserTooLong")
+		return apperrors.NewAppError("errors.webdavUserTooLong", "WebDAV username is too long", nil, nil)
 	}
 	if len(password) > 256 {
-		return fmt.Errorf("errors.webdavPasswordTooLong")
+		return apperrors.NewAppError("errors.webdavPasswordTooLong", "WebDAV password is too long", nil, nil)
 	}
 
 	// 2. URL format validation
 	if webdavURL == "" {
-		return fmt.Errorf("errors.webdavUrlEmpty")
+		return apperrors.NewAppError("errors.webdavUrlEmpty", "WebDAV URL cannot be empty", nil, nil)
 	}
 
 	u, err := url.Parse(webdavURL)
 	if err != nil {
-		return fmt.Errorf("errors.webdavInvalidUrl")
+		return apperrors.NewAppError("errors.webdavInvalidUrl", "invalid WebDAV URL format", nil, err)
 	}
 
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return fmt.Errorf("errors.webdavInvalidProtocol")
+		return apperrors.NewAppError("errors.webdavInvalidProtocol", "WebDAV URL must use http or https protocol", nil, nil)
 	}
 
 	// 3. Port range validation
 	if u.Port() != "" {
 		port, err := strconv.Atoi(u.Port())
 		if err != nil {
-			return fmt.Errorf("errors.webdavInvalidPort")
+			return apperrors.NewAppError("errors.webdavInvalidPort", "invalid WebDAV port", nil, err)
 		}
 		if port < 1 || port > 65535 {
-			return fmt.Errorf("errors.webdavInvalidPort")
+			return apperrors.NewAppError("errors.webdavInvalidPort", "WebDAV port out of range", map[string]interface{}{"port": port}, nil)
 		}
 	}
 

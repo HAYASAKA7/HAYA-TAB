@@ -1,7 +1,7 @@
 package app
 
 import (
-	"fmt"
+	apperrors "haya-tab/pkg/errors"
 	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
 	"io"
@@ -84,19 +84,19 @@ func (a *App) SaveTab(tab store.Tab, shouldCopy bool) (*store.Tab, error) {
 	// Check for duplicate file path before adding (for linked files)
 	existingByPath, err := a.store.GetTabByPath(tab.FilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check for duplicate path: %w", err)
+		return nil, apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "check_duplicate_path"})
 	}
 	if existingByPath != nil {
-		return nil, fmt.Errorf("a tab with this file already exists: %s", existingByPath.Title)
+		return nil, apperrors.TabDuplicateError(existingByPath.Title)
 	}
 
 	// Check for duplicate title globally (catches uploaded files with same content)
 	existingByTitle, err := a.store.GetTabByTitle(tab.Title)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check for duplicate title: %w", err)
+		return nil, apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "check_duplicate_title"})
 	}
 	if existingByTitle != nil {
-		return nil, fmt.Errorf("a tab with title '%s' already exists", existingByTitle.Title)
+		return nil, apperrors.TabDuplicateError(existingByTitle.Title)
 	}
 
 	// Handle File Copy
@@ -152,10 +152,10 @@ func (a *App) UpdateTab(tab store.Tab) error {
 	// Check if tab exists
 	existing, err := a.store.GetTab(tab.ID)
 	if err != nil {
-		return fmt.Errorf("failed to check tab existence: %w", err)
+		return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "get_tab"})
 	}
 	if existing == nil {
-		return fmt.Errorf("tab not found: %s", tab.ID)
+		return apperrors.TabNotFoundError(tab.ID)
 	}
 
 	// Recalculate initials in case title or origin country changed
@@ -188,10 +188,10 @@ func (a *App) UpdateTabMetadata(id string, title string, artist string, album st
 	// Get current tab
 	currentTab, err := a.store.GetTab(id)
 	if err != nil {
-		return fmt.Errorf("failed to get tab: %w", err)
+		return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "get_tab"})
 	}
 	if currentTab == nil {
-		return fmt.Errorf("tab not found: %s", id)
+		return apperrors.TabNotFoundError(id)
 	}
 
 	needsUpdate := false
@@ -267,7 +267,7 @@ func (a *App) UpdateTabMetadata(id string, title string, artist string, album st
 		currentTab.InitialAZ, currentTab.InitialKana = metadata.CalculateInitials(currentTab.Title, currentTab.OriginCountry)
 
 		if err := a.store.UpdateTab(*currentTab); err != nil {
-			return fmt.Errorf("failed to update tab metadata: %w", err)
+			return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "update_tab"})
 		}
 
 		// Update fingerprint if it's associated with a cloud volume
@@ -292,10 +292,10 @@ func (a *App) DeleteTab(id string) error {
 	// Find tab first to check for managed file
 	targetTab, err := a.store.GetTab(id)
 	if err != nil {
-		return fmt.Errorf("failed to get tab: %w", err)
+		return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "get_tab"})
 	}
 	if targetTab == nil {
-		return fmt.Errorf("tab not found")
+		return apperrors.TabNotFoundError(id)
 	}
 
 	if targetTab.IsManaged {
@@ -485,10 +485,10 @@ func (a *App) UpdateTabCategories(tabID string, categoryIDs []string) error {
 func (a *App) AddTabToCategory(tabID, categoryID string) error {
 	tab, err := a.store.GetTab(tabID)
 	if err != nil {
-		return err
+		return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "get_tab"})
 	}
 	if tab == nil {
-		return fmt.Errorf("tab not found")
+		return apperrors.TabNotFoundError(tabID)
 	}
 
 	// Check if already in category
@@ -512,16 +512,16 @@ func (a *App) AddTabToCategory(tabID, categoryID string) error {
 func (a *App) RemoveTabFromCategory(tabID, categoryID string) error {
 	tab, err := a.store.GetTab(tabID)
 	if err != nil {
-		return err
+		return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "get_tab"})
 	}
 	if tab == nil {
-		return fmt.Errorf("tab not found")
+		return apperrors.TabNotFoundError(tabID)
 	}
 
 	// Prevent removing cloud tabs from the cloud storage category
 	// Cloud tabs can only be removed from this category when downloaded to local
 	if tab.IsCloud && categoryID == store.SystemCloudCategoryID {
-		return fmt.Errorf("cannot remove cloud tab from cloud storage category")
+		return apperrors.NewAppError("errors.cannotRemoveCloudCategory", "cannot remove cloud tab from cloud storage category", nil, nil)
 	}
 
 	newCats := []string{}
@@ -551,10 +551,10 @@ func (a *App) RemoveTabFromCategory(tabID, categoryID string) error {
 func (a *App) OpenTab(id string) error {
 	targetTab, err := a.store.GetTab(id)
 	if err != nil {
-		return fmt.Errorf("failed to get tab: %w", err)
+		return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "get_tab"})
 	}
 	if targetTab == nil {
-		return fmt.Errorf("tab not found")
+		return apperrors.TabNotFoundError(id)
 	}
 
 	// Update LastOpened
@@ -565,7 +565,7 @@ func (a *App) OpenTab(id string) error {
 	path := a.ResolveTabPath(targetTab.FilePath, targetTab.IsManaged)
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return fmt.Errorf("file not found: the path is invalid or the file has been moved")
+		return apperrors.FileNotFoundError(path, err)
 	}
 
 	switch runtime.GOOS {
@@ -583,10 +583,10 @@ func (a *App) OpenTab(id string) error {
 func (a *App) MarkAsOpened(id string) error {
 	targetTab, err := a.store.GetTab(id)
 	if err != nil {
-		return fmt.Errorf("failed to get tab: %w", err)
+		return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "get_tab"})
 	}
 	if targetTab == nil {
-		return fmt.Errorf("tab not found")
+		return apperrors.TabNotFoundError(id)
 	}
 
 	targetTab.LastOpened = time.Now().Unix()
@@ -651,16 +651,16 @@ func (a *App) RecalculateAllInitials() (int, error) {
 func (a *App) ExportTab(id string, destFolder string) error {
 	targetTab, err := a.store.GetTab(id)
 	if err != nil {
-		return fmt.Errorf("failed to get tab: %w", err)
+		return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "get_tab"})
 	}
 	if targetTab == nil {
-		return fmt.Errorf("tab not found")
+		return apperrors.TabNotFoundError(id)
 	}
 
 	srcPath := a.ResolveTabPath(targetTab.FilePath, targetTab.IsManaged)
 	srcFile, err := os.Open(srcPath)
 	if err != nil {
-		return fmt.Errorf("failed to open source file: %w", err)
+		return apperrors.FileAccessError(srcPath, err)
 	}
 	defer srcFile.Close()
 
@@ -669,7 +669,7 @@ func (a *App) ExportTab(id string, destFolder string) error {
 
 	destFile, err := os.Create(destPath)
 	if err != nil {
-		return fmt.Errorf("failed to create destination file: %w", err)
+		return apperrors.FileAccessError(destPath, err)
 	}
 	defer destFile.Close()
 

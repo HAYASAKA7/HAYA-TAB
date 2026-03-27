@@ -1,7 +1,9 @@
 package app
 
 import (
+	"errors"
 	"fmt"
+	apperrors "haya-tab/pkg/errors"
 	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
 	syncpkg "haya-tab/pkg/sync"
@@ -33,20 +35,19 @@ func (a *App) WebDAVTestConnection(url, user, password string) error {
 	err := client.TestConnection()
 
 	if err != nil {
-		// Provide more user-friendly error messages
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "401") || strings.Contains(errMsg, "Unauthorized") {
-			return fmt.Errorf("authentication failed: invalid username or password")
+			return apperrors.NewAppError("errors.webdavAuthFailed", "authentication failed", nil, err)
 		} else if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "Not Found") {
-			return fmt.Errorf("WebDAV endpoint not found: please check the URL")
+			return apperrors.NewAppError("errors.webdavEndpointNotFound", "WebDAV endpoint not found", nil, err)
 		} else if strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "Timeout") {
-			return fmt.Errorf("connection timeout: server is not responding")
+			return apperrors.NewAppError("errors.webdavTimeout", "connection timeout", nil, err)
 		} else if strings.Contains(errMsg, "no such host") || strings.Contains(errMsg, "cannot resolve") {
-			return fmt.Errorf("cannot resolve hostname: please check the URL")
+			return apperrors.NewAppError("errors.webdavCannotResolveHost", "cannot resolve hostname", nil, err)
 		} else if strings.Contains(errMsg, "connection refused") {
-			return fmt.Errorf("connection refused: server is not accessible")
+			return apperrors.NewAppError("errors.webdavConnectionRefused", "connection refused", nil, err)
 		}
-		return fmt.Errorf("connection failed: %v", err)
+		return apperrors.NewAppError("errors.webdavConnectionFailed", "connection failed", nil, err)
 	}
 
 	return nil
@@ -149,7 +150,8 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 			// SaveTab handles ID generation, file moving/renaming, and duplicate checks
 			savedTab, err := a.SaveTab(parsedTab, true)
 			if err != nil {
-				if strings.Contains(err.Error(), "already exists") {
+				var apperr *apperrors.AppError
+				if errors.As(err, &apperr) && apperr.Code == "errors.tabDuplicate" {
 					a.logger.Info("Skipping duplicate file %s: %v", fileName, err)
 					skippedCount++
 				} else {
@@ -341,7 +343,7 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 		volumes, err = a.WebDAVDiscoverVolumes()
 		if err != nil {
 			a.logger.Error("Failed to discover volumes: %v", err)
-			return fmt.Errorf("failed to discover volumes: %w", err)
+			return apperrors.WebDAVDiscoverVolumesError(err)
 		}
 	}
 
@@ -513,14 +515,14 @@ func (a *App) WebDAVCheckStatus() bool {
 func (a *App) WebDAVReconnect() error {
 	settings := a.store.GetSettings()
 	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
-		return fmt.Errorf("WebDAV is not enabled")
+		return apperrors.WebDAVNotEnabledError()
 	}
 
 	a.logger.Info("Attempting to reconnect to WebDAV...")
 
 	// Test connection first
 	if !a.WebDAVCheckStatus() {
-		return fmt.Errorf("WebDAV connection test failed")
+		return apperrors.WebDAVConnectionTestFailedError()
 	}
 
 	// Reinitialize volumes
@@ -574,7 +576,7 @@ func (a *App) monitorWebDAVConnection() {
 func (a *App) WebDAVDiscoverVolumes() ([]store.CloudVolume, error) {
 	settings := a.store.GetSettings()
 	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
-		return nil, fmt.Errorf("WebDAV is not enabled")
+		return nil, apperrors.WebDAVNotEnabledError()
 	}
 
 	client := syncpkg.NewWebDAVClient(
@@ -586,7 +588,7 @@ func (a *App) WebDAVDiscoverVolumes() ([]store.CloudVolume, error) {
 	// Discover and register all volumes
 	volumes, addedCount, err := syncpkg.DiscoverAndRegisterVolumes(client, a.store, "/", a.volumeCache, AppVersion)
 	if err != nil {
-		return nil, fmt.Errorf("failed to discover volumes: %w", err)
+		return nil, apperrors.WebDAVDiscoverVolumesError(err)
 	}
 
 	if addedCount > 0 {
@@ -602,7 +604,7 @@ func (a *App) WebDAVDiscoverVolumes() ([]store.CloudVolume, error) {
 func (a *App) WebDAVCheckVolumeHealth() (map[string]bool, error) {
 	settings := a.store.GetSettings()
 	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
-		return nil, fmt.Errorf("WebDAV is not enabled")
+		return nil, apperrors.WebDAVNotEnabledError()
 	}
 
 	client := syncpkg.NewWebDAVClient(
@@ -613,7 +615,7 @@ func (a *App) WebDAVCheckVolumeHealth() (map[string]bool, error) {
 
 	healthMap, err := syncpkg.CheckVolumeHealth(client, a.store)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check volume health: %w", err)
+		return nil, apperrors.WebDAVVolumeHealthCheckError(err)
 	}
 
 	return healthMap, nil
@@ -673,10 +675,7 @@ func (a *App) WebDAVInitialize() error {
 		a.logger.Error("Failed to discover volumes: %v", err)
 		a.emitEvent("webdav-sync-progress", map[string]interface{}{
 			"status":     "error",
-			"messageKey": "toast.syncTask.discoverError",
-			"errorArgs": map[string]interface{}{
-				"error": err.Error(),
-			},
+			"messageKey": "errors.webdavDiscoverVolumesFailed",
 		})
 		return err
 	}
@@ -725,10 +724,7 @@ func (a *App) WebDAVInitialize() error {
 		a.logger.Error("Failed to check volume health: %v", err)
 		a.emitEvent("webdav-sync-progress", map[string]interface{}{
 			"status":     "error",
-			"messageKey": "toast.syncTask.healthError",
-			"errorArgs": map[string]interface{}{
-				"error": err.Error(),
-			},
+			"messageKey": "errors.webdavVolumeHealthCheckFailed",
 		})
 		// Don't fail initialization if health check fails
 	} else {
@@ -760,15 +756,15 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		return fmt.Errorf("failed to get tab: %w", err)
 	}
 	if tab == nil {
-		return fmt.Errorf("tab not found")
+		return apperrors.TabNotFoundError(tabID)
 	}
 	if !tab.IsCloud {
-		return fmt.Errorf("tab is not a cloud tab")
+		return apperrors.TabNotCloudError()
 	}
 
 	settings := a.store.GetSettings()
 	if !settings.WebDAVEnabled {
-		return fmt.Errorf("WebDAV is not enabled")
+		return apperrors.WebDAVNotEnabledError()
 	}
 
 	client := syncpkg.NewWebDAVClient(
@@ -791,9 +787,10 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		if err != nil {
 			a.logger.Error("Failed to create temp file: %v", err)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
-				"status": "error",
-				"tabId":  tabID,
-				"error":  err.Error(),
+				"status":   "error",
+				"tabId":    tabID,
+				"messageKey": "errors.fileAccess",
+				"errorArgs": map[string]interface{}{"path": "temporary download file"},
 			})
 			return
 		}
@@ -805,9 +802,9 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 			a.logger.Error("Failed to download %s: %v", remotePath, err)
 			os.Remove(tempPath)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
-				"status": "error",
-				"tabId":  tabID,
-				"error":  err.Error(),
+				"status":   "error",
+				"tabId":    tabID,
+				"messageKey": "errors.downloadFailed",
 			})
 			return
 		}
@@ -821,9 +818,10 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 			a.logger.Error("Failed to copy to storage: %v", err)
 			os.Remove(tempPath)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
-				"status": "error",
-				"tabId":  tabID,
-				"error":  err.Error(),
+				"status":   "error",
+				"tabId":    tabID,
+				"messageKey": "errors.fileAccess",
+				"errorArgs": map[string]interface{}{"path": localPath},
 			})
 			return
 		}
@@ -848,9 +846,10 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		if err := a.store.UpdateTab(*tab); err != nil {
 			a.logger.Error("Failed to update tab: %v", err)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
-				"status": "error",
-				"tabId":  tabID,
-				"error":  err.Error(),
+				"status":   "error",
+				"tabId":    tabID,
+				"messageKey": "errors.database",
+				"errorArgs": map[string]interface{}{"operation": "update_tab"},
 			})
 			return
 		}
@@ -874,12 +873,12 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 func (a *App) WebDAVCreateVolume(volumeName, remotePath string) (*store.CloudVolume, error) {
 	settings := a.store.GetSettings()
 	if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
-		return nil, fmt.Errorf("WebDAV is not enabled")
+		return nil, apperrors.WebDAVNotEnabledError()
 	}
 
 	// Validate inputs
 	if volumeName == "" {
-		return nil, fmt.Errorf("volume name cannot be empty")
+		return nil, apperrors.InvalidVolumeNameError()
 	}
 	if remotePath == "" {
 		remotePath = "/" // Default to root
@@ -893,14 +892,14 @@ func (a *App) WebDAVCreateVolume(volumeName, remotePath string) (*store.CloudVol
 
 	// Check if fingerprint already exists at this path
 	if client.FingerprintExists(remotePath) {
-		return nil, fmt.Errorf("a volume already exists at path: %s", remotePath)
+		return nil, apperrors.NewAppError("errors.volumeAlreadyExists", "a volume already exists at this path", map[string]interface{}{"path": remotePath}, nil)
 	}
 
 	// Create fingerprint file with app version and device name
 	deviceName := getDeviceName()
 	fingerprint, err := client.CreateVolumeFingerprint(remotePath, volumeName, AppVersion, deviceName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create volume fingerprint: %w", err)
+		return nil, apperrors.VolumeCreationError(err)
 	}
 
 	a.logger.Info("Created volume fingerprint: %s at %s", fingerprint.VolumeID, remotePath)
@@ -908,7 +907,7 @@ func (a *App) WebDAVCreateVolume(volumeName, remotePath string) (*store.CloudVol
 	// Register volume in database
 	volume, err := syncpkg.RegisterOrUpdateVolume(a.store, remotePath, fingerprint)
 	if err != nil {
-		return nil, fmt.Errorf("failed to register volume: %w", err)
+		return nil, apperrors.VolumeRegistrationError(err)
 	}
 
 	a.logger.Info("Volume created successfully: %s (%s)", volume.Name, volume.ID)

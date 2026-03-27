@@ -1,7 +1,7 @@
 package app
 
 import (
-	"fmt"
+	apperrors "haya-tab/pkg/errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -24,7 +24,7 @@ func (a *App) CheckMigration(target string) (MigrationStatus, error) {
 	case "covers":
 		currentPath = a.GetCoversDir()
 	default:
-		return MigrationStatus{}, fmt.Errorf("invalid target: %s", target)
+		return MigrationStatus{}, apperrors.MigrationTargetError(target)
 	}
 
 	var count int
@@ -64,7 +64,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 	case "covers":
 		currentPath = a.GetCoversDir()
 	default:
-		return fmt.Errorf("invalid target: %s", target)
+		return apperrors.MigrationTargetError(target)
 	}
 
 	// Normalize paths to avoid migrating to the same place
@@ -80,13 +80,13 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 
 	// Ensure destination exists
 	if err := os.MkdirAll(newPath, 0755); err != nil {
-		return fmt.Errorf("failed to create destination directory: %w", err)
+		return apperrors.WrapError(err, apperrors.ErrCodeFileAccess, map[string]interface{}{"path": newPath})
 	}
 
 	// Get total size to check space
 	status, err := a.CheckMigration(target)
 	if err != nil {
-		return fmt.Errorf("failed to calculate source size: %w", err)
+		return apperrors.WrapError(err, apperrors.ErrCodeFileAccess, map[string]interface{}{"operation": "calculate_source_size"})
 	}
 	count := status.Count
 	totalSize := status.Size
@@ -95,7 +95,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 		// Check free space on destination drive
 		freeSpace, err := GetDiskFreeSpace(newPath)
 		if err == nil && totalSize > 0 && freeSpace < uint64(totalSize)*2 {
-			return fmt.Errorf("insufficient disk space on destination. Required: %d bytes, Available: %d bytes", totalSize, freeSpace)
+			return apperrors.MigrationDiskSpaceError(uint64(totalSize)*2, freeSpace)
 		}
 
 		// Pause Watcher if it's running and we're modifying related things
@@ -111,7 +111,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 		// Copy files
 		entries, err := os.ReadDir(currentPath)
 		if err != nil {
-			return fmt.Errorf("failed to read source directory: %w", err)
+			return apperrors.WrapError(err, apperrors.ErrCodeFileAccess, map[string]interface{}{"path": currentPath})
 		}
 
 		for _, entry := range entries {
@@ -128,7 +128,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 				for _, cf := range copiedFiles {
 					os.Remove(cf)
 				}
-				return fmt.Errorf("failed to copy %s: %w. Please ensure the file is not opened in another program", entry.Name(), err)
+				return apperrors.MigrationFileCopyError(entry.Name(), err)
 			}
 			copiedFiles = append(copiedFiles, destPath)
 		}
@@ -140,7 +140,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 			for _, cf := range copiedFiles {
 				os.Remove(cf)
 			}
-			return fmt.Errorf("migration size mismatch. Expected %d, got %d. Migration rolled back", totalSize, newTotalSize)
+			return apperrors.MigrationSizeMismatchError(totalSize, newTotalSize)
 		}
 
 		// Update DB logic? No, our DB stores relative paths for managed items,
@@ -189,7 +189,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 	}
 
 	if err := a.SaveSettings(settings); err != nil {
-		return fmt.Errorf("failed to save settings: %w", err)
+		return apperrors.WrapError(err, apperrors.ErrCodeDatabase, map[string]interface{}{"operation": "save_settings"})
 	}
 
 	// Notify frontend to reload view (only in real app context)
