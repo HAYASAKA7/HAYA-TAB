@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.9] - 2026-03-27
+
+### Changed
+
+- **Database Query Optimization:** Added several new indexes to the `tabs` and `cloud_volumes` tables to significantly improve performance for common operations like searching by title, filtering by file path, and sorting by last opened or added date.
+
 ## [2.4.8] - 2026-03-26
 
 ### Changed

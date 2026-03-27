@@ -176,10 +176,17 @@ func (s *DBStore) createTables() error {
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_tabs_category ON tabs(category_id);
+	CREATE INDEX IF NOT EXISTS idx_tabs_file_path ON tabs(file_path);
+	CREATE INDEX IF NOT EXISTS idx_tabs_title ON tabs(title);
+	CREATE INDEX IF NOT EXISTS idx_tabs_last_opened ON tabs(last_opened DESC, added_at DESC);
+	CREATE INDEX IF NOT EXISTS idx_tabs_added_at ON tabs(added_at DESC);
+	CREATE INDEX IF NOT EXISTS idx_tabs_volume_file_path ON tabs(volume_id, file_path);
+	CREATE INDEX IF NOT EXISTS idx_tabs_category_added_at ON tabs(category_id, added_at);
 	CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
 	CREATE INDEX IF NOT EXISTS idx_tab_categories_tab ON tab_categories(tab_id);
 	CREATE INDEX IF NOT EXISTS idx_tab_categories_cat ON tab_categories(category_id);
 	CREATE INDEX IF NOT EXISTS idx_cloud_volumes_mount ON cloud_volumes(mount_path);
+	CREATE INDEX IF NOT EXISTS idx_cloud_volumes_active_mount_seen ON cloud_volumes(is_available, mount_path, last_seen_at DESC);
 	CREATE INDEX IF NOT EXISTS idx_tab_annotations_updated_at ON tab_annotations(updated_at);
 	`
 
@@ -323,12 +330,21 @@ func (s *DBStore) runMigrations() error {
 		}
 	}
 
-	// Create index on volume_id after the column exists
-	// This must be done in migrations to support existing databases
-	_, err = s.db.Exec("CREATE INDEX IF NOT EXISTS idx_tabs_volume ON tabs(volume_id)")
-	if err != nil {
-		// Log but don't fail - index might already exist
-		fmt.Printf("Warning: failed to create volume_id index: %v\n", err)
+	// Create indexes added after the initial schema to support existing databases
+	indexStatements := []string{
+		"CREATE INDEX IF NOT EXISTS idx_tabs_volume ON tabs(volume_id)",
+		"CREATE INDEX IF NOT EXISTS idx_tabs_file_path ON tabs(file_path)",
+		"CREATE INDEX IF NOT EXISTS idx_tabs_title ON tabs(title)",
+		"CREATE INDEX IF NOT EXISTS idx_tabs_last_opened ON tabs(last_opened DESC, added_at DESC)",
+		"CREATE INDEX IF NOT EXISTS idx_tabs_added_at ON tabs(added_at DESC)",
+		"CREATE INDEX IF NOT EXISTS idx_tabs_volume_file_path ON tabs(volume_id, file_path)",
+		"CREATE INDEX IF NOT EXISTS idx_tabs_category_added_at ON tabs(category_id, added_at)",
+		"CREATE INDEX IF NOT EXISTS idx_cloud_volumes_active_mount_seen ON cloud_volumes(is_available, mount_path, last_seen_at DESC)",
+	}
+	for _, statement := range indexStatements {
+		if _, err = s.db.Exec(statement); err != nil {
+			fmt.Printf("Warning: failed to create index with statement %q: %v\n", statement, err)
+		}
 	}
 
 	return nil
