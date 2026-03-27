@@ -268,6 +268,7 @@ func (s *DBStore) GetTabsByVolume(volumeID string) ([]Tab, error) {
 	defer rows.Close()
 
 	var tabs []Tab
+	var tabIDs []string
 	for rows.Next() {
 		var tab Tab
 		var isManaged, isCloud int
@@ -281,16 +282,27 @@ func (s *DBStore) GetTabsByVolume(volumeID string) ([]Tab, error) {
 		}
 		tab.IsManaged = intToBool(isManaged)
 		tab.IsCloud = intToBool(isCloud)
-
-		// Load category IDs
-		categoryIDs, err := s.getTabCategoryIDs(tab.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load categories for tab %s: %w", tab.ID, err)
-		}
-		tab.CategoryIDs = categoryIDs
+		tab.CategoryIDs = []string{}
 
 		tabs = append(tabs, tab)
+		tabIDs = append(tabIDs, tab.ID)
 	}
+
+	// Batch load all categories in one query
+	if len(tabIDs) > 0 {
+		categoryMap, err := s.getTabCategoriesBatch(tabIDs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load categories: %w", err)
+		}
+
+		// Assign categories to tabs
+		for i := range tabs {
+			if catIDs, ok := categoryMap[tabs[i].ID]; ok {
+				tabs[i].CategoryIDs = catIDs
+			}
+		}
+	}
+
 	return tabs, nil
 }
 
@@ -319,6 +331,7 @@ func (s *DBStore) GetTabByVolumeAndPath(volumeID, relativePath string) (*Tab, er
 	}
 	tab.IsManaged = intToBool(isManaged)
 	tab.IsCloud = intToBool(isCloud)
+	tab.CategoryIDs = []string{}
 
 	// Load category IDs
 	categoryIDs, err := s.getTabCategoryIDs(tab.ID)
@@ -328,6 +341,44 @@ func (s *DBStore) GetTabByVolumeAndPath(volumeID, relativePath string) (*Tab, er
 	tab.CategoryIDs = categoryIDs
 
 	return &tab, nil
+}
+
+// getTabCategoriesBatch retrieves all category IDs for multiple tabs in one query
+func (s *DBStore) getTabCategoriesBatch(tabIDs []string) (map[string][]string, error) {
+	// Build IN clause placeholder
+	placeholders := make([]string, len(tabIDs))
+	for i := range tabIDs {
+		placeholders[i] = "?"
+	}
+	query := fmt.Sprintf(
+		"SELECT tab_id, category_id FROM tab_categories WHERE tab_id IN (%s)",
+		strings.Join(placeholders, ","),
+	)
+
+	rows, err := s.db.Query(query, convertSliceArgs(tabIDs)...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	categoryMap := make(map[string][]string)
+	for rows.Next() {
+		var tabID, catID string
+		if err := rows.Scan(&tabID, &catID); err != nil {
+			return nil, err
+		}
+		categoryMap[tabID] = append(categoryMap[tabID], catID)
+	}
+	return categoryMap, nil
+}
+
+// convertSliceArgs converts a string slice to interface{} slice for variadic query args
+func convertSliceArgs(slice []string) []interface{} {
+	args := make([]interface{}, len(slice))
+	for i, v := range slice {
+		args[i] = v
+	}
+	return args
 }
 
 // getTabCategoryIDs retrieves all category IDs for a tab

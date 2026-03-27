@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.11] - 2026-03-27
+
+### Changed
+
+- **Database Performance Optimization:** Improved tab loading performance in `GetTabsByVolume` by implementing batch retrieval of category IDs. This significantly reduces the number of database queries when listing tabs in a volume, leading to a more responsive UI.
+
 ## [2.4.10] - 2026-03-27
 
 ### Changed
