@@ -548,7 +548,7 @@ func TestSyncService_generateUniqueTitle_SafetyLimit(t *testing.T) {
 	// This is impractical, so we'll just test the logic exists
 	// by checking the function handles the case
 
-	uniqueTitle := service.generateUniqueTitle(baseTitle)
+	uniqueTitle := service.generateUniqueTitle(baseTitle, map[string]bool{})
 	if uniqueTitle == "" {
 		t.Error("generateUniqueTitle() returned empty string")
 	}

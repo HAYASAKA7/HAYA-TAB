@@ -200,8 +200,15 @@ func TestSyncService_generateUniqueTitle(t *testing.T) {
 		Title: baseTitle,
 	})
 
+	// Build existing titles map from store
+	tabs, _ := testStore.GetTabs()
+	existingTitles := make(map[string]bool)
+	for _, tab := range tabs {
+		existingTitles[tab.Title] = true
+	}
+
 	// Generate unique title
-	uniqueTitle := service.generateUniqueTitle(baseTitle)
+	uniqueTitle := service.generateUniqueTitle(baseTitle, existingTitles)
 
 	if uniqueTitle == baseTitle {
 		t.Error("generateUniqueTitle() returned same title")
@@ -215,8 +222,9 @@ func TestSyncService_generateUniqueTitle(t *testing.T) {
 		ID:    "tab-2",
 		Title: uniqueTitle,
 	})
+	existingTitles[uniqueTitle] = true
 
-	uniqueTitle2 := service.generateUniqueTitle(baseTitle)
+	uniqueTitle2 := service.generateUniqueTitle(baseTitle, existingTitles)
 	if uniqueTitle2 != "Test Song_copy2" {
 		t.Errorf("generateUniqueTitle() = %v, want Test Song_copy2", uniqueTitle2)
 	}

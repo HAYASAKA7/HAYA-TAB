@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.10] - 2026-03-27
+
+### Changed
+
+- **Synchronization Performance Optimization:** Dramatically improved the efficiency of the `TriggerSync` operation by preloading existing file paths and song titles into memory. This eliminates thousands of redundant database queries during large directory scans, resulting in significantly faster synchronization times, especially for users with extensive tab libraries.
+
 ## [2.4.9] - 2026-03-27
 
 ### Changed

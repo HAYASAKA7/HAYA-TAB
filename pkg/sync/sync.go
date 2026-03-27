@@ -102,6 +102,17 @@ func (s *SyncService) TriggerSync() (string, error) {
 
 	s.emitter.Emit("sync-started", nil)
 
+	// Preload existing paths and titles into memory for O(1) lookups
+	existingPaths := make(map[string]bool)
+	existingTitles := make(map[string]bool)
+	tabs, err := s.store.GetTabs()
+	if err == nil {
+		for _, tab := range tabs {
+			existingPaths[tab.FilePath] = true
+			existingTitles[tab.Title] = true
+		}
+	}
+
 	for _, root := range settings.SyncPaths {
 		s.logger.Info("Scanning path: %s", root)
 		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -127,31 +138,30 @@ func (s *SyncService) TriggerSync() (string, error) {
 				"filePath": path,
 			})
 
-			// 1. Check if EXACT path exists using DB
-			existingTab, err := s.store.GetTabByPath(path)
-			if err == nil && existingTab != nil {
+			// 1. Check if EXACT path exists using preloaded map
+			if existingPaths[path] {
 				return nil // Already exists
 			}
 
 			// 2. Parse Metadata to check Title conflict
 			newTab := s.ProcessFile(path)
 
-			// Check Title conflict using DB
-			conflictTab, _ := s.store.GetTabByTitle(newTab.Title)
-
-			if conflictTab != nil {
+			// Check Title conflict using preloaded map
+			if existingTitles[newTab.Title] {
 				switch strategy {
 				case "skip":
 					result.Skipped++
 					return nil
 				case "overwrite":
 					// Non-destructive overwrite: Keep old file, rename new title
-					uniqueTitle := s.generateUniqueTitle(newTab.Title)
+					uniqueTitle := s.generateUniqueTitle(newTab.Title, existingTitles)
 					newTab.Title = uniqueTitle
 
 					// Add as new tab with renamed title
 					if err := s.store.AddTab(newTab); err == nil {
 						result.Added++
+						existingPaths[newTab.FilePath] = true
+						existingTitles[newTab.Title] = true
 						s.FetchCoverAsync(newTab)
 					} else {
 						result.Errors++
@@ -163,6 +173,8 @@ func (s *SyncService) TriggerSync() (string, error) {
 			// No conflict, add as new
 			if err := s.store.AddTab(newTab); err == nil {
 				result.Added++
+				existingPaths[newTab.FilePath] = true
+				existingTitles[newTab.Title] = true
 				s.FetchCoverAsync(newTab)
 			} else {
 				result.Errors++
@@ -298,13 +310,12 @@ func (s *SyncService) FetchCoverAsync(tab store.Tab) {
 }
 
 // generateUniqueTitle creates a unique title by appending _copy1, _copy2, etc.
-func (s *SyncService) generateUniqueTitle(baseTitle string) string {
+func (s *SyncService) generateUniqueTitle(baseTitle string, existingTitles map[string]bool) string {
 	copyNum := 1
 	candidate := fmt.Sprintf("%s_copy%d", baseTitle, copyNum)
 
 	for {
-		existing, _ := s.store.GetTabByTitle(candidate)
-		if existing == nil {
+		if !existingTitles[candidate] {
 			return candidate
 		}
 		copyNum++
