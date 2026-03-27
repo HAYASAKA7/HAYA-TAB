@@ -12,10 +12,10 @@ func TestApp_GetCategories(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app, tmpDir)
 
-	// Initially empty
+	// Initialize() always creates the system cloud category (sys_cloud)
 	cats := app.GetCategories()
-	if len(cats) != 0 {
-		t.Errorf("Expected 0 categories, got %d", len(cats))
+	if len(cats) != 1 {
+		t.Errorf("Expected 1 category (system cloud), got %d", len(cats))
 	}
 
 	// Add categories
@@ -23,8 +23,8 @@ func TestApp_GetCategories(t *testing.T) {
 	app.store.AddCategory(store.Category{ID: "cat2", Name: "Jazz"})
 
 	cats = app.GetCategories()
-	if len(cats) != 2 {
-		t.Errorf("Expected 2 categories, got %d", len(cats))
+	if len(cats) != 3 {
+		t.Errorf("Expected 3 categories (2 added + system cloud), got %d", len(cats))
 	}
 }
 

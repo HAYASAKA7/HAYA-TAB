@@ -68,13 +68,13 @@ func TestMigrateFromJSON_FullData(t *testing.T) {
 		t.Errorf("Expected 2 tabs, got %d", len(tabs))
 	}
 
-	// Verify categories were migrated
+	// Verify categories were migrated (2 migrated + 1 system cloud from Initialize)
 	categories, err := store.GetCategories()
 	if err != nil {
 		t.Fatalf("GetCategories() error = %v", err)
 	}
-	if len(categories) != 2 {
-		t.Errorf("Expected 2 categories, got %d", len(categories))
+	if len(categories) != 3 {
+		t.Errorf("Expected 3 categories (2 migrated + system cloud), got %d", len(categories))
 	}
 
 	// Verify settings were migrated

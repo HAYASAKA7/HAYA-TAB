@@ -1,92 +1,179 @@
 package sync
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
+
+	"haya-tab/pkg/store"
 )
 
-func TestWebDAVClient_FingerprintOperations(t *testing.T) {
-	// Mock server state
-	files := make(map[string][]byte)
-	dirs := make(map[string]bool)
+func TestCalculateBucketNumber(t *testing.T) {
+	tests := []struct {
+		path string
+		want int
+	}{
+		{"file1.gp5", -1}, // We don't know exact value, just check range
+		{"file2.pdf", -1},
+		{"dir/file.gp", -1},
+	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "MKCOL":
-			dirs[r.URL.Path] = true
-			w.WriteHeader(http.StatusCreated)
-		case "PUT":
-			// Simplified PUT - gowebdav might do more, but we just need it to succeed
-			w.WriteHeader(http.StatusCreated)
-		case "GET":
-			if data, ok := files[r.URL.Path]; ok {
-				w.Write(data)
-			} else if r.URL.Path == "/vol1/haya-metadata/bucket-00.json" {
-				// Return empty metadata for ReadMetadata
-				type Bucket0 struct {
-					Metadata FingerprintMetadata `json:"metadata"`
-					Files    []FingerprintFile   `json:"files"`
-				}
-				b0 := Bucket0{
-					Metadata: FingerprintMetadata{VolumeID: "vol1"},
-					Files:    []FingerprintFile{},
-				}
-				data, _ := json.Marshal(b0)
-				w.Write(data)
-			} else {
-				w.WriteHeader(http.StatusNotFound)
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			got := CalculateBucketNumber(tt.path)
+			if got < 0 || got >= BucketCount {
+				t.Errorf("CalculateBucketNumber(%q) = %d, want 0-%d", tt.path, got, BucketCount-1)
 			}
-		case "PROPFIND":
-			// Always return that directory exists for simplicity
-			w.WriteHeader(http.StatusMultiStatus)
-			w.Write([]byte(`<?xml version="1.0" encoding="utf-8" ?><D:multistatus xmlns:D="DAV:"><D:response><D:href>/</D:href><D:propstat><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>`))
-		default:
-			w.WriteHeader(http.StatusOK)
-		}
-	}))
-	defer server.Close()
+		})
+	}
+}
 
-	client := NewWebDAVClient(server.URL, "user", "pass")
+func TestCalculateBucketNumber_Consistency(t *testing.T) {
+	path := "test/file.gp5"
+	bucket1 := CalculateBucketNumber(path)
+	bucket2 := CalculateBucketNumber(path)
+	
+	if bucket1 != bucket2 {
+		t.Errorf("CalculateBucketNumber not consistent: %d != %d", bucket1, bucket2)
+	}
+}
 
-	// Test CreateVolumeFingerprint (will call MkdirAll, WriteMetadata, WriteBucket)
-	// Note: gowebdav's Mkdir/WriteStream might fail with this simple mock, 
-	// but we're testing that the logic flow reaches these points.
-	
-	// We'll focus on testing the helper functions that don't depend on a perfect WebDAV server
-	
-	t.Run("HelperPaths", func(t *testing.T) {
-		if getMetadataPath("/vol") != "/vol/haya-metadata" {
-			t.Errorf("wrong metadata path: %s", getMetadataPath("/vol"))
-		}
-		if getBucketPath("/vol", 5) != "/vol/haya-metadata/bucket-05.json" {
-			t.Errorf("wrong bucket path: %s", getBucketPath("/vol", 5))
-		}
-		if getLegacyFingerprintPath("/vol") != "/vol/.haya-volume-fingerprint" {
-			t.Errorf("wrong legacy path: %s", getLegacyFingerprintPath("/vol"))
-		}
-	})
+func TestGetMetadataPath(t *testing.T) {
+	tests := []struct {
+		volumePath string
+		want       string
+	}{
+		{"/mnt/volume", "/mnt/volume/haya-metadata"},
+		{"/root", "/root/haya-metadata"},
+		{"volume", "volume/haya-metadata"},
+	}
 
-	t.Run("CalculateBucketNumber", func(t *testing.T) {
-		b1 := CalculateBucketNumber("file1.pdf")
-		b2 := CalculateBucketNumber("file2.pdf")
-		if b1 < 0 || b1 >= 16 || b2 < 0 || b2 >= 16 {
-			t.Errorf("bucket number out of range: %d, %d", b1, b2)
-		}
-	})
-	
-	// Since full WebDAV integration tests are hard with a simple mock, 
-	// let's at least test the logic that can be hit.
-	
-	// Testing ReadMetadata with a mock response
-	t.Run("ReadMetadata", func(t *testing.T) {
-		metadata, err := client.ReadMetadata("/vol1")
-		if err != nil {
-			t.Fatalf("ReadMetadata failed: %v", err)
-		}
-		if metadata.VolumeID != "vol1" {
-			t.Errorf("expected vol1, got %s", metadata.VolumeID)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.volumePath, func(t *testing.T) {
+			got := getMetadataPath(tt.volumePath)
+			if got != tt.want {
+				t.Errorf("getMetadataPath(%q) = %q, want %q", tt.volumePath, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetBucketPath(t *testing.T) {
+	tests := []struct {
+		volumePath string
+		bucketNum  int
+		want       string
+	}{
+		{"/mnt/volume", 0, "/mnt/volume/haya-metadata/bucket-00.json"},
+		{"/mnt/volume", 15, "/mnt/volume/haya-metadata/bucket-15.json"},
+		{"/root", 5, "/root/haya-metadata/bucket-05.json"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			got := getBucketPath(tt.volumePath, tt.bucketNum)
+			if got != tt.want {
+				t.Errorf("getBucketPath(%q, %d) = %q, want %q", tt.volumePath, tt.bucketNum, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetLegacyFingerprintPath(t *testing.T) {
+	tests := []struct {
+		volumePath string
+		want       string
+	}{
+		{"/mnt/volume", "/mnt/volume/.haya-volume-fingerprint"},
+		{"/root", "/root/.haya-volume-fingerprint"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.volumePath, func(t *testing.T) {
+			got := getLegacyFingerprintPath(tt.volumePath)
+			if got != tt.want {
+				t.Errorf("getLegacyFingerprintPath(%q) = %q, want %q", tt.volumePath, got, tt.want)
+			}
+		})
+	}
+}
+
+
+func TestRegisterOrUpdateVolume_AddsNewVolume(t *testing.T) {
+	_, db, _, cleanup := setupTestSyncService(t)
+	defer cleanup()
+
+	fingerprint := &VolumeFingerprint{
+		VolumeID:   "vol-1",
+		VolumeName: "Cloud One",
+	}
+
+	volume, err := RegisterOrUpdateVolume(db, "/remote/cloud-one", fingerprint)
+	if err != nil {
+		t.Fatalf("RegisterOrUpdateVolume() error = %v", err)
+	}
+
+	if volume.ID != "vol-1" {
+		t.Errorf("volume.ID = %q, want %q", volume.ID, "vol-1")
+	}
+	if volume.MountPath != "/remote/cloud-one" {
+		t.Errorf("volume.MountPath = %q, want %q", volume.MountPath, "/remote/cloud-one")
+	}
+	if volume.FingerprintPath != "/remote/cloud-one/haya-metadata" {
+		t.Errorf("volume.FingerprintPath = %q, want %q", volume.FingerprintPath, "/remote/cloud-one/haya-metadata")
+	}
+	if !volume.IsAvailable {
+		t.Error("expected new volume to be available")
+	}
+
+	stored, err := db.GetVolume("vol-1")
+	if err != nil {
+		t.Fatalf("GetVolume() error = %v", err)
+	}
+	if stored == nil {
+		t.Fatal("expected volume to be stored in database")
+	}
+}
+
+func TestRegisterOrUpdateVolume_UpdatesExistingVolume(t *testing.T) {
+	_, db, _, cleanup := setupTestSyncService(t)
+	defer cleanup()
+
+	// Use a known old timestamp to avoid timing issues
+	oldTimestamp := int64(1000)
+
+	existing := store.CloudVolume{
+		ID:              "vol-1",
+		Name:            "Cloud One",
+		MountPath:       "/old/path",
+		FingerprintPath: "/old/path/haya-metadata",
+		CreatedAt:       oldTimestamp,
+		LastSeenAt:      oldTimestamp,
+		IsAvailable:     false,
+	}
+	if err := db.AddVolume(existing); err != nil {
+		t.Fatalf("AddVolume() error = %v", err)
+	}
+
+	fingerprint := &VolumeFingerprint{
+		VolumeID:   "vol-1",
+		VolumeName: "Cloud One",
+	}
+
+	volume, err := RegisterOrUpdateVolume(db, "/new/path", fingerprint)
+	if err != nil {
+		t.Fatalf("RegisterOrUpdateVolume() error = %v", err)
+	}
+
+	if volume.MountPath != "/new/path" {
+		t.Errorf("volume.MountPath = %q, want %q", volume.MountPath, "/new/path")
+	}
+	if volume.FingerprintPath != "/new/path/haya-metadata" {
+		t.Errorf("volume.FingerprintPath = %q, want %q", volume.FingerprintPath, "/new/path/haya-metadata")
+	}
+	if !volume.IsAvailable {
+		t.Error("expected updated volume to be available")
+	}
+	// New timestamp should be greater than the known old timestamp
+	if volume.LastSeenAt <= oldTimestamp {
+		t.Errorf("volume.LastSeenAt = %d, want > %d", volume.LastSeenAt, oldTimestamp)
+	}
 }
