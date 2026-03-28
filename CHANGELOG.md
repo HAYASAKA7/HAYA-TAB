@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.13] - 2026-03-28
+
+### Changed
+
+- **WebDAV Sync Optimization:** Stream bucket data directly from memory instead of using temporary files when writing to WebDAV. This improves performance and reduces disk I/O.
+
 ## [2.4.12] - 2026-03-27
 
 ### Added

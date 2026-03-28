@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
@@ -596,28 +597,8 @@ func (c *WebDAVClient) WriteBucket(volumePath string, bucketNum int, bucket *Buc
 		return fmt.Errorf("failed to marshal bucket %d: %w", bucketNum, err)
 	}
 
-	// Create temp file
-	tempFile, err := os.CreateTemp("", "haya-bucket-*.json")
-	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
-	}
-	defer os.Remove(tempFile.Name())
-
-	// Write to temp file
-	if _, err := tempFile.Write(data); err != nil {
-		tempFile.Close()
-		return fmt.Errorf("failed to write bucket: %w", err)
-	}
-	tempFile.Close()
-
-	// Upload to WebDAV
-	tempFileRead, err := os.Open(tempFile.Name())
-	if err != nil {
-		return fmt.Errorf("failed to open temp file: %w", err)
-	}
-	defer tempFileRead.Close()
-
-	if err := c.streamClient.WriteStream(bucketPath, tempFileRead, 0644); err != nil {
+	// Stream directly from memory to WebDAV, no temp file needed
+	if err := c.streamClient.WriteStream(bucketPath, bytes.NewReader(data), 0644); err != nil {
 		return fmt.Errorf("failed to upload bucket %d: %w", bucketNum, err)
 	}
 
