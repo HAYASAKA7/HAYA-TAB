@@ -189,6 +189,7 @@ func isRelevantFile(path string) bool {
 
 func (w *FileWatcher) watchLoop() {
 	var debounceTimer *time.Timer
+	var mu sync.Mutex
 	var pendingChange bool
 
 	for {
@@ -219,16 +220,20 @@ func (w *FileWatcher) watchLoop() {
 			}
 
 			// Debounce: wait for changes to settle
+			mu.Lock()
 			pendingChange = true
 			if debounceTimer != nil {
 				debounceTimer.Stop()
 			}
 			debounceTimer = time.AfterFunc(time.Duration(w.debounceMs)*time.Millisecond, func() {
+				mu.Lock()
+				defer mu.Unlock()
 				if pendingChange && w.onChange != nil {
 					w.onChange()
 					pendingChange = false
 				}
 			})
+			mu.Unlock()
 
 		case err, ok := <-w.watcher.Errors:
 			if !ok {

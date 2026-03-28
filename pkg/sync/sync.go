@@ -285,14 +285,18 @@ func (s *SyncService) FetchCoverAsync(tab store.Tab) {
 		OnComplete: func(tabID, downloadedCoverPath string, err error) {
 			if err == nil {
 				s.logger.Info("Cover downloaded successfully to: %s", downloadedCoverPath)
-				currentTab, getErr := s.store.GetTab(tabID)
-				if getErr != nil || currentTab == nil {
-					s.logger.Error("Failed to get tab after cover download: %v", getErr)
+				// Store relative path in DB using narrow update (avoids full INSERT OR REPLACE)
+				coverBase := filepath.Base(downloadedCoverPath)
+				if updateErr := s.store.UpdateTabCoverPath(tabID, coverBase); updateErr != nil {
+					s.logger.Error("Failed to update cover path: %v", updateErr)
 					return
 				}
-				// Store relative path in DB
-				currentTab.CoverPath = filepath.Base(downloadedCoverPath)
-				s.store.AddTab(*currentTab)
+				// Fetch updated tab for event emission and MusicBrainz queuing
+				currentTab, getErr := s.store.GetTab(tabID)
+				if getErr != nil || currentTab == nil {
+					s.logger.Error("Failed to get tab after cover update: %v", getErr)
+					return
+				}
 				s.emitter.Emit("tab-updated", *currentTab)
 
 				// After successful cover download, queue MusicBrainz lookup for origin country

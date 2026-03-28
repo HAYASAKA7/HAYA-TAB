@@ -674,6 +674,12 @@ func (s *DBStore) UpdateTab(tab Tab) error {
 	return s.AddTab(tab) // INSERT OR REPLACE handles update
 }
 
+// UpdateTabCoverPath updates only the cover_path field for a tab
+func (s *DBStore) UpdateTabCoverPath(tabID, coverPath string) error {
+	_, err := s.db.Exec("UPDATE tabs SET cover_path = ? WHERE id = ?", coverPath, tabID)
+	return err
+}
+
 func (s *DBStore) DeleteTab(id string) error {
 	_, err := s.db.Exec("DELETE FROM tabs WHERE id = ?", id)
 	return err
@@ -921,20 +927,19 @@ func (s *DBStore) GetAllTabs() ([]Tab, error) {
 	return s.GetTabs()
 }
 
-// SearchTabs performs a simple search across title, artist, album, and tag fields
+// SearchTabs performs a search using FTS5 full-text index
 func (s *DBStore) SearchTabs(query string) ([]Tab, error) {
-	// Use FTS5 for better search performance
-	searchTerm := "%" + query + "%"
-
+	// Use FTS5 for index-backed search
 	rows, err := s.db.Query(`
 		SELECT DISTINCT tabs.id, tabs.title, tabs.artist, tabs.album, tabs.file_path, COALESCE(tabs.cloud_path, ''), tabs.type,
 		       tabs.is_managed, COALESCE(tabs.is_cloud, 0), tabs.cover_path, tabs.category_id,
 		       tabs.country, tabs.language, COALESCE(tabs.tag, ''), COALESCE(tabs.origin_country, ''),
 		       tabs.added_at, tabs.last_opened, COALESCE(tabs.initial_az, '#'), COALESCE(tabs.initial_kana, '#')
 		FROM tabs
-		WHERE tabs.title LIKE ? OR tabs.artist LIKE ? OR tabs.album LIKE ? OR tabs.tag LIKE ?
+		JOIN tabs_fts ON tabs.rowid = tabs_fts.rowid
+		WHERE tabs_fts MATCH ?
 		ORDER BY tabs.title ASC
-	`, searchTerm, searchTerm, searchTerm, searchTerm)
+	`, query)
 
 	if err != nil {
 		return []Tab{}, err

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.14] - 2026-03-28
+
+### Changed
+
+- **Search Optimization:** Migrated tab search to use SQLite FTS5 `MATCH` for better performance and more accurate results.
+- **Database Performance:** Added `UpdateTabCoverPath` for targeted cover image updates, reducing overhead compared to full record replacement.
+
+### Fixed
+
+- **File Watcher Stability:** Improved thread safety in the file watcher debounce logic by adding a mutex, preventing potential race conditions during rapid file system changes.
+- **Cover Sync Reliability:** Refined cover path handling in the sync service to use relative paths and targeted database updates, ensuring consistent state after asynchronous downloads.
+
 ## [2.4.13] - 2026-03-28
 
 ### Changed
