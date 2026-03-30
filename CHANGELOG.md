@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.15] - 2026-03-30
+
+### Added
+
+- **ETag-based Conditional Updates:** Implemented ETag validation for WebDAV bucket operations to prevent data loss during concurrent modifications from multiple devices.
+- **Retry Logic for Sync Conflicts:** Added intelligent retry mechanism (up to 3 attempts) with conflict resolution when WebDAV synchronization encounters concurrent modifications.
+- **Timestamp-based Merge:** Enhanced conflict resolution using `UploadedAt` timestamps to determine which version of a file should be kept during synchronization.
+- **Tombstone Support:** Implemented proper handling of deleted files during synchronization to prevent resurrection of locally deleted content.
+
+### Changed
+
+- **WebDAV Client Enhancement:** Added credential storage to WebDAV client for improved HTTP client operations and authentication handling.
+- **Bucket Data Structure:** Enhanced `BucketData` with ETag field for version control and added deep cloning capabilities for safe concurrent operations.
+- **Fingerprint File Operations:** Added comparison methods (`IsNewerThan`) and cloning capabilities to `FingerprintFile` for better conflict resolution.
+
+### Fixed
+
+- **Concurrent Access Safety:** Resolved potential data corruption issues during simultaneous WebDAV operations by implementing proper bucket cloning and ETag-based conditional writes.
+- **Sync Conflict Resolution:** Improved handling of synchronization conflicts between multiple devices accessing the same WebDAV volume.
+
 ## [2.4.14] - 2026-03-28
 
 ### Changed

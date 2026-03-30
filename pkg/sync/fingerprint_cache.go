@@ -264,6 +264,7 @@ func (c *FingerprintCache) BatchAddFiles(volumePath string, files []FingerprintF
 
 // Flush writes all dirty buckets to WebDAV (blocking)
 // OPTIMIZED: Only writes dirty buckets, keeps cache intact and releases lock before I/O
+// ENHANCED: Uses ETag-based conditional updates with retry logic for conflict resolution
 func (c *FingerprintCache) Flush() error {
 	c.mu.Lock()
 
@@ -296,16 +297,9 @@ func (c *FingerprintCache) Flush() error {
 				continue
 			}
 
-			// Create a deep copy of the bucket to avoid race conditions during JSON marshalling
+			// Clone the bucket for safe concurrent access
 			originalBucket := c.cache[volumePath][bucketNum].data
-			
-			filesCopy := make([]FingerprintFile, len(originalBucket.Files))
-			copy(filesCopy, originalBucket.Files)
-			
-			bucketCopy := &BucketData{
-				BucketNumber: originalBucket.BucketNumber,
-				Files:        filesCopy,
-			}
+			bucketCopy := originalBucket.Clone()
 
 			itemsToWrite = append(itemsToWrite, dirtyItem{
 				volumePath: volumePath,
@@ -321,51 +315,57 @@ func (c *FingerprintCache) Flush() error {
 
 	var lastErr error
 	flushedCount := 0
+	const maxRetries = 3
 
 	// Write to WebDAV without lock
 	for _, item := range itemsToWrite {
-		// 1. READ: Fetch the latest bucket state from WebDAV to catch concurrent changes
-		remoteBucket, err := c.client.ReadBucket(item.volumePath, item.bucketNum)
-		
-		// 2. MODIFY (MERGE): If read succeeds, merge remote files into our local bucket copy
-		if err == nil && remoteBucket != nil {
-			// Create a quick lookup map of our local files
-			localFilesMap := make(map[string]bool)
-			for _, localFile := range item.bucket.Files {
-				localFilesMap[localFile.RelativePath] = true
-			}
+		// Implement retry loop for conflict resolution
+		for retry := 0; retry < maxRetries; retry++ {
+			// 1. READ: Fetch the latest bucket state from WebDAV with ETag
+			remoteBucket, err := c.client.ReadBucket(item.volumePath, item.bucketNum)
 
-			// Check tombstone map for this volume
-			var tombstone map[string]bool
-			if deletedFilesCopy[item.volumePath] != nil {
-				tombstone = deletedFilesCopy[item.volumePath]
-			}
-
-			// Append any files from the remote bucket that aren't in our local snapshot and not marked as deleted
-			for _, remoteFile := range remoteBucket.Files {
-				if tombstone != nil && tombstone[remoteFile.RelativePath] {
-					continue // file was deleted locally, don't resurrect it
+			// 2. MODIFY (MERGE): If read succeeds, merge remote files into our local bucket copy
+			if err == nil && remoteBucket != nil {
+				// Use timestamp-based merge with tombstone support
+				var tombstone map[string]bool
+				if deletedFilesCopy[item.volumePath] != nil {
+					tombstone = deletedFilesCopy[item.volumePath]
 				}
-				if !localFilesMap[remoteFile.RelativePath] {
-					item.bucket.Files = append(item.bucket.Files, remoteFile)
-				}
-			}
-		}
 
-		// 3. WRITE: Write the merged bucket back to WebDAV
-		if err := c.client.WriteBucket(item.volumePath, item.bucketNum, item.bucket); err != nil {
+				// Merge remote files into local bucket using timestamp-based conflict resolution
+				item.bucket.Files = MergeFingerprintFiles(item.bucket.Files, remoteBucket.Files, tombstone)
+
+				// Update ETag from remote for conditional write
+				item.bucket.ETag = remoteBucket.ETag
+			}
+
+			// 3. WRITE: Attempt conditional PUT with If-Match header
+			err = c.client.WriteBucketWithETag(item.volumePath, item.bucketNum, item.bucket, item.bucket.ETag)
+
+			if err == nil {
+				// Success!
+				flushedCount++
+
+				// Update the in-memory cache with the merged data and new ETag
+				c.mu.Lock()
+				if c.cache[item.volumePath] != nil && c.cache[item.volumePath][item.bucketNum] != nil {
+					c.cache[item.volumePath][item.bucketNum].data = item.bucket
+				}
+				c.mu.Unlock()
+				break // Exit retry loop on success
+			}
+
+			// Check if it's a precondition failed error (conflict)
+			if err.Error() == "precondition_failed: bucket was modified by another device" {
+				// Conflict detected - retry with fresh data
+				fmt.Printf("[Debug] Conflict detected for bucket %d, retrying (%d/%d)...\n", item.bucketNum, retry+1, maxRetries)
+				continue
+			}
+
+			// Other errors - log and continue to next bucket
 			lastErr = fmt.Errorf("failed to write bucket %d for volume %s: %w", item.bucketNum, item.volumePath, err)
 			fmt.Printf("[Warning] %v\n", lastErr)
-		} else {
-			flushedCount++
-			
-			// Update the in-memory cache with the merged remote files
-			// so we don't accidentally overwrite them on the next flush.
-			c.mu.Lock()
-			if c.cache[item.volumePath] != nil && c.cache[item.volumePath][item.bucketNum] != nil {
-				c.cache[item.volumePath][item.bucketNum].data = item.bucket
-			}
-			c.mu.Unlock()
+			break
 		}
 	}
 

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path"
 	"sync"
@@ -50,6 +52,40 @@ type FingerprintFile struct {
 	UploadedBy   string   `json:"uploaded_by"`   // Device name that uploaded this file
 }
 
+// Clone creates a deep copy of the fingerprint file
+func (f *FingerprintFile) Clone() *FingerprintFile {
+	categories := make([]string, len(f.Categories))
+	copy(categories, f.Categories)
+	return &FingerprintFile{
+		RelativePath: f.RelativePath,
+		Title:        f.Title,
+		Artist:       f.Artist,
+		Album:        f.Album,
+		Type:         f.Type,
+		Categories:   categories,
+		UploadedAt:   f.UploadedAt,
+		UploadedBy:   f.UploadedBy,
+	}
+}
+
+// IsNewerThan compares two FingerprintFile timestamps and returns true if this file is newer
+// Handles cases where timestamps are empty or invalid
+func (f *FingerprintFile) IsNewerThan(other *FingerprintFile) bool {
+	if f.UploadedAt == "" {
+		return false
+	}
+	if other.UploadedAt == "" {
+		return true
+	}
+	// Parse timestamps
+	t1, err1 := time.Parse(time.RFC3339, f.UploadedAt)
+	t2, err2 := time.Parse(time.RFC3339, other.UploadedAt)
+	if err1 != nil || err2 != nil {
+		return false
+	}
+	return t1.After(t2)
+}
+
 // FingerprintMetadata stores volume-level metadata (stored in bucket-00.json)
 type FingerprintMetadata struct {
 	VolumeID    string `json:"volume_id"`    // Unique identifier for this volume
@@ -65,6 +101,7 @@ type FingerprintMetadata struct {
 type BucketData struct {
 	BucketNumber int                 `json:"bucket_number"` // Bucket number (0-15)
 	Files        []FingerprintFile   `json:"files"`         // Files in this bucket
+	ETag         string              `json:"-"`             // ETag for version control (not serialized)
 }
 
 // CalculateBucketNumber calculates which bucket (0-15) a file should be stored in
@@ -73,6 +110,83 @@ func CalculateBucketNumber(relativePath string) int {
 	hash := md5.Sum([]byte(relativePath))
 	// Use last byte of hash, mod 16
 	return int(hash[15] % BucketCount)
+}
+
+// Clone creates a deep copy of the bucket for safe concurrent operations
+func (b *BucketData) Clone() *BucketData {
+	newFiles := make([]FingerprintFile, len(b.Files))
+	copy(newFiles, b.Files)
+	return &BucketData{
+		BucketNumber: b.BucketNumber,
+		Files:        newFiles,
+		ETag:         b.ETag,
+	}
+}
+
+// Merge combines this bucket with another bucket, resolving conflicts by keeping the newer version
+// of files with the same relative path. Returns a new bucket with merged data.
+func (b *BucketData) Merge(other *BucketData) *BucketData {
+	// Create a clone to avoid modifying the original
+	result := b.Clone()
+
+	// Use map for fast lookup of paths we already have
+	existingMap := make(map[string]*FingerprintFile)
+	for i := range result.Files {
+		file := &result.Files[i]
+		existingMap[file.RelativePath] = file
+	}
+
+	// Iterate through other bucket and add/merge files
+	for i := range other.Files {
+		otherFile := &other.Files[i]
+		if existing, found := existingMap[otherFile.RelativePath]; found {
+			// File exists in both - keep the newer one
+			if otherFile.IsNewerThan(existing) {
+				*existing = *otherFile
+			}
+		} else {
+			// File only exists in other - add it
+			result.Files = append(result.Files, *otherFile)
+			existingMap[otherFile.RelativePath] = &result.Files[len(result.Files)-1]
+		}
+	}
+
+	return result
+}
+
+// MergeFingerprintFiles merges two slices of FingerprintFile, resolving conflicts by keeping the newer version
+// of files with the same relative path. tombstones can be provided to exclude deleted files.
+func MergeFingerprintFiles(localFiles, remoteFiles []FingerprintFile, tombstones map[string]bool) []FingerprintFile {
+	// Create map from local files for fast lookup
+	localMap := make(map[string]*FingerprintFile)
+	for i := range localFiles {
+		file := &localFiles[i]
+		if tombstones != nil && tombstones[file.RelativePath] {
+			continue // Skip deleted files
+		}
+		localMap[file.RelativePath] = file
+	}
+
+	// Add remote files, keeping newer versions
+	for i := range remoteFiles {
+		remoteFile := &remoteFiles[i]
+		if tombstones != nil && tombstones[remoteFile.RelativePath] {
+			continue // Skip deleted files
+		}
+
+		if local, found := localMap[remoteFile.RelativePath]; found {
+			// File exists in both - keep the newer one
+			if remoteFile.IsNewerThan(local) {
+				*local = *remoteFile
+			}
+		} else {
+			// File only in remote - add it
+			localFiles = append(localFiles, *remoteFile)
+			localMap[remoteFile.RelativePath] = &localFiles[len(localFiles)-1]
+		}
+	}
+
+	return localFiles
 }
 
 // getMetadataPath returns the path to the metadata directory
@@ -519,7 +633,7 @@ func (c *WebDAVClient) WriteMetadata(volumePath string, metadata *FingerprintMet
 	return nil
 }
 
-// ReadBucket reads a specific bucket file
+// ReadBucket reads a specific bucket file and stores the ETag from response headers
 func (c *WebDAVClient) ReadBucket(volumePath string, bucketNum int) (*BucketData, error) {
 	bucketPath := getBucketPath(volumePath, bucketNum)
 
@@ -536,6 +650,20 @@ func (c *WebDAVClient) ReadBucket(volumePath string, bucketNum int) (*BucketData
 		return nil, fmt.Errorf("failed to read bucket data: %w", err)
 	}
 
+	// Extract ETag from stream info if available (depends on gowebdav implementation)
+	var etag string
+	if stat, err := c.metadataClient.Stat(bucketPath); err == nil {
+		// Some servers include ETag in the stat response
+		if e := stat.Sys(); e != nil {
+			// ETag might be in sys info, but gowebdav doesn't expose it directly
+			// We'll try to get it from HEAD request instead
+			if resp, err := c.httpClient.Head(bucketPath); err == nil {
+				etag = resp.Header.Get("ETag")
+				resp.Body.Close()
+			}
+		}
+	}
+
 	// Bucket 0 has special structure with metadata
 	if bucketNum == 0 {
 		type Bucket0 struct {
@@ -549,6 +677,7 @@ func (c *WebDAVClient) ReadBucket(volumePath string, bucketNum int) (*BucketData
 		return &BucketData{
 			BucketNumber: 0,
 			Files:        bucket0.Files,
+			ETag:         etag,
 		}, nil
 	}
 
@@ -557,12 +686,19 @@ func (c *WebDAVClient) ReadBucket(volumePath string, bucketNum int) (*BucketData
 	if err := json.Unmarshal(data, &bucket); err != nil {
 		return nil, fmt.Errorf("failed to parse bucket %d: %w", bucketNum, err)
 	}
+	bucket.ETag = etag
 
 	return &bucket, nil
 }
 
-// WriteBucket writes a specific bucket file
+// WriteBucket writes a specific bucket file with optional ETag validation
+// If bucket has an ETag, uses conditional PUT with If-Match header to prevent overwrites
 func (c *WebDAVClient) WriteBucket(volumePath string, bucketNum int, bucket *BucketData) error {
+	return c.WriteBucketWithETag(volumePath, bucketNum, bucket, bucket.ETag)
+}
+
+// WriteBucketWithETag writes a specific bucket file with explicit ETag validation
+func (c *WebDAVClient) WriteBucketWithETag(volumePath string, bucketNum int, bucket *BucketData, expectedETag string) error {
 	bucketPath := getBucketPath(volumePath, bucketNum)
 
 	var data []byte
@@ -597,12 +733,44 @@ func (c *WebDAVClient) WriteBucket(volumePath string, bucketNum int, bucket *Buc
 		return fmt.Errorf("failed to marshal bucket %d: %w", bucketNum, err)
 	}
 
-	// Stream directly from memory to WebDAV, no temp file needed
-	if err := c.streamClient.WriteStream(bucketPath, bytes.NewReader(data), 0644); err != nil {
-		return fmt.Errorf("failed to upload bucket %d: %w", bucketNum, err)
+	// Build request
+	fullURL := c.url + bucketPath
+	req, err := http.NewRequest("PUT", fullURL, bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	return nil
+	// Set conditional header if ETag is provided
+	if expectedETag != "" {
+		req.Header.Set("If-Match", expectedETag)
+	}
+
+	// Set authorization
+	req.SetBasicAuth(c.username, c.password)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", BrowserUserAgent)
+
+	// Execute request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to upload bucket %d: %w", bucketNum, err)
+	}
+	defer resp.Body.Close()
+
+	// Handle response
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated, http.StatusNoContent:
+		// Success - update bucket ETag from response
+		if newETag := resp.Header.Get("ETag"); newETag != "" {
+			bucket.ETag = newETag
+		}
+		return nil
+	case http.StatusPreconditionFailed:
+		return errors.New("precondition_failed: bucket was modified by another device")
+	default:
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to upload bucket %d: %s (status %d) - %s", bucketNum, resp.Status, resp.StatusCode, string(body))
+	}
 }
 
 // migrateLegacyFingerprint migrates a legacy fingerprint file to the new bucket format

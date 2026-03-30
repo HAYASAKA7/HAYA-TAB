@@ -93,6 +93,8 @@ type WebDAVClient struct {
 	streamClient   *gowebdav.Client // File streaming client (Keep-Alive disabled)
 	url            string
 	httpClient     *http.Client
+	username       string // Store credentials for HTTP client
+	password       string
 }
 
 // NewWebDAVClient creates a new WebDAV client with dual-client strategy
@@ -125,6 +127,8 @@ func NewWebDAVClient(serverURL, user, password string) *WebDAVClient {
 		streamClient:   streamClient,
 		url:            serverURL,
 		httpClient:     httpClient,
+		username:       user,
+		password:       password,
 	}
 }
 
