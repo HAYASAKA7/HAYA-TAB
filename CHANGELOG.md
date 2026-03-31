@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.16] - 2026-03-31
+
+### Fixed
+
+- **Database Reliability:** Implemented exponential backoff with jitter for SQLite "database is locked" (SQLITE_BUSY) errors, improving stability during concurrent write operations.
+
 ## [2.4.15] - 2026-03-30
 
 ### Added

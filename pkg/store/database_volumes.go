@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 )
@@ -32,8 +33,10 @@ func (s *DBStore) AddVolume(volume CloudVolume) error {
 
 		// Check if it's a database lock error
 		if strings.Contains(err.Error(), "database is locked") || strings.Contains(err.Error(), "SQLITE_BUSY") {
-			// Exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms
-			time.Sleep(time.Duration(10*(1<<uint(i))) * time.Millisecond)
+			// Exponential backoff with jitter
+			baseDelay := 10 * (1 << uint(i))
+			jitter := rand.Intn(baseDelay + 1)
+			time.Sleep(time.Duration(baseDelay+jitter) * time.Millisecond)
 			continue
 		}
 
