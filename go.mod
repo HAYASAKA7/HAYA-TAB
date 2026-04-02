@@ -10,7 +10,7 @@ require (
 	github.com/ikawaha/kagome/v2 v2.10.3
 	github.com/mozillazg/go-pinyin v0.21.0
 	github.com/studio-b12/gowebdav v0.12.0
-	github.com/wailsapp/wails/v2 v2.11.0
+	github.com/wailsapp/wails/v2 v2.12.0
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/crypto v0.33.0
 	modernc.org/sqlite v1.44.3
@@ -18,6 +18,7 @@ require (
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
+	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/dlclark/regexp2 v1.11.4 // indirect
