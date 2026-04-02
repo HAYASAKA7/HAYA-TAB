@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -87,15 +89,23 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 
 	// Run in background to avoid blocking UI
 	go func() {
-		successCount := 0
-		skippedCount := 0
-		errorCount := 0
+		var successCount int32
+		var skippedCount int32
+		var errorCount int32
 
 		// Get only active volumes for linking
 		volumes, _ := a.store.GetActiveVolumes()
 
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, 5)
+
 		for i, remotePath := range remotePaths {
-			fileName := filepath.Base(remotePath)
+			wg.Add(1)
+			go func(idx int, remotePath string) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				fileName := filepath.Base(remotePath)
 
 			// Determine if this file belongs to a volume
 			var volumeID string
@@ -119,8 +129,8 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 			tempFile, err := os.CreateTemp("", "haya-tab-download-*.tmp")
 			if err != nil {
 				a.logger.Error("Failed to create temp file for %s: %v", fileName, err)
-				errorCount++
-				continue
+				atomic.AddInt32(&errorCount, 1)
+				return
 			}
 			tempPath := tempFile.Name()
 			tempFile.Close() // Close immediately, DownloadFile will open/create it
@@ -129,8 +139,8 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 			if err := client.DownloadFile(remotePath, tempPath); err != nil {
 				a.logger.Error("Failed to download %s: %v", remotePath, err)
 				os.Remove(tempPath)
-				errorCount++
-				continue
+				atomic.AddInt32(&errorCount, 1)
+				return
 			}
 
 			// Process File to get metadata
@@ -153,15 +163,15 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 				var apperr *apperrors.AppError
 				if errors.As(err, &apperr) && apperr.Code == "errors.tabDuplicate" {
 					a.logger.Info("Skipping duplicate file %s: %v", fileName, err)
-					skippedCount++
+					atomic.AddInt32(&skippedCount, 1)
 				} else {
 					a.logger.Error("Failed to save downloaded tab %s: %v", fileName, err)
-					errorCount++
+					atomic.AddInt32(&errorCount, 1)
 				}
 				// Clean up temp file
 				os.Remove(tempPath)
 			} else {
-				successCount++
+				atomic.AddInt32(&successCount, 1)
 				// Clean up temp file (SaveTab copied it)
 				os.Remove(tempPath)
 
@@ -173,21 +183,23 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 
 			a.emitEvent("cloud-progress", map[string]interface{}{
 				"status":   "progress",
-				"current":  i + 1,
+				"current":  idx + 1,
 				"total":    len(remotePaths),
 				"filename": fileName,
 			})
+			}(i, remotePath)
 		}
+		wg.Wait()
 
 		a.emitEvent("cloud-progress", map[string]interface{}{
 			"status":  "complete",
-			"success": successCount,
-			"skipped": skippedCount,
-			"errors":  errorCount,
+			"success": atomic.LoadInt32(&successCount),
+			"skipped": atomic.LoadInt32(&skippedCount),
+			"errors":  atomic.LoadInt32(&errorCount),
 		})
 
 		// Force library refresh when background process finishes, in case modal is closed early
-		if successCount > 0 {
+		if atomic.LoadInt32(&successCount) > 0 {
 			a.emitEvent("tab-updated", nil)
 		}
 	}()
@@ -206,7 +218,7 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 	})
 
 	go func() {
-		successCount := 0
+		var successCount int32
 
 		// Get only active volumes (available and deduplicated by mount path)
 		volumes, err := a.store.GetActiveVolumes()
@@ -228,14 +240,22 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 			}
 		}
 
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, 5)
+
 		for i, localPath := range localPaths {
-			fileName := filepath.Base(localPath)
+			wg.Add(1)
+			go func(idx int, localPath string) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				fileName := filepath.Base(localPath)
 
 			// Upload the file
 			if err := client.UploadFile(localPath, remoteDir); err != nil {
 				a.logger.Error("Failed to upload %s: %v", localPath, err)
 			} else {
-				successCount++
+				atomic.AddInt32(&successCount, 1)
 
 				// If we found a volume, update its fingerprint file
 				if targetVolume != nil {
@@ -304,15 +324,17 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 
 			a.emitEvent("cloud-upload-progress", map[string]interface{}{
 				"status":   "progress",
-				"current":  i + 1,
+				"current":  idx + 1,
 				"total":    len(localPaths),
 				"filename": fileName,
 			})
+			}(i, localPath)
 		}
+		wg.Wait()
 
 		a.emitEvent("cloud-upload-progress", map[string]interface{}{
 			"status":  "complete",
-			"success": successCount,
+			"success": atomic.LoadInt32(&successCount),
 		})
 	}()
 
@@ -353,8 +375,8 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 	})
 
 	go func() {
-		successCount := 0
-		skippedCount := 0
+		var successCount int32
+		var skippedCount int32
 
 		a.logger.Info("Processing %d files with %d active volumes", len(remotePaths), len(volumes))
 
@@ -362,9 +384,18 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 		var tabsToAdd []store.Tab
 		// Track added files by volume for batch fingerprint updates
 		volumeAddedFiles := make(map[string][]store.Tab)
+		var mu sync.Mutex
+
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, 5)
 
 		for i, remotePath := range remotePaths {
-			fileName := filepath.Base(remotePath)
+			wg.Add(1)
+			go func(idx int, remotePath string) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				fileName := filepath.Base(remotePath)
 
 			// Determine which volume this file belongs to
 			var volumeID string
@@ -401,14 +432,14 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 
 			if existingTab != nil {
 				a.logger.Info("Skipping duplicate cloud file %s", fileName)
-				skippedCount++
+				atomic.AddInt32(&skippedCount, 1)
 				a.emitEvent("cloud-progress", map[string]interface{}{
 					"status":   "progress",
-					"current":  i + 1,
+					"current":  idx + 1,
 					"total":    len(remotePaths),
 					"filename": fileName,
 				})
-				continue
+				return
 			}
 
 			// Parse metadata from filename (lazy - no download)
@@ -446,20 +477,24 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 			tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
 
 			// Add to batch
+			mu.Lock()
 			tabsToAdd = append(tabsToAdd, tab)
 
 			// Track for fingerprint update
 			if volumeID != "" {
 				volumeAddedFiles[volumeID] = append(volumeAddedFiles[volumeID], tab)
 			}
+			mu.Unlock()
 
 			a.emitEvent("cloud-progress", map[string]interface{}{
 				"status":   "progress",
-				"current":  i + 1,
+				"current":  idx + 1,
 				"total":    len(remotePaths),
 				"filename": fileName,
 			})
+			}(i, remotePath)
 		}
+		wg.Wait()
 
 		// Batch add all tabs at once
 		if len(tabsToAdd) > 0 {
@@ -467,7 +502,7 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 			if err != nil {
 				a.logger.Error("Failed to batch add tabs: %v", err)
 			} else {
-				successCount = added
+				successCount = int32(added)
 				a.logger.Info("Batch added %d cloud files", added)
 			}
 		}
@@ -479,13 +514,13 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 
 		a.emitEvent("cloud-progress", map[string]interface{}{
 			"status":  "complete",
-			"success": successCount,
-			"skipped": skippedCount,
+			"success": atomic.LoadInt32(&successCount),
+			"skipped": atomic.LoadInt32(&skippedCount),
 			"errors":  0,
 		})
 
 		// Force library refresh when background process finishes, in case modal is closed early
-		if successCount > 0 {
+		if atomic.LoadInt32(&successCount) > 0 {
 			a.emitEvent("tab-updated", nil)
 		}
 	}()

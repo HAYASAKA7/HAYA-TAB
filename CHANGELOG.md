@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.17] - 2026-04-02
+
+### Fixed
+
+- **WebDAV Sync Performance:** Resolved severe performance degradation during large synchronization operations by replacing sequential processing with bounded concurrency (worker pool). This prevents application hangs and unbounded resource consumption during massive file transfers.
+
 ## [2.4.16] - 2026-03-31
 
 ### Fixed
