@@ -764,6 +764,9 @@ func (c *WebDAVClient) WriteBucketWithETag(volumePath string, bucketNum int, buc
 		if newETag := resp.Header.Get("ETag"); newETag != "" {
 			bucket.ETag = newETag
 		}
+		// Drain the response body to prevent "context canceled" errors on the server side 
+		// when the TCP connection is closed prematurely
+		io.Copy(io.Discard, resp.Body)
 		return nil
 	case http.StatusPreconditionFailed:
 		return errors.New("precondition_failed: bucket was modified by another device")

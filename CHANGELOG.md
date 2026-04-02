@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.19] - 2026-04-02
+
+### Fixed
+
+- **WebDAV Sync Reliability:** Fixed an issue where WebDAV servers (like rclone) would log "Failed to copy: context canceled" errors during fingerprint updates (`bucket-00.json`). This was caused by the client prematurely closing connections before draining HTTP response bodies on PUT requests.
+
 ## [2.4.18] - 2026-04-02
 
 ### Security
