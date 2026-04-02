@@ -107,86 +107,86 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 				defer func() { <-sem }()
 				fileName := filepath.Base(remotePath)
 
-			// Determine if this file belongs to a volume
-			var volumeID string
-			var relativePath string
-			longestMatch := ""
-			for _, vol := range volumes {
-				if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath {
-					if len(vol.MountPath) > len(longestMatch) {
-						longestMatch = vol.MountPath
-						volumeID = vol.ID
+				// Determine if this file belongs to a volume
+				var volumeID string
+				var relativePath string
+				longestMatch := ""
+				for _, vol := range volumes {
+					if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath {
+						if len(vol.MountPath) > len(longestMatch) {
+							longestMatch = vol.MountPath
+							volumeID = vol.ID
+						}
 					}
 				}
-			}
 
-			if volumeID != "" {
-				relativePath = strings.TrimPrefix(remotePath, longestMatch)
-				relativePath = strings.TrimPrefix(relativePath, "/")
-			}
+				if volumeID != "" {
+					relativePath = strings.TrimPrefix(remotePath, longestMatch)
+					relativePath = strings.TrimPrefix(relativePath, "/")
+				}
 
-			// Create temp file
-			tempFile, err := os.CreateTemp("", "haya-tab-download-*.tmp")
-			if err != nil {
-				a.logger.Error("Failed to create temp file for %s: %v", fileName, err)
-				atomic.AddInt32(&errorCount, 1)
-				return
-			}
-			tempPath := tempFile.Name()
-			tempFile.Close() // Close immediately, DownloadFile will open/create it
-
-			// Download to temp path
-			if err := client.DownloadFile(remotePath, tempPath); err != nil {
-				a.logger.Error("Failed to download %s: %v", remotePath, err)
-				os.Remove(tempPath)
-				atomic.AddInt32(&errorCount, 1)
-				return
-			}
-
-			// Process File to get metadata
-			parsedTab := a.syncService.ProcessFile(tempPath)
-
-			// If ProcessFile failed to get meaningful title, fallback to filename
-			if parsedTab.Title == "" {
-				parsedTab.Title = strings.TrimSuffix(fileName, filepath.Ext(fileName))
-			}
-
-			// Link to volume if detected
-			if volumeID != "" {
-				parsedTab.VolumeID = volumeID
-				parsedTab.CloudPath = relativePath
-			}
-
-			// SaveTab handles ID generation, file moving/renaming, and duplicate checks
-			savedTab, err := a.SaveTab(parsedTab, true)
-			if err != nil {
-				var apperr *apperrors.AppError
-				if errors.As(err, &apperr) && apperr.Code == "errors.tabDuplicate" {
-					a.logger.Info("Skipping duplicate file %s: %v", fileName, err)
-					atomic.AddInt32(&skippedCount, 1)
-				} else {
-					a.logger.Error("Failed to save downloaded tab %s: %v", fileName, err)
+				// Create temp file
+				tempFile, err := os.CreateTemp("", "haya-tab-download-*.tmp")
+				if err != nil {
+					a.logger.Error("Failed to create temp file for %s: %v", fileName, err)
 					atomic.AddInt32(&errorCount, 1)
+					return
 				}
-				// Clean up temp file
-				os.Remove(tempPath)
-			} else {
-				atomic.AddInt32(&successCount, 1)
-				// Clean up temp file (SaveTab copied it)
-				os.Remove(tempPath)
+				tempPath := tempFile.Name()
+				tempFile.Close() // Close immediately, DownloadFile will open/create it
 
-				// If it's linked to a volume, update the fingerprint
-				if volumeID != "" && savedTab != nil {
-					a.batchAddToFingerprint(volumeID, []store.Tab{*savedTab})
+				// Download to temp path
+				if err := client.DownloadFile(remotePath, tempPath); err != nil {
+					a.logger.Error("Failed to download %s: %v", remotePath, err)
+					os.Remove(tempPath)
+					atomic.AddInt32(&errorCount, 1)
+					return
 				}
-			}
 
-			a.emitEvent("cloud-progress", map[string]interface{}{
-				"status":   "progress",
-				"current":  idx + 1,
-				"total":    len(remotePaths),
-				"filename": fileName,
-			})
+				// Process File to get metadata
+				parsedTab := a.syncService.ProcessFile(tempPath)
+
+				// If ProcessFile failed to get meaningful title, fallback to filename
+				if parsedTab.Title == "" {
+					parsedTab.Title = strings.TrimSuffix(fileName, filepath.Ext(fileName))
+				}
+
+				// Link to volume if detected
+				if volumeID != "" {
+					parsedTab.VolumeID = volumeID
+					parsedTab.CloudPath = relativePath
+				}
+
+				// SaveTab handles ID generation, file moving/renaming, and duplicate checks
+				savedTab, err := a.SaveTab(parsedTab, true)
+				if err != nil {
+					var apperr *apperrors.AppError
+					if errors.As(err, &apperr) && apperr.Code == "errors.tabDuplicate" {
+						a.logger.Info("Skipping duplicate file %s: %v", fileName, err)
+						atomic.AddInt32(&skippedCount, 1)
+					} else {
+						a.logger.Error("Failed to save downloaded tab %s: %v", fileName, err)
+						atomic.AddInt32(&errorCount, 1)
+					}
+					// Clean up temp file
+					os.Remove(tempPath)
+				} else {
+					atomic.AddInt32(&successCount, 1)
+					// Clean up temp file (SaveTab copied it)
+					os.Remove(tempPath)
+
+					// If it's linked to a volume, update the fingerprint
+					if volumeID != "" && savedTab != nil {
+						a.batchAddToFingerprint(volumeID, []store.Tab{*savedTab})
+					}
+				}
+
+				a.emitEvent("cloud-progress", map[string]interface{}{
+					"status":   "progress",
+					"current":  idx + 1,
+					"total":    len(remotePaths),
+					"filename": fileName,
+				})
 			}(i, remotePath)
 		}
 		wg.Wait()
@@ -251,83 +251,83 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 				defer func() { <-sem }()
 				fileName := filepath.Base(localPath)
 
-			// Upload the file
-			if err := client.UploadFile(localPath, remoteDir); err != nil {
-				a.logger.Error("Failed to upload %s: %v", localPath, err)
-			} else {
-				atomic.AddInt32(&successCount, 1)
+				// Upload the file
+				if err := client.UploadFile(localPath, remoteDir); err != nil {
+					a.logger.Error("Failed to upload %s: %v", localPath, err)
+				} else {
+					atomic.AddInt32(&successCount, 1)
 
-				// If we found a volume, update its fingerprint file
-				if targetVolume != nil {
-					// Get tab metadata and categories if this file is in our library
-					tab, _ := a.store.GetTabByPath(localPath)
+					// If we found a volume, update its fingerprint file
+					if targetVolume != nil {
+						// Get tab metadata and categories if this file is in our library
+						tab, _ := a.store.GetTabByPath(localPath)
 
-					var title, artist, album, fileType string
-					var categories []string
-					if tab != nil {
-						// Use existing metadata from library
-						title = tab.Title
-						artist = tab.Artist
-						album = tab.Album
-						fileType = tab.Type
+						var title, artist, album, fileType string
+						var categories []string
+						if tab != nil {
+							// Use existing metadata from library
+							title = tab.Title
+							artist = tab.Artist
+							album = tab.Album
+							fileType = tab.Type
 
-						// Get category names
-						cats, err := a.store.GetCategoryNamesForTab(tab.ID)
-						if err == nil {
-							categories = cats
-						}
-					} else {
-						// Parse metadata from filename
-						title, artist = parseMetadataFromFilename(fileName)
-
-						// Determine file type
-						ext := strings.ToLower(filepath.Ext(fileName))
-						fileType = "gp"
-						switch ext {
-						case ".pdf":
-							fileType = "pdf"
-						case ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".xml", ".musicxml", ".mxl":
-							fileType = "gp"
-						}
-					}
-
-					// Calculate relative path within volume
-					relativePath := strings.TrimPrefix(remoteDir, targetVolume.MountPath)
-					relativePath = strings.TrimPrefix(relativePath, "/")
-					if relativePath != "" {
-						relativePath = relativePath + "/"
-					}
-					relativePath = relativePath + fileName
-
-					// Add file record to fingerprint cache (non-blocking)
-					fpFile := syncpkg.FingerprintFile{
-						RelativePath: relativePath,
-						Title:        title,
-						Artist:       artist,
-						Album:        album,
-						Type:         fileType,
-						Categories:   categories,
-						UploadedAt:   time.Now().UTC().Format(time.RFC3339),
-						UploadedBy:   getDeviceName(),
-					}
-
-					cache := a.getFingerprintCache()
-					if cache != nil {
-						if err := cache.AddFile(targetVolume.MountPath, fpFile); err != nil {
-							a.logger.Error("Failed to add file to fingerprint cache for %s: %v", fileName, err)
+							// Get category names
+							cats, err := a.store.GetCategoryNamesForTab(tab.ID)
+							if err == nil {
+								categories = cats
+							}
 						} else {
-							a.logger.Info("Added file to fingerprint cache: %s (will be flushed automatically)", fileName)
+							// Parse metadata from filename
+							title, artist = parseMetadataFromFilename(fileName)
+
+							// Determine file type
+							ext := strings.ToLower(filepath.Ext(fileName))
+							fileType = "gp"
+							switch ext {
+							case ".pdf":
+								fileType = "pdf"
+							case ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".xml", ".musicxml", ".mxl":
+								fileType = "gp"
+							}
+						}
+
+						// Calculate relative path within volume
+						relativePath := strings.TrimPrefix(remoteDir, targetVolume.MountPath)
+						relativePath = strings.TrimPrefix(relativePath, "/")
+						if relativePath != "" {
+							relativePath = relativePath + "/"
+						}
+						relativePath = relativePath + fileName
+
+						// Add file record to fingerprint cache (non-blocking)
+						fpFile := syncpkg.FingerprintFile{
+							RelativePath: relativePath,
+							Title:        title,
+							Artist:       artist,
+							Album:        album,
+							Type:         fileType,
+							Categories:   categories,
+							UploadedAt:   time.Now().UTC().Format(time.RFC3339),
+							UploadedBy:   getDeviceName(),
+						}
+
+						cache := a.getFingerprintCache()
+						if cache != nil {
+							if err := cache.AddFile(targetVolume.MountPath, fpFile); err != nil {
+								a.logger.Error("Failed to add file to fingerprint cache for %s: %v", fileName, err)
+							} else {
+								a.logger.Info("Added file to fingerprint cache: %s (will be flushed automatically)", fileName)
+							}
 						}
 					}
 				}
-			}
 
-			a.emitEvent("cloud-upload-progress", map[string]interface{}{
-				"status":   "progress",
-				"current":  idx + 1,
-				"total":    len(localPaths),
-				"filename": fileName,
-			})
+				a.emitEvent("cloud-upload-progress", map[string]interface{}{
+					"status":   "progress",
+					"current":  idx + 1,
+					"total":    len(localPaths),
+					"filename": fileName,
+				})
 			}(i, localPath)
 		}
 		wg.Wait()
@@ -397,101 +397,101 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				defer func() { <-sem }()
 				fileName := filepath.Base(remotePath)
 
-			// Determine which volume this file belongs to
-			var volumeID string
-			var relativePath string
+				// Determine which volume this file belongs to
+				var volumeID string
+				var relativePath string
 
-			// Find the volume with the longest matching mount path
-			longestMatch := ""
-			for _, vol := range volumes {
-				if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath {
-					if len(vol.MountPath) > len(longestMatch) {
-						longestMatch = vol.MountPath
-						volumeID = vol.ID
+				// Find the volume with the longest matching mount path
+				longestMatch := ""
+				for _, vol := range volumes {
+					if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath {
+						if len(vol.MountPath) > len(longestMatch) {
+							longestMatch = vol.MountPath
+							volumeID = vol.ID
+						}
 					}
 				}
-			}
 
-			if volumeID != "" {
-				// Calculate relative path within volume
-				relativePath = strings.TrimPrefix(remotePath, longestMatch)
-				relativePath = strings.TrimPrefix(relativePath, "/")
-			} else {
-				// No volume found
-				a.logger.Error("No active volume matched for file: %s", remotePath)
-				relativePath = remotePath
-			}
+				if volumeID != "" {
+					// Calculate relative path within volume
+					relativePath = strings.TrimPrefix(remotePath, longestMatch)
+					relativePath = strings.TrimPrefix(relativePath, "/")
+				} else {
+					// No volume found
+					a.logger.Error("No active volume matched for file: %s", remotePath)
+					relativePath = remotePath
+				}
 
-			// Check for duplicates by volume and path
-			var existingTab *store.Tab
-			if volumeID != "" {
-				existingTab, _ = a.store.GetTabByVolumeAndPath(volumeID, relativePath)
-			} else {
-				existingTab, _ = a.store.GetTabByPath(remotePath)
-			}
+				// Check for duplicates by volume and path
+				var existingTab *store.Tab
+				if volumeID != "" {
+					existingTab, _ = a.store.GetTabByVolumeAndPath(volumeID, relativePath)
+				} else {
+					existingTab, _ = a.store.GetTabByPath(remotePath)
+				}
 
-			if existingTab != nil {
-				a.logger.Info("Skipping duplicate cloud file %s", fileName)
-				atomic.AddInt32(&skippedCount, 1)
+				if existingTab != nil {
+					a.logger.Info("Skipping duplicate cloud file %s", fileName)
+					atomic.AddInt32(&skippedCount, 1)
+					a.emitEvent("cloud-progress", map[string]interface{}{
+						"status":   "progress",
+						"current":  idx + 1,
+						"total":    len(remotePaths),
+						"filename": fileName,
+					})
+					return
+				}
+
+				// Parse metadata from filename (lazy - no download)
+				title, artist := parseMetadataFromFilename(fileName)
+
+				// Determine file type
+				ext := strings.ToLower(filepath.Ext(fileName))
+				fileType := "gp"
+				switch ext {
+				case ".pdf":
+					fileType = "pdf"
+				case ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".xml", ".musicxml", ".mxl":
+					fileType = "gp"
+				}
+
+				// Create tab record
+				tab := store.Tab{
+					ID:          generateID(),
+					Title:       title,
+					Artist:      artist,
+					FilePath:    relativePath, // Store relative path within volume
+					VolumeID:    volumeID,     // Store volume ID
+					Type:        fileType,
+					IsManaged:   false,
+					IsCloud:     true,
+					CategoryIDs: []string{store.SystemCloudCategoryID},
+					AddedAt:     time.Now().Unix(),
+				}
+
+				if a.pluginManager != nil {
+					a.pluginManager.EnhanceMetadata(&tab)
+				}
+
+				// Always calculate initials (even if no plugin ran, they need to be populated)
+				tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
+
+				// Add to batch
+				mu.Lock()
+				tabsToAdd = append(tabsToAdd, tab)
+
+				// Track for fingerprint update
+				if volumeID != "" {
+					volumeAddedFiles[volumeID] = append(volumeAddedFiles[volumeID], tab)
+				}
+				mu.Unlock()
+
 				a.emitEvent("cloud-progress", map[string]interface{}{
 					"status":   "progress",
 					"current":  idx + 1,
 					"total":    len(remotePaths),
 					"filename": fileName,
 				})
-				return
-			}
-
-			// Parse metadata from filename (lazy - no download)
-			title, artist := parseMetadataFromFilename(fileName)
-
-			// Determine file type
-			ext := strings.ToLower(filepath.Ext(fileName))
-			fileType := "gp"
-			switch ext {
-			case ".pdf":
-				fileType = "pdf"
-			case ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".xml", ".musicxml", ".mxl":
-				fileType = "gp"
-			}
-
-			// Create tab record
-			tab := store.Tab{
-				ID:          generateID(),
-				Title:       title,
-				Artist:      artist,
-				FilePath:    relativePath, // Store relative path within volume
-				VolumeID:    volumeID,     // Store volume ID
-				Type:        fileType,
-				IsManaged:   false,
-				IsCloud:     true,
-				CategoryIDs: []string{store.SystemCloudCategoryID},
-				AddedAt:     time.Now().Unix(),
-			}
-
-			if a.pluginManager != nil {
-				a.pluginManager.EnhanceMetadata(&tab)
-			}
-			
-			// Always calculate initials (even if no plugin ran, they need to be populated)
-			tab.InitialAZ, tab.InitialKana = metadata.CalculateInitials(tab.Title, tab.OriginCountry)
-
-			// Add to batch
-			mu.Lock()
-			tabsToAdd = append(tabsToAdd, tab)
-
-			// Track for fingerprint update
-			if volumeID != "" {
-				volumeAddedFiles[volumeID] = append(volumeAddedFiles[volumeID], tab)
-			}
-			mu.Unlock()
-
-			a.emitEvent("cloud-progress", map[string]interface{}{
-				"status":   "progress",
-				"current":  idx + 1,
-				"total":    len(remotePaths),
-				"filename": fileName,
-			})
 			}(i, remotePath)
 		}
 		wg.Wait()
@@ -822,10 +822,10 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		if err != nil {
 			a.logger.Error("Failed to create temp file: %v", err)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
-				"status":   "error",
-				"tabId":    tabID,
+				"status":     "error",
+				"tabId":      tabID,
 				"messageKey": "errors.fileAccess",
-				"errorArgs": map[string]interface{}{"path": "temporary download file"},
+				"errorArgs":  map[string]interface{}{"path": "temporary download file"},
 			})
 			return
 		}
@@ -837,8 +837,8 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 			a.logger.Error("Failed to download %s: %v", remotePath, err)
 			os.Remove(tempPath)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
-				"status":   "error",
-				"tabId":    tabID,
+				"status":     "error",
+				"tabId":      tabID,
 				"messageKey": "errors.downloadFailed",
 			})
 			return
@@ -853,10 +853,10 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 			a.logger.Error("Failed to copy to storage: %v", err)
 			os.Remove(tempPath)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
-				"status":   "error",
-				"tabId":    tabID,
+				"status":     "error",
+				"tabId":      tabID,
 				"messageKey": "errors.fileAccess",
-				"errorArgs": map[string]interface{}{"path": localPath},
+				"errorArgs":  map[string]interface{}{"path": localPath},
 			})
 			return
 		}
@@ -881,10 +881,10 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		if err := a.store.UpdateTab(*tab); err != nil {
 			a.logger.Error("Failed to update tab: %v", err)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
-				"status":   "error",
-				"tabId":    tabID,
+				"status":     "error",
+				"tabId":      tabID,
 				"messageKey": "errors.database",
-				"errorArgs": map[string]interface{}{"operation": "update_tab"},
+				"errorArgs":  map[string]interface{}{"operation": "update_tab"},
 			})
 			return
 		}
