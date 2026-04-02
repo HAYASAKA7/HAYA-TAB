@@ -125,20 +125,19 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 					relativePath = strings.TrimPrefix(relativePath, "/")
 				}
 
-				// Create temp file
-				tempFile, err := os.CreateTemp("", "haya-tab-download-*.tmp")
+				// Create temp directory for secure download
+				tempDir, err := os.MkdirTemp("", "haya-tab-download-*")
 				if err != nil {
-					a.logger.Error("Failed to create temp file for %s: %v", fileName, err)
+					a.logger.Error("Failed to create temp directory for %s: %v", fileName, err)
 					atomic.AddInt32(&errorCount, 1)
 					return
 				}
-				tempPath := tempFile.Name()
-				tempFile.Close() // Close immediately, DownloadFile will open/create it
+				defer os.RemoveAll(tempDir)
+				tempPath := filepath.Join(tempDir, fileName)
 
 				// Download to temp path
 				if err := client.DownloadFile(remotePath, tempPath); err != nil {
 					a.logger.Error("Failed to download %s: %v", remotePath, err)
-					os.Remove(tempPath)
 					atomic.AddInt32(&errorCount, 1)
 					return
 				}
@@ -168,12 +167,8 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 						a.logger.Error("Failed to save downloaded tab %s: %v", fileName, err)
 						atomic.AddInt32(&errorCount, 1)
 					}
-					// Clean up temp file
-					os.Remove(tempPath)
 				} else {
 					atomic.AddInt32(&successCount, 1)
-					// Clean up temp file (SaveTab copied it)
-					os.Remove(tempPath)
 
 					// If it's linked to a volume, update the fingerprint
 					if volumeID != "" && savedTab != nil {
@@ -817,25 +812,24 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 		remotePath := tab.FilePath
 		fileName := filepath.Base(remotePath)
 
-		// Create temp file
-		tempFile, err := os.CreateTemp("", "haya-tab-download-*.tmp")
+		// Create temp directory for secure download
+		tempDir, err := os.MkdirTemp("", "haya-tab-download-*")
 		if err != nil {
-			a.logger.Error("Failed to create temp file: %v", err)
+			a.logger.Error("Failed to create temp directory: %v", err)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
 				"status":     "error",
 				"tabId":      tabID,
 				"messageKey": "errors.fileAccess",
-				"errorArgs":  map[string]interface{}{"path": "temporary download file"},
+				"errorArgs":  map[string]interface{}{"path": "temporary download directory"},
 			})
 			return
 		}
-		tempPath := tempFile.Name()
-		tempFile.Close()
+		defer os.RemoveAll(tempDir)
+		tempPath := filepath.Join(tempDir, fileName)
 
 		// Download file
 		if err := client.DownloadFile(remotePath, tempPath); err != nil {
 			a.logger.Error("Failed to download %s: %v", remotePath, err)
-			os.Remove(tempPath)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
 				"status":     "error",
 				"tabId":      tabID,
@@ -851,7 +845,6 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 
 		if err := copyFile(tempPath, localPath); err != nil {
 			a.logger.Error("Failed to copy to storage: %v", err)
-			os.Remove(tempPath)
 			a.emitEvent("cloud-download-single", map[string]interface{}{
 				"status":     "error",
 				"tabId":      tabID,
@@ -860,7 +853,6 @@ func (a *App) DownloadCloudTabToLocal(tabID string) error {
 			})
 			return
 		}
-		os.Remove(tempPath)
 
 		// CRITICAL: Do NOT call ProcessFile - preserve existing metadata
 		// Only update the necessary state fields

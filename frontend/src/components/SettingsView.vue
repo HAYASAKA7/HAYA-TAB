@@ -575,7 +575,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
       </div>
       <div class="form-group">
         <label>{{ t('settings.currentVersion', 'Current Version') }}</label>
-        <div class="info-text">{{ uiStore.updateInfo?.currentVersion || settingsStore.settings.latestVersion || '2.4.17' }}</div>
+        <div class="info-text">{{ uiStore.updateInfo?.currentVersion || settingsStore.settings.latestVersion || '2.4.18' }}</div>
       </div>
       <div class="form-group" v-if="uiStore.updateInfo?.hasUpdate">
         <label>{{ t('settings.latestVersion', 'Latest Version') }}</label>

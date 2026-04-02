@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.18] - 2026-04-02
+
+### Security
+
+- **File System:** Fixed a Time-of-Check to Time-of-Use (TOCTOU) vulnerability during WebDAV file downloads. Replaced insecure temporary file creation (`os.CreateTemp` followed by immediate close) with secure private temporary directories (`os.MkdirTemp` with `0700` permissions) to prevent symlink attacks and arbitrary file overwrite.
+
 ## [2.4.17] - 2026-04-02
 
 ### Fixed
