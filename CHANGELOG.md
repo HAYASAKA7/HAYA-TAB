@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.20] - 2026-04-02
+
+### Fixed
+
+- **Sync Service:** Fixed a race condition in tab ID generation that caused duplicate PRIMARY KEY violations when files were processed within the same nanosecond. Replaced timestamp-based ID generation (`time.Now().UnixNano()`) with UUID v4 for guaranteed uniqueness. This resolves a flaky test issue where `TestSyncService_TriggerSync_WithFiles` would sometimes fail, expecting 3 tabs but only getting 2.
+
 ## [2.4.19] - 2026-04-02
 
 ### Fixed

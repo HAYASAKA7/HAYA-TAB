@@ -28,8 +28,8 @@ const (
 var idCounter uint64
 
 // AppVersion is the application version
-// Can be set via ldflags during build: -ldflags "-X haya-tab/internal/app.AppVersion=2.4.19"
-var AppVersion = "2.4.19"
+// Can be set via ldflags during build: -ldflags "-X haya-tab/internal/app.AppVersion=2.4.20"
+var AppVersion = "2.4.20"
 
 // getAppDir returns the directory where the database and logs should be stored.
 // It is forced to the user's config directory so that it's accessible even if a custom storage drive is offline.

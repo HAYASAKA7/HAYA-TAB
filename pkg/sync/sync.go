@@ -24,6 +24,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // EventEmitter is an abstraction for emitting events to the frontend.
@@ -218,7 +220,7 @@ func (s *SyncService) ProcessFile(path string) store.Tab {
 	az, kana := metadata.CalculateInitials(meta.Title, "")
 
 	tab := store.Tab{
-		ID:          fmt.Sprintf("%d", time.Now().UnixNano()),
+		ID:          uuid.New().String(),
 		Title:       meta.Title,
 		Artist:      meta.Artist,
 		Album:       meta.Album,
