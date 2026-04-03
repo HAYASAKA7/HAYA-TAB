@@ -67,6 +67,9 @@ func (s *DBStore) Initialize() error {
 	}
 	s.db = db
 
+	// Limit connection pool to 1 to serialize writes and prevent SQLITE_BUSY lock contention
+	s.db.SetMaxOpenConns(1)
+
 	// Enable WAL mode for better read/write concurrency
 	// This allows reading while writing, preventing UI freezes during sync
 	if _, err := s.db.Exec("PRAGMA journal_mode=WAL"); err != nil {

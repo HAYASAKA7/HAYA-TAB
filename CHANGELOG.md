@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.21] - 2026-04-03
+
+### Fixed
+
+- **HTTP Client Timeouts:** Configured missing timeouts on the `http.Client` for external API requests (e.g., iTunes cover search), preventing goroutine leaks and infinite blocking if servers hang.
+- **Database Lock Contention:** Restricted the SQLite connection pool to a single open connection (`SetMaxOpenConns(1)`). This explicitly serializes writes at the connection level, drastically reducing `SQLITE_BUSY` ("database is locked") errors under high concurrency (e.g., WebDAV sync).
+
 ## [2.4.20] - 2026-04-02
 
 ### Fixed
