@@ -6,7 +6,13 @@ tasks:
     internal: true
     cmds:
       - mkdir -p frontend/dist
-      - go mod tidy
+      - |
+        if [ "${CI:-}" = "true" ]; then
+          echo "CI detected: skipping go mod tidy, running go mod download instead"
+          go mod download
+        else
+          go mod tidy
+        fi
 
   install:frontend:deps:
     summary: Install frontend dependencies
