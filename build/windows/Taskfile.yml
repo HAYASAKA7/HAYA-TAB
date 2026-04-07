@@ -58,15 +58,9 @@ tasks:
     summary: Cross-compiles for Windows using Docker with Zig (for CGO builds on non-Windows)
     internal: true
     deps:
+      - task: ensure:docker
       - task: common:build:frontend
       - task: common:generate:icons
-    preconditions:
-      - sh: docker info > /dev/null 2>&1
-        msg: "Docker is required for CGO cross-compilation. Please install Docker."
-      - sh: docker image inspect {{.CROSS_IMAGE}} > /dev/null 2>&1
-        msg: |
-          Docker image '{{.CROSS_IMAGE}}' not found.
-          Build it first: wails3 task setup:docker
     cmds:
       - task: generate:syso
       - docker run --rm -v "{{.ROOT_DIR}}:/app" {{.GO_CACHE_MOUNT}} {{.REPLACE_MOUNTS}} -e APP_NAME="{{.APP_NAME}}" {{if .EXTRA_TAGS}}-e EXTRA_TAGS="{{.EXTRA_TAGS}}"{{end}} {{.CROSS_IMAGE}} windows {{.DOCKER_ARCH}}
@@ -91,6 +85,17 @@ tasks:
               echo "-v $path:$path:ro"
             fi
           done | tr '\n' ' '
+
+  ensure:docker:
+    summary: Validates Docker and cross-compilation image availability
+    internal: true
+    preconditions:
+      - sh: docker info > /dev/null 2>&1
+        msg: "Docker is required for CGO cross-compilation. Please install Docker."
+      - sh: docker image inspect {{.CROSS_IMAGE}} > /dev/null 2>&1
+        msg: |
+          Docker image '{{.CROSS_IMAGE}}' not found.
+          Build it first: wails3 task setup:docker
 
   package:
     summary: Packages the application

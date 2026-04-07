@@ -15,7 +15,6 @@ import (
 
 // setupTestApp creates a minimal App with a real DBStore for integration-style tests.
 // It sets up isolated storage and covers directories within the temp directory.
-// Note: ctx is set to nil to avoid Wails runtime calls which require a valid Wails context.
 func setupTestApp(t *testing.T) (*App, string) {
 	t.Helper()
 	tmpDir, err := os.MkdirTemp("", "app-test-*")
@@ -51,16 +50,14 @@ func setupTestApp(t *testing.T) (*App, string) {
 	cp := coverpool.NewCoverPool(1, nil) // No downloader for tests
 	mb := worker.NewMBWorker(s, l)
 	
-	// Use nil context to prevent Wails runtime calls in tests
 	app := &App{
-		ctx:       nil,
 		store:     s,
 		logger:    l,
 		coverPool: cp,
 		mbWorker:  mb,
 	}
 	
-	emitter := &WailsEventEmitter{ctx: nil}
+	emitter := &WailsEventEmitter{}
 	app.syncService = syncpkg.NewSyncService(s, l, cp, emitter, appDir, mb, nil)
 	app.volumeCache = syncpkg.NewVolumeCache(5 * time.Minute)
 
@@ -506,7 +503,7 @@ func TestApp_GetCover(t *testing.T) {
 func TestApp_Shutdown_NilComponents(t *testing.T) {
 	app := NewApp()
 	// Shutdown with all nil components should not panic
-	app.Shutdown(nil)
+	app.Shutdown()
 }
 
 func TestApp_GetAppDir(t *testing.T) {

@@ -12,3 +12,4 @@ phases/
 *.syso
 *.tsbuildinfo
 *.exe
+.task/

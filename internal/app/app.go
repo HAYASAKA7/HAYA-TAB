@@ -27,8 +27,8 @@ const (
 var idCounter uint64
 
 // AppVersion is the application version
-// Can be set via ldflags during build: -ldflags "-X haya-tab/internal/app.AppVersion=3.0.0"
-var AppVersion = "3.0.0"
+// Can be set via ldflags during build: -ldflags "-X haya-tab/internal/app.AppVersion=3.0.1"
+var AppVersion = "3.0.1"
 
 // getAppDir returns the directory where the database and logs should be stored.
 // It is forced to the user's config directory so that it's accessible even if a custom storage drive is offline.
@@ -137,12 +137,16 @@ type WailsEventEmitter struct{}
 
 // Emit sends an event to the frontend via wails runtime
 func (e *WailsEventEmitter) Emit(eventName string, data interface{}) {
-	application.Get().Event.Emit(eventName, data)
+	if app := application.Get(); app != nil {
+		app.Event.Emit(eventName, data)
+	}
 }
 
 // emitEvent safely emits an event through the Wails runtime
 func (a *App) emitEvent(eventName string, data interface{}) {
-	application.Get().Event.Emit(eventName, data)
+	if app := application.Get(); app != nil {
+		app.Event.Emit(eventName, data)
+	}
 }
 
 // App struct holds all application dependencies and state

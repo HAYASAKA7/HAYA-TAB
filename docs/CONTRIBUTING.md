@@ -14,7 +14,7 @@ To build and run HAYA-TAB locally, you need the following tools installed on you
 
 - [Go](https://go.dev/dl/) (version 1.21 or later is recommended)
 - [Node.js](https://nodejs.org/) (npm)
-- [Wails](https://wails.io/docs/gettingstarted/installation) (v2)
+- [Wails](https://v3.wails.io/getting-started/installation/) (v3)
 
 ### Getting Started
 
@@ -32,9 +32,9 @@ To build and run HAYA-TAB locally, you need the following tools installed on you
    ```
 
 3. **Run the Application in Development Mode:**
-   Using Wails dev mode provides hot-reloading for the frontend:
+   Using Wails v3 dev mode provides hot-reloading for the frontend:
    ```bash
-   wails dev
+   wails3 task dev
    ```
 
 ## Workflow
@@ -95,7 +95,7 @@ For this repository, built-in/distributed plugins are maintained in:
 5. (Recommended) Add `config.json.example` documenting required settings.
 6. Test by copying/syncing the plugin folder into local runtime plugins directory:
    - `<os.UserConfigDir()>/HAYA-TAB/plugins/<plugin-id>/`
-7. Start the app (`wails dev`) and verify:
+7. Start the app (`wails3 task dev`) and verify:
    - The plugin appears in settings.
    - Hook behavior works without runtime errors.
 8. After `git push`, sync plugin subtree to the plugins repository:
@@ -147,10 +147,11 @@ Runtime globals available in plugin scripts:
 To create a production-ready binary for your current platform:
 
 ```bash
-wails build
+wails3 task build
 ```
 
-The resulting executable will be located in the `build/bin/` directory.
+The resulting executable will be located in the `bin/` directory.
+If cross-compiling from a different host OS, run `wails3 task setup:docker` once first.
 
 ---
 Thank you for helping improve HAYA-TAB!

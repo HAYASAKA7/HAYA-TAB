@@ -1,6 +1,6 @@
 ﻿# HAYA-TAB Go API Documentation
 
-> Generated from Go code using `go doc` command. Updated for v3.0.0
+> Generated from Go code using `go doc` command. Updated for v3.0.1
 
 ## Package: haya-tab/internal/app
 
@@ -9,9 +9,9 @@ package app // import "haya-tab/internal/app"
 
 VARIABLES
 
-var AppVersion = "3.0.0"
+var AppVersion = "3.0.1"
     AppVersion is the application version. Can be set via ldflags during build:
-    -ldflags "-X haya-tab/internal/app.AppVersion=3.0.0"
+    -ldflags "-X haya-tab/internal/app.AppVersion=3.0.1"
 FUNCTIONS
 
 func GetDiskFreeSpace(path string) (uint64, error)
@@ -882,4 +882,3 @@ func (w *MBWorker) Submit(job MBJob)
     Submit adds a job to the queue (non-blocking, drops if queue is full)
 
 ```
-

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.1] - 2026-04-07
+
+### Fixed
+
+- **Cross-Platform Build Tasks:** Added early Docker/image prechecks for non-native `darwin/linux/windows` cross-builds, so missing `wails-cross` fails fast with clear guidance (`wails3 task setup:docker`).
+- **Release CI Matrix:** Pinned macOS runner versions by architecture (`macos-13` for `amd64`, `macos-14` for `arm64`) and added Linux build prerequisites (`build-essential`, `pkg-config`) for more reliable cross-platform builds.
+- **Test Stability After Wails v3 Refactor:** Updated tests to current APIs and guarded frontend event emission when Wails runtime is unavailable, resolving nil-runtime panics in test runs.
+- **Documentation Consistency:** Updated command references to `wails3 task ...` and clarified cross-compilation prerequisites.
+
 ## [3.0.0] - 2026-04-07
 
 ### Added

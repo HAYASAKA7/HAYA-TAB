@@ -79,10 +79,10 @@ export const UpdateService = {
       if (version) {
         return version
       }
-      return '3.0.0' // Fallback
+      return '3.0.1' // Fallback
     } catch (e) {
       console.warn('Failed to get app version from backend', e)
-      return '3.0.0'
+      return '3.0.1'
     }
   },
 

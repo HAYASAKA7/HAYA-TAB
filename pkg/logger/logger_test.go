@@ -202,7 +202,7 @@ func TestLogger_MultipleMessages(t *testing.T) {
 	}
 }
 
-func TestLogger_SetContext(t *testing.T) {
+func TestLogger_NoContextAPIRegression(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "logger-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -212,11 +212,9 @@ func TestLogger_SetContext(t *testing.T) {
 	logger := NewLogger(tmpDir)
 	defer logger.Close()
 
-	// SetContext should not panic with nil context
-	logger.SetContext(nil)
-
-	// Should still be able to log
-	logger.Info("Test message after SetContext")
+	// Logger no longer exposes context wiring in Wails v3;
+	// basic logging should still work without any runtime context setup.
+	logger.Info("Test message without context API")
 }
 
 func TestLogger_EmptyMessage(t *testing.T) {

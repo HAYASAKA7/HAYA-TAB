@@ -186,4 +186,4 @@ The plugin system allows extending the core functionality of HAYA-TAB through cu
 
 ## Deployment & Build Process
 
-Wails bundles the frontend static assets directly into the Go binary. During `wails build`, Vite compiles the Vue application into standard HTML/JS/CSS, and Go compiles the backend along with the embedded frontend assets to produce a single native executable for the target platform (Windows, macOS, or Linux).
+Wails bundles the frontend static assets directly into the Go binary. During `wails3 task build`, Vite compiles the Vue application into standard HTML/JS/CSS, and Go compiles the backend along with the embedded frontend assets to produce a single native executable for the target platform (Windows, macOS, or Linux).

@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20iOS-blue)
-![Version](https://img.shields.io/badge/version-3.0.0-green)
+![Version](https://img.shields.io/badge/version-3.0.1-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
@@ -45,7 +45,7 @@ To fix this:
    ```
 
 ### Build from Source
-1. Ensure you have [Go](https://go.dev/), [Node.js](https://nodejs.org/) (npm), and [Wails](https://wails.io/) installed
+1. Ensure you have [Go](https://go.dev/), [Node.js](https://nodejs.org/) (npm), and [Wails](https://v3.wails.io/getting-started/installation/) (v3) installed
 2. Clone this repository
 3. Install frontend dependencies:
    ```bash
@@ -55,19 +55,20 @@ To fix this:
    ```
 4. Run the development server:
    ```bash
-   wails dev
+   wails3 task dev
    ```
 5. To build for production:
    ```bash
    # Build for current platform
-   wails build
+   wails3 task build
    
    # Cross-platform builds
-   wails build -platform windows/amd64
-   wails build -platform darwin/amd64     # macOS Intel
-   wails build -platform darwin/arm64     # macOS Apple Silicon
-   wails build -platform linux/amd64
+   wails3 task windows:build ARCH=amd64
+   wails3 task darwin:build ARCH=amd64     # macOS Intel
+   wails3 task darwin:build ARCH=arm64     # macOS Apple Silicon
+   wails3 task linux:build ARCH=amd64
    ```
+   Note: when cross-compiling from a different host OS, run `wails3 task setup:docker` once first.
 
 ## 🚀 Usage
 
@@ -84,7 +85,7 @@ To fix this:
 ```
 ├── main.go                           # Application entry point
 ├── go.mod & go.sum                   # Go module dependencies
-├── wails.json                        # Wails framework configuration
+├── Taskfile.yml                      # Top-level task entrypoint
 │
 ├── internal/                         # Internal packages (not importable)
 │   └── app/                          # Core application logic
@@ -131,7 +132,7 @@ To fix this:
 │   │   ├── types/                    # TypeScript type definitions
 │   │   ├── i18n/                     # Internationalization setup
 │   │   │   └── locales/              # Translation files (EN, ZH-CN, ZH-TW, JA)
-│   │   └── wailsjs/                  # Auto-generated Wails bindings
+│   │   └── bindings/                 # Auto-generated Wails v3 bindings
 │   ├── public/                       # Static assets
 │   │   ├── alphatab/                 # alphaTab library & soundfonts
 │   │   └── pdfjs/                    # PDF.js library & viewer
@@ -191,7 +192,7 @@ To fix this:
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Go + Wails v2
+- **Backend**: Go + Wails v3
 - **Frontend**: Vue 3 + TypeScript + Vite
 - **State Management**: Pinia
 - **Internationalization**: vue-i18n

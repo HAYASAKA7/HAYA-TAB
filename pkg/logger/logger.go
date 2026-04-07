@@ -100,7 +100,9 @@ func (l *Logger) Error(format string, args ...interface{}) {
 	l.logger.Printf("[ERROR] %s", msg)
 	
 	// Emit event to frontend for toast notifications
-	application.Get().Event.Emit("app-error", msg)
+	if app := application.Get(); app != nil {
+		app.Event.Emit("app-error", msg)
+	}
 }
 
 func (l *Logger) Debug(format string, args ...interface{}) {
