@@ -5,6 +5,7 @@ tasks:
     summary: Runs `go mod tidy`
     internal: true
     cmds:
+      - mkdir -p frontend/dist
       - go mod tidy
 
   install:frontend:deps:
