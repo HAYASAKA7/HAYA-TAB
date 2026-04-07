@@ -59,19 +59,19 @@ jobs:
             artifact_name: HAYA-TAB-linux-arm64
             artifact_ext: tar.gz
 
-          # iOS ARM64 (Simulator .app bundle zip)
-          - os: macos-latest
-            platform: ios
-            arch: arm64
-            artifact_name: HAYA-TAB-ios-arm64-simulator
-            artifact_ext: zip
+          # iOS distribution temporarily disabled
+          # - os: macos-latest
+          #   platform: ios
+          #   arch: arm64
+          #   artifact_name: HAYA-TAB-ios-arm64-simulator
+          #   artifact_ext: zip
 
-          # Android ARM64 (APK)
-          - os: ubuntu-24.04
-            platform: android
-            arch: arm64
-            artifact_name: HAYA-TAB-android-arm64
-            artifact_ext: apk
+          # Android distribution temporarily disabled
+          # - os: ubuntu-24.04
+          #   platform: android
+          #   arch: arm64
+          #   artifact_name: HAYA-TAB-android-arm64
+          #   artifact_ext: apk
 
     runs-on: ${{ matrix.os }}
 
@@ -224,6 +224,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          # Mobile artifacts temporarily disabled:
+          # - HAYA-TAB-ios-arm64-simulator.zip
+          # - HAYA-TAB-android-arm64.apk
           files: |
             HAYA-TAB-windows-amd64.zip
             HAYA-TAB-windows-386.zip
@@ -232,8 +235,6 @@ jobs:
             HAYA-TAB-macos-arm64.dmg
             HAYA-TAB-linux-amd64.tar.gz
             HAYA-TAB-linux-arm64.tar.gz
-            HAYA-TAB-ios-arm64-simulator.zip
-            HAYA-TAB-android-arm64.apk
           draft: false
           prerelease: false
           generate_release_notes: true
