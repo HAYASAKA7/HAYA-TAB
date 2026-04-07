@@ -32,14 +32,14 @@ jobs:
             artifact_ext: zip
 
           # macOS AMD64 (Intel)
-          - os: macos-13
+          - os: macos-latest
             platform: darwin
             arch: amd64
             artifact_name: HAYA-TAB-macos-amd64
             artifact_ext: dmg
 
           # macOS ARM64 (Apple Silicon)
-          - os: macos-14
+          - os: macos-latest
             platform: darwin
             arch: arm64
             artifact_name: HAYA-TAB-macos-arm64
