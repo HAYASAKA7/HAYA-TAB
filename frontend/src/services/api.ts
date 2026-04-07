@@ -2,6 +2,8 @@
  * Base Wails API access layer.
  * This provides a centralized way to access the backend Go methods.
  */
+// @ts-ignore: Generated file might not have types
+import * as BackendApp from '../../bindings/haya-tab/internal/app/app.js'
 
 export interface AppApiError {
   code: string
@@ -69,15 +71,11 @@ function normalizeBackendError(error: unknown): AppApiError {
  * @returns Promise with the result
  */
 export async function callBackend<T = any>(method: string, ...args: any[]): Promise<T> {
-  const w = window as any;
-
-  // Wails can bind under different namespaces depending on how NewApp is initialized.
-  // We check both 'main' and 'app' to be resilient.
-  const app = (w.go?.main?.App) || (w.go?.app?.App);
+  const app = BackendApp as any;
 
   if (!app) {
-    console.error(`Wails backend App not found in window.go.main or window.go.app. Cannot call ${method}`);
-    throw new Error('Backend not initialized');
+    console.error(`Wails backend App bindings not found. Cannot call ${method}`);
+    throw new Error('Backend bindings not found');
   }
 
   const func = app[method];
@@ -93,3 +91,4 @@ export async function callBackend<T = any>(method: string, ...args: any[]): Prom
     throw normalizeBackendError(error);
   }
 }
+

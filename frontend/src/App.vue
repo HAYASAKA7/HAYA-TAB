@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Events } from "@wailsio/runtime"
 import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTabsStore, useSettingsStore, useUIStore, useViewersStore } from '@/stores'
@@ -58,7 +59,8 @@ onMounted(async () => {
   }
 
   // Event listeners
-  window.runtime.EventsOn('tab-updated', (updatedTab: any) => {
+  Events.On('tab-updated', (ev: any) => {
+    const updatedTab = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
     // Use in-place update to preserve scroll position and avoid full refresh
     if (updatedTab && updatedTab.id) {
       tabsStore.updateTabInPlace(updatedTab.id, updatedTab)
@@ -68,20 +70,24 @@ onMounted(async () => {
     }
   })
 
-  window.runtime.EventsOn('cover-error', (msg: string) => {
+  Events.On('cover-error', (ev: any) => {
+    const msg = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ''
     showToast(msg, 'error')
   })
 
-  window.runtime.EventsOn('sync-complete', (msg: string) => {
+  Events.On('sync-complete', (ev: any) => {
+    const msg = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ''
     showToast(msg, 'info')
     tabsStore.refreshData()
   })
 
-  window.runtime.EventsOn('file-changes-detected', (msg: string) => {
+  Events.On('file-changes-detected', (ev: any) => {
+    const msg = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ''
     showToast(msg + ' - ' + t('toast.clickSyncToUpdate'), 'info')
   })
 
-  window.runtime.EventsOn('migration-completed', (target: string) => {
+  Events.On('migration-completed', (ev: any) => {
+    const target = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ''
     tabsStore.refreshData()
     // For covers migration, we might need to clear browser cache, but simple reload is enough
     if (target === 'covers') {
@@ -90,7 +96,8 @@ onMounted(async () => {
   })
 
   // Listen for cloud download completion (handle toast globally to avoid duplicates)
-  window.runtime.EventsOn('cloud-download-single', (data: any) => {
+  Events.On('cloud-download-single', (ev: any) => {
+    const data = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
     if (data.status === 'complete') {
       showToast(t('cloud.downloadSuccess'), 'success')
       tabsStore.refreshData()

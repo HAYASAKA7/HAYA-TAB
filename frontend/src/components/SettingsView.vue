@@ -5,7 +5,7 @@ import { useSettingsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { FileService, SettingsService, UpdateService } from '@/services'
 import { midiService } from '@/services/MidiService'
-import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime'
+import { Events } from "@wailsio/runtime"
 import { SUPPORTED_LOCALES } from '@/i18n'
 
 const { t } = useI18n()
@@ -169,7 +169,8 @@ async function handleSync() {
   syncFilename.value = ''
   syncCount.value = 0
 
-  EventsOn('sync-progress', (data: any) => {
+  const unregisterSync = Events.On('sync-progress', (ev: any) => {
+    const data = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
     if (data) {
       if (data.message) {
         syncStatus.value = data.message
@@ -188,7 +189,7 @@ async function handleSync() {
     showErrorToast(err, t('toast.syncError'))
     syncStatus.value = t('settings.syncFailed')
   } finally {
-    EventsOff('sync-progress')
+    if (unregisterSync) unregisterSync()
     isSyncing.value = false
     setTimeout(() => {
       if (syncStatus.value === t('settings.syncCompleted')) {
@@ -575,7 +576,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
       </div>
       <div class="form-group">
         <label>{{ t('settings.currentVersion', 'Current Version') }}</label>
-        <div class="info-text">{{ uiStore.updateInfo?.currentVersion || settingsStore.settings.latestVersion || '2.4.21' }}</div>
+        <div class="info-text">{{ uiStore.updateInfo?.currentVersion || settingsStore.settings.latestVersion || '3.0.0' }}</div>
       </div>
       <div class="form-group" v-if="uiStore.updateInfo?.hasUpdate">
         <label>{{ t('settings.latestVersion', 'Latest Version') }}</label>

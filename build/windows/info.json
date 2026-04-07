@@ -1,15 +1,15 @@
 {
 	"fixed": {
-		"file_version": "{{.Info.ProductVersion}}"
+		"file_version": "3.0.0"
 	},
 	"info": {
 		"0000": {
-			"ProductVersion": "{{.Info.ProductVersion}}",
-			"CompanyName": "{{.Info.CompanyName}}",
-			"FileDescription": "{{.Info.ProductName}}",
-			"LegalCopyright": "{{.Info.Copyright}}",
-			"ProductName": "{{.Info.ProductName}}",
-			"Comments": "{{.Info.Comments}}"
+			"ProductVersion": "3.0.0",
+			"CompanyName": "HAYASAKA7",
+			"FileDescription": "A lightweight music tab manager for guitarists and musicians",
+			"LegalCopyright": "© 2026 HAYASAKA7. All rights reserved.",
+			"ProductName": "HAYA-TAB",
+			"Comments": "A lightweight music tab manager for guitarists and musicians"
 		}
 	}
 }

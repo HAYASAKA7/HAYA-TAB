@@ -56,9 +56,4 @@ interface Window {
       }
     }
   }
-  runtime: {
-    EventsOn(event: string, callback: (...args: any[]) => void): void
-    EventsOff(event: string): void
-    EventsEmit(event: string, ...args: any[]): void
-  }
 }

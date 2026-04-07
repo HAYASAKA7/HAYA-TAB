@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Events } from "@wailsio/runtime"
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -56,7 +57,8 @@ watch([isVisible, isCollapsed], ([visible, collapsed]) => {
   }
 })
 
-const handleProgress = (data: any) => {
+const handleProgress = (ev: any) => {
+  const data = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
   isVisible.value = true
   
   if (data.messageKey) {
@@ -95,19 +97,15 @@ const handleProgress = (data: any) => {
   }
 }
 
+let unregister: (() => void) | null = null
+
 onMounted(() => {
-  // @ts-ignore
-  if (window.runtime && window.runtime.EventsOn) {
-    // @ts-ignore
-    window.runtime.EventsOn('webdav-sync-progress', handleProgress)
-  }
+  unregister = Events.On('webdav-sync-progress', handleProgress)
 })
 
 onUnmounted(() => {
-  // @ts-ignore
-  if (window.runtime && window.runtime.EventsOff) {
-    // @ts-ignore
-    window.runtime.EventsOff('webdav-sync-progress', handleProgress)
+  if (unregister) {
+    unregister()
   }
   clearCollapseTimer()
   if (dismissTimer) clearTimeout(dismissTimer)

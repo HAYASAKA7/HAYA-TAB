@@ -1,4 +1,5 @@
 import { useSettingsStore } from '@/stores/settings'
+import { callBackend } from '@/services/api'
 
 export interface UpdateInfo {
   hasUpdate: boolean
@@ -74,15 +75,14 @@ export const UpdateService = {
 
   async getCurrentVersion(): Promise<string> {
     try {
-      // @ts-ignore
-      if (window['go'] && window['go']['main'] && window['go']['main']['App'] && window['go']['main']['App']['GetAppVersion']) {
-        // @ts-ignore
-        return await window['go']['main']['App']['GetAppVersion']()
+      const version = await callBackend('GetAppVersion')
+      if (version) {
+        return version
       }
-      return '2.4.21' // Fallback
+      return '3.0.0' // Fallback
     } catch (e) {
       console.warn('Failed to get app version from backend', e)
-      return '2.4.21'
+      return '3.0.0'
     }
   },
 

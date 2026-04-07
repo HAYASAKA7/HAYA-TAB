@@ -3,7 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore, useSettingsStore, useTabsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
-import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+import { Events } from "@wailsio/runtime"
 import { CloudService } from '@/services'
 
 const { t } = useI18n()
@@ -45,6 +45,8 @@ onMounted(() => {
   }
 })
 
+let unregisterProgress: (() => void) | null = null
+
 watch(() => uiStore.cloudPickerModalVisible, (visible) => {
   if (visible) {
     currentPath.value = '/'
@@ -53,9 +55,10 @@ watch(() => uiStore.cloudPickerModalVisible, (visible) => {
     selectedFiles.value.clear()
     searchQuery.value = ''
     currentOperation.value = 'download'
-    
+
     // Listen for progress events
-    EventsOn('cloud-progress', (data: any) => {
+    unregisterProgress = Events.On('cloud-progress', (ev: any) => {
+      const data = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
       progress.value = data
       if (data.status === 'complete') {
         const completeKey = currentOperation.value === 'addOnline' ? 'cloud.addOnlineComplete' : 'cloud.downloadComplete'
@@ -63,7 +66,7 @@ watch(() => uiStore.cloudPickerModalVisible, (visible) => {
         if (data.skipped) msg += `, ${data.skipped} skipped`
         if (data.errors) msg += `, ${data.errors} errors`
         msg += ')'
-        
+
         showToast(msg, data.errors > 0 ? 'warning' : 'success')
         loading.value = false
         // Refresh local library
@@ -72,10 +75,12 @@ watch(() => uiStore.cloudPickerModalVisible, (visible) => {
       }
     })
   } else {
-    EventsOff('cloud-progress')
+    if (unregisterProgress) {
+      unregisterProgress()
+      unregisterProgress = null
+    }
   }
 })
-
 async function loadDirectory(path: string) {
   if (!settingsStore.settings.webdavEnabled) {
     showToast(t('settings.enableWebdav'), 'error')

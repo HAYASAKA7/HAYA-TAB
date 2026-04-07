@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-04-07
+
+### Added
+
+- **iOS Support:** Added complete iOS platform support with native iOS app builds, including:
+  - iOS-specific main entry point (`main_ios.go`) with proper goroutine handling
+  - Xcode project configuration (`project.pbxproj`) for iOS builds
+  - iOS dependency checker script (`install_deps.go`) for automated setup
+  - iOS app options and entitlements configuration
+- **Cross-Platform Build System:** Enhanced build system with platform-specific configurations:
+  - Linux packaging with AppImage, DEB, and RPM support
+  - Windows packaging with NSIS installer and MSIX support
+  - macOS build optimizations and signing support
+- **Wails v3 Migration:** Upgraded from Wails v2 to Wails v3 framework:
+  - Updated frontend bindings for new Wails v3 API
+  - Migrated application lifecycle management
+  - Enhanced IPC communication layer
+- **Enhanced Build Scripts:** Added comprehensive Taskfile configurations for all platforms with:
+  - Docker-based cross-compilation support
+  - Automated dependency management
+  - Platform-specific packaging and signing workflows
+
+### Changed
+
+- **Framework Upgrade:** Migrated entire application from Wails v2 to Wails v3, providing better performance and modern web technologies integration
+- **Build Infrastructure:** Completely overhauled build system to support multi-platform development with improved CI/CD capabilities
+
 ## [2.4.21] - 2026-04-03
 
 ### Fixed

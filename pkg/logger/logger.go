@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log"
@@ -9,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 type LogLevel int
@@ -33,7 +32,6 @@ func (t *safeMultiWriter) Write(p []byte) (n int, err error) {
 }
 
 type Logger struct {
-	ctx      context.Context
 	logFile  *os.File
 	logger   *log.Logger
 	logLevel LogLevel
@@ -72,10 +70,6 @@ func NewLogger(appDir string) *Logger {
 	}
 }
 
-func (l *Logger) SetContext(ctx context.Context) {
-	l.ctx = ctx
-}
-
 func (l *Logger) Close() {
 	if l.logFile != nil {
 		l.logFile.Close()
@@ -106,9 +100,7 @@ func (l *Logger) Error(format string, args ...interface{}) {
 	l.logger.Printf("[ERROR] %s", msg)
 	
 	// Emit event to frontend for toast notifications
-	if l.ctx != nil {
-		wailsRuntime.EventsEmit(l.ctx, "app-error", msg)
-	}
+	application.Get().Event.Emit("app-error", msg)
 }
 
 func (l *Logger) Debug(format string, args ...interface{}) {

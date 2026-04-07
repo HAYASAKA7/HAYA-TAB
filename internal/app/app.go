@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"fmt"
 	"haya-tab/pkg/coverpool"
 	"haya-tab/pkg/logger"
@@ -17,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 const (
@@ -28,8 +27,8 @@ const (
 var idCounter uint64
 
 // AppVersion is the application version
-// Can be set via ldflags during build: -ldflags "-X haya-tab/internal/app.AppVersion=2.4.21"
-var AppVersion = "2.4.21"
+// Can be set via ldflags during build: -ldflags "-X haya-tab/internal/app.AppVersion=3.0.0"
+var AppVersion = "3.0.0"
 
 // getAppDir returns the directory where the database and logs should be stored.
 // It is forced to the user's config directory so that it's accessible even if a custom storage drive is offline.
@@ -134,28 +133,21 @@ func copyFile(src, dst string) error {
 }
 
 // WailsEventEmitter adapts wails runtime to the EventEmitter interface
-type WailsEventEmitter struct {
-	ctx context.Context
-}
+type WailsEventEmitter struct{}
 
 // Emit sends an event to the frontend via wails runtime
 func (e *WailsEventEmitter) Emit(eventName string, data interface{}) {
-	if e.ctx != nil {
-		wailsRuntime.EventsEmit(e.ctx, eventName, data)
-	}
+	application.Get().Event.Emit(eventName, data)
 }
 
 // emitEvent safely emits an event through the Wails runtime
-// It checks if context is valid before emitting
 func (a *App) emitEvent(eventName string, data interface{}) {
-	if a.ctx != nil {
-		wailsRuntime.EventsEmit(a.ctx, eventName, data)
-	}
+	application.Get().Event.Emit(eventName, data)
 }
 
 // App struct holds all application dependencies and state
 type App struct {
-	ctx                context.Context
+	app                *application.App
 	store              *store.DBStore
 	fileWatcher        *watcher.FileWatcher
 	logger             *logger.Logger
@@ -174,6 +166,11 @@ func NewApp() *App {
 	return &App{}
 }
 
+// SetApp sets the Wails application instance
+func (a *App) SetApp(app *application.App) {
+	a.app = app
+}
+
 // SetFileServerPort sets the port of the local file server
 func (a *App) SetFileServerPort(port int) {
 	a.fileServerPort = port
@@ -185,7 +182,7 @@ func (a *App) GetFileServerPort() int {
 }
 
 // DomReady is called after the front-end dom has been loaded
-func (a *App) DomReady(ctx context.Context) {
+func (a *App) DomReady() {
 	// Initialize WebDAV volume system (if enabled)
 	go func() {
 		if err := a.WebDAVInitialize(); err != nil {
@@ -197,15 +194,12 @@ func (a *App) DomReady(ctx context.Context) {
 	go a.monitorWebDAVConnection()
 }
 
-// Startup is called when the app starts. The context is saved
-// so we can call the runtime methods
-func (a *App) Startup(ctx context.Context) {
-	a.ctx = ctx
+// Startup is called when the app starts.
+func (a *App) Startup() {
 	appDir := getAppDir()
 
 	// Init Logger
 	a.logger = logger.NewLogger(appDir)
-	a.logger.SetContext(ctx)
 	a.logger.Info("App starting in directory: %s", appDir)
 
 	// Ensure required directories exist for DB and logger
@@ -259,7 +253,7 @@ func (a *App) Startup(ctx context.Context) {
 	a.logger.Info("MusicBrainz worker started")
 
 	// Initialize SyncService
-	emitter := &WailsEventEmitter{ctx: a.ctx}
+	emitter := &WailsEventEmitter{}
 	a.syncService = syncpkg.NewSyncService(a.store, a.logger, a.coverPool, emitter, appDir, a.mbWorker, a.pluginManager.EnhanceMetadata)
 	a.logger.Info("SyncService initialized")
 
@@ -409,7 +403,7 @@ func (a *App) initFileWatcher() {
 }
 
 // Shutdown is called when the app is closing
-func (a *App) Shutdown(ctx context.Context) {
+func (a *App) Shutdown() {
 	// Flush and stop fingerprint cache
 	if a.fingerprintCache != nil {
 		a.logger.Info("Flushing fingerprint cache...")

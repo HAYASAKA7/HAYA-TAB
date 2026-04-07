@@ -64,6 +64,9 @@ jobs:
           go-version: '1.25'
           cache: true
 
+      - name: Add Go bin to PATH
+        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -77,8 +80,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
-      - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+      - name: Install Wails3
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
       - name: Install frontend dependencies
         run: npm install
@@ -86,24 +89,29 @@ jobs:
 
       - name: Build application
         run: |
-          if [ "${{ matrix.platform }}" = "linux" ]; then
-            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -tags webkit2_41 -clean
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            wails3 task windows:build ARCH=${{ matrix.arch }}
+          elif [ "${{ matrix.platform }}" = "darwin" ]; then
+            wails3 task darwin:package ARCH=${{ matrix.arch }}
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            wails3 task linux:build ARCH=${{ matrix.arch }} EXTRA_TAGS=webkit2_41
           else
-            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -clean
+            echo "Unsupported platform: ${{ matrix.platform }}"
+            exit 1
           fi
         shell: bash
 
       - name: Package Windows build
         if: matrix.platform == 'windows'
         run: |
-          cd build/bin
+          cd bin
           7z a ../../${{ matrix.artifact_name }}.zip HAYA-TAB.exe
         shell: bash
 
       - name: Package macOS build
         if: matrix.platform == 'darwin'
         run: |
-          cd build/bin
+          cd bin
           mkdir -p dmg
           cp -r HAYA-TAB.app dmg/
           ln -s /Applications dmg/Applications
@@ -113,7 +121,7 @@ jobs:
       - name: Package Linux build
         if: matrix.platform == 'linux'
         run: |
-          cd build/bin
+          cd bin
           tar -czf ../../${{ matrix.artifact_name }}.tar.gz HAYA-TAB
 
       - name: Upload artifacts

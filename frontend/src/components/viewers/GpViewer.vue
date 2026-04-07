@@ -7,7 +7,7 @@ import { useAlphaTab } from '@/composables/useAlphaTab'
 import { TabService, SettingsService } from '@/services'
 import GpFloatingToolbar from './GpFloatingToolbar.vue'
 import GpSelectionMenu from './GpSelectionMenu.vue'
-import { EventsOn, EventsOff } from '@/wailsjs/runtime/runtime'
+import { Events } from '@wailsio/runtime'
 
 const { t } = useI18n()
 const props = defineProps<{
@@ -89,7 +89,8 @@ watch(() => settingsStore.settings.audioDevice, (newId) => {
 })
 
 // Cloud download event handler (only reload, toast is handled globally in App.vue)
-function handleCloudDownload(data: any) {
+function handleCloudDownload(ev: any) {
+  const data = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
   if (data.tabId !== props.tabId) return
   if (data.status === 'complete') {
     // Reload the tab after download
@@ -97,8 +98,10 @@ function handleCloudDownload(data: any) {
   }
 }
 
+let unregisterCloudDownload: (() => void) | null = null
+
 onMounted(() => {
-  EventsOn('cloud-download-single', handleCloudDownload)
+  unregisterCloudDownload = Events.On('cloud-download-single', handleCloudDownload)
   window.addEventListener('midi-scroll-down', handleMidiScrollDown)
   window.addEventListener('midi-scroll-up', handleMidiScrollUp)
   window.addEventListener('midi-play-pause', handleMidiPlayPause)
@@ -111,7 +114,10 @@ onUnmounted(() => {
   window.removeEventListener('midi-scroll-up', handleMidiScrollUp)
   window.removeEventListener('midi-play-pause', handleMidiPlayPause)
   window.removeEventListener('midi-expression-scroll', handleMidiExpressionScroll as EventListener)
-  EventsOff('cloud-download-single')
+  if (unregisterCloudDownload) {
+    unregisterCloudDownload()
+    unregisterCloudDownload = null
+  }
   destroy()
 })
 

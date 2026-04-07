@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
-import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+import { Events } from "@wailsio/runtime"
 import { CloudService } from '@/services'
 
 const { t } = useI18n()
@@ -22,13 +22,16 @@ onMounted(() => {
   }
 })
 
+let unregisterUploadProgress: (() => void) | null = null
+
 watch(() => uiStore.cloudUploadModalVisible, (visible) => {
   if (visible) {
     listDirectories('/')
     progress.value = null
     selectedDir.value = '/'
-    
-    EventsOn('cloud-upload-progress', (data: any) => {
+
+    unregisterUploadProgress = Events.On('cloud-upload-progress', (ev: any) => {
+      const data = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
       progress.value = data
       if (data.status === 'complete') {
         showToast(t('cloud.uploadComplete') + ` (${data.success} files)`)
@@ -37,10 +40,12 @@ watch(() => uiStore.cloudUploadModalVisible, (visible) => {
       }
     })
   } else {
-    EventsOff('cloud-upload-progress')
+    if (unregisterUploadProgress) {
+      unregisterUploadProgress()
+      unregisterUploadProgress = null
+    }
   }
 })
-
 async function listDirectories(path: string) {
   if (!settingsStore.settings.webdavEnabled) return
 

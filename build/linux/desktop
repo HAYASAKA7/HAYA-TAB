@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=HAYA-TAB
+Comment=A lightweight music tab manager for guitarists and musicians
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/haya-tab %u
+Terminal=false
+Type=Application
+Icon=haya-tab
+Categories=Utility;Music;
+StartupWMClass=haya-tab
+
+ 

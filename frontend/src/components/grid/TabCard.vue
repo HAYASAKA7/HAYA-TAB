@@ -5,7 +5,7 @@ import type { Tab, ContextMenuItem } from '@/types'
 import { useTabsStore, useUIStore, useViewersStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
-import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+import { Events } from "@wailsio/runtime"
 import { SettingsService, TabService, FileService } from '@/services'
 
 import { safeHtml } from '@/utils/html'
@@ -52,6 +52,8 @@ watch(() => props.tab.coverPath, () => {
   coverTimestamp.value = Date.now()
 })
 
+let unregisterDownload: (() => void) | null = null
+
 onMounted(async () => {
   try {
     fileServerPort.value = await SettingsService.getFileServerPort()
@@ -60,7 +62,8 @@ onMounted(async () => {
   }
 
   // Listen for cloud download completion events (only update data, toast is handled globally in App.vue)
-  EventsOn('cloud-download-single', (data: any) => {
+  unregisterDownload = Events.On('cloud-download-single', (ev: any) => {
+    const data = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
     if (data.status === 'complete' && data.tabId === props.tab.id && data.tab) {
       // In-place update: update the tab properties without full refresh
       tabsStore.updateTabInPlace(data.tabId, {
@@ -74,7 +77,9 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  EventsOff('cloud-download-single')
+  if (unregisterDownload) {
+    unregisterDownload()
+  }
 })
 
 function handleClick(e: MouseEvent) {

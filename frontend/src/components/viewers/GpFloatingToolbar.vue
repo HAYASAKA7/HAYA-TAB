@@ -51,7 +51,7 @@ function onMouseLeave() {
 // 3s initial visibility, then hidden
 startIdleTimer()
 
-// Scrolling â†?immediately hidden (unless hovered or expanded)
+// Scrolling ï¿½?immediately hidden (unless hovered or expanded)
 watch(() => props.isScrolling, (val) => {
   if (val && !isHovered.value && !isExpanded.value) {
     isIdle.value = true
@@ -59,7 +59,7 @@ watch(() => props.isScrolling, (val) => {
   }
 })
 
-// When toolbar collapses â†?3s then hidden
+// When toolbar collapses ï¿½?3s then hidden
 watch(isExpanded, (val) => {
   if (!val) startIdleTimer()
 })

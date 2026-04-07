@@ -112,7 +112,7 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 				var relativePath string
 				longestMatch := ""
 				for _, vol := range volumes {
-					if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath {
+					if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath || vol.MountPath == "/" {
 						if len(vol.MountPath) > len(longestMatch) {
 							longestMatch = vol.MountPath
 							volumeID = vol.ID
@@ -121,8 +121,12 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 				}
 
 				if volumeID != "" {
-					relativePath = strings.TrimPrefix(remotePath, longestMatch)
-					relativePath = strings.TrimPrefix(relativePath, "/")
+					if longestMatch == "/" {
+						relativePath = strings.TrimPrefix(remotePath, "/")
+					} else {
+						relativePath = strings.TrimPrefix(remotePath, longestMatch)
+						relativePath = strings.TrimPrefix(relativePath, "/")
+					}
 				}
 
 				// Create temp directory for secure download
@@ -399,7 +403,7 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 				// Find the volume with the longest matching mount path
 				longestMatch := ""
 				for _, vol := range volumes {
-					if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath {
+					if strings.HasPrefix(remotePath, vol.MountPath+"/") || remotePath == vol.MountPath || vol.MountPath == "/" {
 						if len(vol.MountPath) > len(longestMatch) {
 							longestMatch = vol.MountPath
 							volumeID = vol.ID
@@ -409,8 +413,12 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 
 				if volumeID != "" {
 					// Calculate relative path within volume
-					relativePath = strings.TrimPrefix(remotePath, longestMatch)
-					relativePath = strings.TrimPrefix(relativePath, "/")
+					if longestMatch == "/" {
+						relativePath = strings.TrimPrefix(remotePath, "/")
+					} else {
+						relativePath = strings.TrimPrefix(remotePath, longestMatch)
+						relativePath = strings.TrimPrefix(relativePath, "/")
+					}
 				} else {
 					// No volume found
 					a.logger.Error("No active volume matched for file: %s", remotePath)

@@ -1,5 +1,5 @@
 // @ts-ignore
-import * as App from '../wailsjs/go/app/App'
+import * as App from '../../bindings/haya-tab/internal/app/app.js'
 
 export interface PluginInfo {
   id: string
@@ -12,7 +12,8 @@ export interface PluginInfo {
 
 export class PluginService {
   static async getPlugins(): Promise<PluginInfo[]> {
-    return await App.GetPlugins()
+    const plugins = await App.GetPlugins()
+    return plugins as unknown as PluginInfo[]
   }
 
   static async updatePluginConfig(id: string, config: Record<string, string>, enabled: boolean): Promise<void> {
