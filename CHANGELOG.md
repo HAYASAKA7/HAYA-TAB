@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.1] - 2026-04-07
+
+### Added
+
+- **iOS simulator artifact:** Package and upload iOS simulator `.app` zip artifacts in the GitHub Actions release workflow.
+- **Android APK artifact:** Package and upload Android APK artifacts in the GitHub Actions release workflow.
+- **Mobile workflow jobs:** Added dedicated `build-ios` and `build-android` workflow jobs for mobile artifact creation and upload.
+
+### Changed
+
+- **Linux dependency install:** Simplified Linux dependency installation in `.github/workflows/release.yml`.
+- **Artifact upload handling:** Unified release artifact upload handling in `.github/workflows/release.yml`.
+
 ## [3.1.0] - 2026-04-07
 
 ### Fixed
