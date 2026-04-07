@@ -59,14 +59,28 @@ jobs:
             artifact_name: HAYA-TAB-linux-arm64
             artifact_ext: tar.gz
 
+          # iOS ARM64 (Simulator .app bundle zip)
+          - os: macos-latest
+            platform: ios
+            arch: arm64
+            artifact_name: HAYA-TAB-ios-arm64-simulator
+            artifact_ext: zip
+
+          # Android ARM64 (APK)
+          - os: ubuntu-24.04
+            platform: android
+            arch: arm64
+            artifact_name: HAYA-TAB-android-arm64
+            artifact_ext: apk
+
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
           cache: true
@@ -75,7 +89,7 @@ jobs:
         run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -86,6 +100,35 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Setup Java (Android)
+        if: matrix.platform == 'android'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK/NDK (Android)
+        if: matrix.platform == 'android'
+        run: |
+          set -euo pipefail
+
+          if [ -n "${ANDROID_HOME:-}" ] && [ -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          elif [ -x "/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager" ]; then
+            export ANDROID_HOME="/usr/local/lib/android/sdk"
+            SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          else
+            echo "sdkmanager not found on runner"
+            exit 1
+          fi
+
+          echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
+          yes | "$SDKMANAGER" --licenses
+          "$SDKMANAGER" "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;26.3.11579264"
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/26.3.11579264" >> "$GITHUB_ENV"
+          echo "${ANDROID_HOME}/platform-tools" >> "$GITHUB_PATH"
+        shell: bash
 
       - name: Install Wails3
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
@@ -100,8 +143,12 @@ jobs:
             wails3 task windows:build ARCH=${{ matrix.arch }}
           elif [ "${{ matrix.platform }}" = "darwin" ]; then
             wails3 task darwin:package ARCH=${{ matrix.arch }}
+          elif [ "${{ matrix.platform }}" = "ios" ]; then
+            wails3 task ios:package ARCH=${{ matrix.arch }}
           elif [ "${{ matrix.platform }}" = "linux" ]; then
             wails3 task linux:build ARCH=${{ matrix.arch }} EXTRA_TAGS=webkit2_41
+          elif [ "${{ matrix.platform }}" = "android" ]; then
+            wails3 task android:package ARCH=${{ matrix.arch }}
           else
             echo "Unsupported platform: ${{ matrix.platform }}"
             exit 1
@@ -131,8 +178,21 @@ jobs:
           cd bin
           tar -czf ../${{ matrix.artifact_name }}.tar.gz HAYA-TAB
 
+      - name: Package iOS build
+        if: matrix.platform == 'ios'
+        run: |
+          cd bin
+          zip -r ../${{ matrix.artifact_name }}.zip HAYA-TAB.app
+        shell: bash
+
+      - name: Package Android build
+        if: matrix.platform == 'android'
+        run: |
+          cp bin/HAYA-TAB.apk ./${{ matrix.artifact_name }}.apk
+        shell: bash
+
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_name }}.${{ matrix.artifact_ext }}
@@ -146,16 +206,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
       - name: Prepare release files
         run: |
-          find artifacts -type f \( -name "*.zip" -o -name "*.dmg" -o -name "*.tar.gz" \) -exec mv {} . \;
+          find artifacts -type f \( -name "*.zip" -o -name "*.dmg" -o -name "*.tar.gz" -o -name "*.apk" \) -exec mv {} . \;
           ls -lh
 
       - name: Create Release
@@ -169,6 +229,8 @@ jobs:
             HAYA-TAB-macos-arm64.dmg
             HAYA-TAB-linux-amd64.tar.gz
             HAYA-TAB-linux-arm64.tar.gz
+            HAYA-TAB-ios-arm64-simulator.zip
+            HAYA-TAB-android-arm64.apk
           draft: false
           prerelease: false
           generate_release_notes: true
