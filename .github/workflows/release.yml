@@ -124,7 +124,10 @@ jobs:
           fi
 
           echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
-          yes | "$SDKMANAGER" --licenses
+          # sdkmanager closes stdin after accepting all prompts; with pipefail this can surface as a broken pipe from `yes`.
+          set +o pipefail
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          set -o pipefail
           "$SDKMANAGER" "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;26.3.11579264"
           echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/26.3.11579264" >> "$GITHUB_ENV"
           echo "${ANDROID_HOME}/platform-tools" >> "$GITHUB_PATH"
