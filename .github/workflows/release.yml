@@ -15,42 +15,49 @@ jobs:
             platform: windows
             arch: amd64
             artifact_name: HAYA-TAB-windows-amd64
+            artifact_ext: zip
 
           # Windows 32-bit (x86)
           - os: windows-latest
             platform: windows
             arch: 386
             artifact_name: HAYA-TAB-windows-386
+            artifact_ext: zip
 
           # Windows ARM64
           - os: windows-latest
             platform: windows
             arch: arm64
             artifact_name: HAYA-TAB-windows-arm64
+            artifact_ext: zip
 
           # macOS AMD64 (Intel)
           - os: macos-13
             platform: darwin
             arch: amd64
             artifact_name: HAYA-TAB-macos-amd64
+            artifact_ext: dmg
 
           # macOS ARM64 (Apple Silicon)
           - os: macos-14
             platform: darwin
             arch: arm64
             artifact_name: HAYA-TAB-macos-arm64
+            artifact_ext: dmg
 
           # Linux AMD64
           - os: ubuntu-24.04
             platform: linux
             arch: amd64
             artifact_name: HAYA-TAB-linux-amd64
+            artifact_ext: tar.gz
 
           # Linux ARM64
           - os: ubuntu-24.04-arm
             platform: linux
             arch: arm64
             artifact_name: HAYA-TAB-linux-arm64
+            artifact_ext: tar.gz
 
     runs-on: ${{ matrix.os }}
 
@@ -105,7 +112,7 @@ jobs:
         if: matrix.platform == 'windows'
         run: |
           cd bin
-          7z a ../../${{ matrix.artifact_name }}.zip HAYA-TAB.exe
+          7z a ../${{ matrix.artifact_name }}.zip HAYA-TAB.exe
         shell: bash
 
       - name: Package macOS build
@@ -115,23 +122,20 @@ jobs:
           mkdir -p dmg
           cp -r HAYA-TAB.app dmg/
           ln -s /Applications dmg/Applications
-          hdiutil create -volname "HAYA-TAB" -srcfolder dmg -ov -format UDZO ../../${{ matrix.artifact_name }}.dmg
+          hdiutil create -volname "HAYA-TAB" -srcfolder dmg -ov -format UDZO ../${{ matrix.artifact_name }}.dmg
           rm -rf dmg
 
       - name: Package Linux build
         if: matrix.platform == 'linux'
         run: |
           cd bin
-          tar -czf ../../${{ matrix.artifact_name }}.tar.gz HAYA-TAB
+          tar -czf ../${{ matrix.artifact_name }}.tar.gz HAYA-TAB
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: |
-            ${{ matrix.artifact_name }}.zip
-            ${{ matrix.artifact_name }}.dmg
-            ${{ matrix.artifact_name }}.tar.gz
+          path: ${{ matrix.artifact_name }}.${{ matrix.artifact_ext }}
           if-no-files-found: error
 
   release:
