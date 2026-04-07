@@ -204,7 +204,7 @@ tasks:
       - build/ios/xcode/overlay.json
       - build/ios/xcode/gen/main_ios.gen.go
     cmds:
-      - wails3 ios overlay:gen -out build/ios/xcode/overlay.json -config build/config.yml
+      - cd build && wails3 ios overlay:gen -out ios/xcode/overlay.json -config config.yml
 
   generate:ios:xcode:
     internal: true
@@ -217,7 +217,7 @@ tasks:
       - build/ios/xcode/main/Assets.xcassets/**/*
       - build/ios/xcode/project.pbxproj
     cmds:
-      - wails3 ios xcode:gen -outdir build/ios/xcode -config build/config.yml
+      - cd build && wails3 ios xcode:gen -outdir ios/xcode -config config.yml
 
   run:
     summary: Run the application in iOS Simulator
