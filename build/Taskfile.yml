@@ -8,8 +8,8 @@ tasks:
       - mkdir -p frontend/dist
       - |
         if [ "${CI:-}" = "true" ]; then
-          echo "CI detected: skipping go mod tidy, running go mod download instead"
-          go mod download
+          echo "CI detected: skipping go mod tidy, running go mod download instead (non-blocking)"
+          go mod download || echo "Warning: go mod download failed in CI; continuing build"
         else
           go mod tidy
         fi
