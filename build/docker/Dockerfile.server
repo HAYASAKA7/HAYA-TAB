@@ -19,7 +19,7 @@ RUN sed -i '/^replace/d' go.mod || true
 RUN go mod tidy
 
 # Build the server binary
-RUN go build -tags server -ldflags="-s -w" -o server .
+RUN go build -tags server -ldflags="-s -w" -o server ./cmd/haya-tab
 
 # Runtime stage - minimal image
 FROM gcr.io/distroless/static-debian12

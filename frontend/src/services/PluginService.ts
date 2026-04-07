@@ -1,5 +1,4 @@
-// @ts-ignore
-import * as App from '../../bindings/haya-tab/internal/app/app.js'
+import * as App from '../../bindings/haya-tab/internal/app/app'
 
 export interface PluginInfo {
   id: string

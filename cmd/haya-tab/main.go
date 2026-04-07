@@ -1,16 +1,13 @@
 package main
 
 import (
-	"embed"
+	appassets "haya-tab"
 	"haya-tab/internal/app"
 	"log"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
-
-//go:embed all:frontend/dist
-var assets embed.FS
 
 func main() {
 	// Create an instance of the app structure
@@ -24,19 +21,21 @@ func main() {
 	myApp.SetFileServerPort(port)
 
 	// Create application with options
-	appInstance := application.New(application.Options{
+	opts := application.Options{
 		Name:        "HAYA-TAB",
 		Description: "A lightweight music tab manager for guitarists and musicians",
 		Services: []application.Service{
 			application.NewService(myApp),
 		},
 		Assets: application.AssetOptions{
-			Handler: application.AssetFileServerFS(assets),
+			Handler: application.AssetFileServerFS(appassets.FS),
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
-	})
+	}
+	modifyOptionsForIOS(&opts)
+	appInstance := application.New(opts)
 
 	// Set the global app instance inside our app structure (if we rewrite it to remove context)
 	myApp.SetApp(appInstance)

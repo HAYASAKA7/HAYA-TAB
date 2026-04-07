@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20iOS-blue)
-![Version](https://img.shields.io/badge/version-3.0.1-green)
+![Version](https://img.shields.io/badge/version-3.1.0-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features
@@ -83,7 +83,14 @@ To fix this:
 ## 📁 Project Structure
 
 ```
-├── main.go                           # Application entry point
+├── assets_embed.go                   # Embedded frontend assets package
+├── cmd/
+│   └── haya-tab/                     # Application entry package
+│       ├── main.go                   # Application entry point
+│       ├── main_ios.go               # iOS entry shim
+│       ├── main_android.go           # Android entry shim
+│       ├── app_options_ios.go        # iOS runtime options
+│       └── app_options_default.go    # Non-iOS runtime options
 ├── go.mod & go.sum                   # Go module dependencies
 ├── Taskfile.yml                      # Top-level task entrypoint
 │

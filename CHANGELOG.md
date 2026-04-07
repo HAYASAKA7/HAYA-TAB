@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2026-04-07
+
+### Fixed
+
+- **Windows Build Reliability:** Reworked task setup commands to be Windows-safe and added workspace-local `GOCACHE` to avoid `%LOCALAPPDATA%` permission failures during `wails3 build`.
+- **Frontend Binding Resolution:** Regenerated bindings from `./cmd/haya-tab` and fixed stale JS import path usage in frontend services.
+
+### Changed
+
+- **Entrypoint Refactor:** Moved app entry files into `cmd/haya-tab` and extracted embedded frontend assets into `assets_embed.go` at module root.
+- **Build Targets:** Updated Go build and binding-generation commands across platform taskfiles and Dockerfiles to target `./cmd/haya-tab`.
+- **Release Workflow (Mobile Prep):** Updated mobile workflow logic/comments in `release.yml` while keeping iOS/Android matrix entries commented out.
+
 ## [3.0.1] - 2026-04-07
 
 ### Fixed

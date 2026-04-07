@@ -4,8 +4,17 @@ tasks:
   go:mod:tidy:
     summary: Runs `go mod tidy`
     internal: true
+    env:
+      GOCACHE: '{{.ROOT_DIR}}/.task/gocache'
     cmds:
-      - mkdir -p frontend/dist
+      - cmd: powershell -Command "New-Item -ItemType Directory -Force -Path .task/gocache | Out-Null"
+        platforms: [windows]
+      - cmd: mkdir -p .task/gocache
+        platforms: [linux, darwin]
+      - cmd: powershell -Command "New-Item -ItemType Directory -Force -Path frontend/dist | Out-Null"
+        platforms: [windows]
+      - cmd: mkdir -p frontend/dist
+        platforms: [linux, darwin]
       - |
         if [ "${CI:-}" = "true" ]; then
           echo "CI detected: skipping go mod tidy, running go mod download instead (non-blocking)"
@@ -102,7 +111,7 @@ tasks:
     generates:
       - frontend/bindings/**/*
     cmds:
-      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true -ts
+      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true -ts ./cmd/haya-tab
 
   generate:icons:
     summary: Generates Windows `.ico` and Mac `.icns` from an image; on macOS, `-iconcomposerinput appicon.icon -macassetdir darwin` also produces `Assets.car` from a `.icon` file (skipped on other platforms).
@@ -141,7 +150,7 @@ tasks:
           BUILD_FLAGS:
             ref: .BUILD_FLAGS
     cmds:
-      - go build -tags server {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/{{.APP_NAME}}-server{{exeExt}}
+      - go build -tags server {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/{{.APP_NAME}}-server{{exeExt}} ./cmd/haya-tab
     vars:
       BUILD_FLAGS: "{{.BUILD_FLAGS}}"
 

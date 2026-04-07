@@ -90,7 +90,8 @@ tasks:
         mkdir -p build/android/app/src/main/jniLibs/$JNI_DIR
 
         go build -buildmode=c-shared {{.BUILD_FLAGS}} \
-          -o build/android/app/src/main/jniLibs/$JNI_DIR/libwails.so
+          -o build/android/app/src/main/jniLibs/$JNI_DIR/libwails.so \
+          ./cmd/haya-tab
     vars:
       BUILD_FLAGS: '{{if eq .PRODUCTION "true"}}-tags production,android -trimpath -buildvcs=false -ldflags="-w -s"{{else}}-tags android,debug -buildvcs=false -gcflags=all="-l"{{end}}'
 
@@ -147,7 +148,7 @@ tasks:
     generates:
       - frontend/bindings/**/*
     cmds:
-      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true
+      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true ./cmd/haya-tab
     env:
       GOOS: android
       CGO_ENABLED: 1
