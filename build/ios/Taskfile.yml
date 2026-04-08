@@ -24,7 +24,6 @@ tasks:
     summary: Creates a build of the application for iOS
     deps:
       - task: generate:ios:overlay
-      - task: generate:ios:xcode
       - task: common:go:mod:tidy
       - task: common:build:frontend
         vars:
@@ -172,17 +171,22 @@ tasks:
 
   generate:ios:overlay:
     internal: true
-    summary: Generate Go build overlay and iOS shim
-    sources:
-      - build/config.yml
-    generates:
-      - build/ios/xcode/overlay.json
-      - build/ios/xcode/gen/main_ios.gen.go
+    summary: Generate Go build overlay and iOS shim (always runs after xcode:gen)
+    deps:
+      - task: generate:ios:xcode
     status:
       - test -f build/ios/xcode/overlay.json
       - test -f build/ios/xcode/gen/main_ios.gen.go
     cmds:
-      - cd build && wails3 ios overlay:gen -out ios/xcode/overlay.json -config config.yml
+      - mkdir -p build/ios/xcode/gen
+      - |
+        REPO_ROOT="$(pwd)"
+        GEN_DIR="$REPO_ROOT/build/ios/xcode/gen"
+        printf '//go:build ios\n\npackage main\n\nimport "C"\n\n//export WailsIOSMain\nfunc WailsIOSMain() {\n\tmain()\n}\n' \
+          > "$GEN_DIR/main_ios.gen.go"
+        printf '{\n  "Replace": {\n    "%s/cmd/haya-tab/main_ios.gen.go": "%s/main_ios.gen.go"\n  }\n}\n' \
+          "$REPO_ROOT" "$GEN_DIR" \
+          > "$REPO_ROOT/build/ios/xcode/overlay.json"
 
   generate:ios:xcode:
     internal: true
