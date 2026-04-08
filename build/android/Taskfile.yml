@@ -22,10 +22,6 @@ tasks:
     summary: Creates a build of the application for Android
     deps:
       - task: common:go:mod:tidy
-      - task: generate:android:bindings
-        vars:
-          BUILD_FLAGS:
-            ref: .BUILD_FLAGS
       - task: common:build:frontend
         vars:
           BUILD_FLAGS:
@@ -42,6 +38,9 @@ tasks:
       BUILD_FLAGS: '{{if eq .PRODUCTION "true"}}-tags production,android -trimpath -buildvcs=false -ldflags="-w -s"{{else}}-tags android,debug -buildvcs=false -gcflags=all="-l"{{end}}'
     env:
       PRODUCTION: '{{.PRODUCTION | default "false"}}'
+      GOOS: android
+      CGO_ENABLED: 1
+      GOARCH: '{{.ARCH | default "arm64"}}'
 
   compile:go:shared:
     summary: Compile Go code to shared library (.so)
@@ -137,22 +136,6 @@ tasks:
         ./gradlew assembleRelease
         cp app/build/outputs/apk/release/app-release-unsigned.apk "../../{{.BIN_DIR}}/{{.APP_NAME}}-release.apk"
         echo "Release APK created: {{.BIN_DIR}}/{{.APP_NAME}}-release.apk"
-
-  generate:android:bindings:
-    internal: true
-    summary: Generates bindings for Android
-    sources:
-      - "**/*.go"
-      - go.mod
-      - go.sum
-    generates:
-      - frontend/bindings/**/*
-    cmds:
-      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true ./cmd/haya-tab
-    env:
-      GOOS: android
-      CGO_ENABLED: 1
-      GOARCH: '{{.ARCH | default "arm64"}}'
 
   ensure-emulator:
     internal: true

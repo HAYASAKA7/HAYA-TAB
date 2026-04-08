@@ -26,10 +26,6 @@ tasks:
       - task: generate:ios:overlay
       - task: generate:ios:xcode
       - task: common:go:mod:tidy
-      - task: generate:ios:bindings
-        vars:
-          BUILD_FLAGS:
-            ref: .BUILD_FLAGS
       - task: common:build:frontend
         vars:
           BUILD_FLAGS:
@@ -135,27 +131,6 @@ tasks:
           -lresolv \
           -o "{{.BIN_DIR}}/{{.APP_NAME | lower}}" \
           "$MAIN_M" "{{.BIN_DIR}}/{{.APP_NAME}}.a"
-
-  generate:ios:bindings:
-    internal: true
-    summary: Generates bindings for iOS with proper CGO flags
-    sources:
-      - "**/*.go"
-      - go.mod
-      - go.sum
-    generates:
-      - frontend/bindings/**/*
-    vars:
-      SDK_PATH:
-        sh: xcrun --sdk iphonesimulator --show-sdk-path
-    cmds:
-      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true ./cmd/haya-tab
-    env:
-      GOOS: ios
-      CGO_ENABLED: 1
-      GOARCH: '{{.ARCH | default "arm64"}}'
-      CGO_CFLAGS: '-isysroot {{.SDK_PATH}} -target arm64-apple-ios15.0-simulator -mios-simulator-version-min=15.0'
-      CGO_LDFLAGS: '-isysroot {{.SDK_PATH}} -target arm64-apple-ios15.0-simulator'
 
   ensure-simulator:
     internal: true
