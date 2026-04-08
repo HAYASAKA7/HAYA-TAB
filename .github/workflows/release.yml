@@ -60,18 +60,18 @@ jobs:
             artifact_ext: tar.gz
 
           # iOS distribution (simulator .app zip)
-          - os: macos-latest
-            platform: ios
-            arch: arm64
-            artifact_name: HAYA-TAB-ios-arm64-simulator
-            artifact_ext: zip
+          # - os: macos-latest
+          #   platform: ios
+          #   arch: arm64
+          #   artifact_name: HAYA-TAB-ios-arm64-simulator
+          #   artifact_ext: zip
 
           # Android distribution (APK)
-          - os: ubuntu-24.04
-            platform: android
-            arch: arm64
-            artifact_name: HAYA-TAB-android-arm64
-            artifact_ext: apk
+          # - os: ubuntu-24.04
+          #   platform: android
+          #   arch: arm64
+          #   artifact_name: HAYA-TAB-android-arm64
+          #   artifact_ext: apk
 
     runs-on: ${{ matrix.os }}
 
