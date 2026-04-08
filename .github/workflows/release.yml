@@ -205,88 +205,13 @@ jobs:
           path: HAYA-TAB-ios-arm64-simulator.zip
           if-no-files-found: error
 
-  build-android:
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-          cache: true
-
-      - name: Add Go bin to PATH
-        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
-
-      - name: Setup Java (Android)
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Android SDK/NDK (Android)
-        run: |
-          set -euo pipefail
-
-          if [ -n "${ANDROID_HOME:-}" ] && [ -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
-            SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
-          elif [ -x "/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager" ]; then
-            export ANDROID_HOME="/usr/local/lib/android/sdk"
-            SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
-          else
-            echo "sdkmanager not found on runner"
-            exit 1
-          fi
-
-          echo "ANDROID_HOME=${ANDROID_HOME}" >> "$GITHUB_ENV"
-          # sdkmanager closes stdin after accepting all prompts; with pipefail this can surface as a broken pipe from `yes`.
-          set +o pipefail
-          yes | "$SDKMANAGER" --licenses > /dev/null
-          set -o pipefail
-          "$SDKMANAGER" "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;26.3.11579264"
-          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/26.3.11579264" >> "$GITHUB_ENV"
-          echo "${ANDROID_HOME}/platform-tools" >> "$GITHUB_PATH"
-        shell: bash
-
-      - name: Install Wails3
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
-
-      - name: Install frontend dependencies
-        run: npm install
-        working-directory: frontend
-
-      - name: Build Android release APK
-        run: |
-          set -euo pipefail
-          wails3 task android:build ARCH=arm64 PRODUCTION=true
-          wails3 task android:assemble:apk:release
-          cp -f bin/HAYA-TAB-release.apk ./HAYA-TAB-android-arm64-release.apk
-        shell: bash
-
-      - name: Upload Android artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: HAYA-TAB-android-arm64-release
-          path: HAYA-TAB-android-arm64-release.apk
-          if-no-files-found: error
+  # TODO: Re-enable when Wails v3 has stable Android support
+  # build-android:
+  #   runs-on: ubuntu-24.04
+  #   ...
 
   release:
-    needs: [build, build-ios, build-android]
+    needs: [build, build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -317,7 +242,6 @@ jobs:
             HAYA-TAB-linux-amd64.tar.gz
             HAYA-TAB-linux-arm64.tar.gz
             HAYA-TAB-ios-arm64-simulator.zip
-            HAYA-TAB-android-arm64-release.apk
           draft: false
           prerelease: false
           generate_release_notes: true
