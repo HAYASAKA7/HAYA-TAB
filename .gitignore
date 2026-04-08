@@ -1,5 +1,6 @@
 GEMINI.md
 build/bin
+build/ios/xcode/
 data/
 storage/
 covers/

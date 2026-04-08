@@ -178,6 +178,9 @@ tasks:
     generates:
       - build/ios/xcode/overlay.json
       - build/ios/xcode/gen/main_ios.gen.go
+    status:
+      - test -f build/ios/xcode/overlay.json
+      - test -f build/ios/xcode/gen/main_ios.gen.go
     cmds:
       - cd build && wails3 ios overlay:gen -out ios/xcode/overlay.json -config config.yml
 

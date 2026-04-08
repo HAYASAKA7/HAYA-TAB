@@ -191,6 +191,26 @@ jobs:
       - name: Build iOS simulator app
         run: |
           set -euo pipefail
+
+          # wails3 ios overlay:gen is broken when wails3 is installed as a binary
+          # (its repoRoot() walks up from CWD searching for Wails source files, which
+          # never exist outside the Wails repo itself). We generate the overlay manually.
+          REPO_ROOT="$(pwd)"
+          GEN_DIR="$REPO_ROOT/build/ios/xcode/gen"
+          mkdir -p "$GEN_DIR"
+
+          printf '//go:build ios\n\npackage main\n\nimport "C"\n\n//export WailsIOSMain\nfunc WailsIOSMain() { main() }\n' \
+            > "$GEN_DIR/main_ios.gen.go"
+
+          # The overlay maps a virtual path (<repo_root>/main_ios.gen.go) to the real generated file.
+          printf '{\n  "Replace": {\n    "%s/main_ios.gen.go": "%s/main_ios.gen.go"\n  }\n}\n' \
+            "$REPO_ROOT" "$GEN_DIR" \
+            > "$REPO_ROOT/build/ios/xcode/overlay.json"
+
+          # Generate Xcode project structure (uses only embedded assets, works fine)
+          cd build && wails3 ios xcode:gen -outdir ios/xcode -config config.yml
+          cd ..
+
           wails3 task ios:compile:ios ARCH=arm64 PRODUCTION=true
           cp -f bin/haya-tab bin/HAYA-TAB
           wails3 task ios:create:app:bundle
