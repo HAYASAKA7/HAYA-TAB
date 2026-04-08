@@ -4,6 +4,7 @@ tasks:
   go:mod:tidy:
     summary: Runs `go mod tidy`
     internal: true
+    run: once
     env:
       GOCACHE: '{{.ROOT_DIR}}/.task/gocache'
     cmds:
@@ -17,8 +18,8 @@ tasks:
         platforms: [linux, darwin]
       - |
         if [ "${CI:-}" = "true" ]; then
-          echo "CI detected: skipping go mod tidy, running go mod download instead (non-blocking)"
-          go mod download || echo "Warning: go mod download failed in CI; continuing build"
+          echo "CI detected: skipping go mod tidy, running go mod download"
+          go mod download
         else
           go mod tidy
         fi
