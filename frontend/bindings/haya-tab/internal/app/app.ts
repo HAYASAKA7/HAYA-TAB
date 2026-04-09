@@ -482,6 +482,13 @@ export function WebDAVInitialize(): $CancellablePromise<void> {
 }
 
 /**
+ * WebDAVIsReady checks if WebDAV is fully ready for use (connected + volumes initialized)
+ */
+export function WebDAVIsReady(): $CancellablePromise<boolean> {
+    return $Call.ByID(1388200009);
+}
+
+/**
  * WebDAVListDir lists files and directories in a remote path (non-recursive)
  */
 export function WebDAVListDir(url: string, user: string, password: string, dir: string): $CancellablePromise<store$0.RemoteFile[]> {

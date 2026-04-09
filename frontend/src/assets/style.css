@@ -51,8 +51,8 @@ body {
     color: var(--text);
     overflow: hidden;
     transition: background 0.2s, color 0.2s;
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
 }
 
 button, input, select, textarea {
@@ -60,8 +60,8 @@ button, input, select, textarea {
 }
 
 input, textarea, [contenteditable], pre, code, .selectable {
-    user-select: text;
     -webkit-user-select: text;
+    user-select: text;
 }
 
 /* Layout */
@@ -585,8 +585,8 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 #toast-container {
     transition: bottom 0.3s ease;
     position: fixed;
-    bottom: 30px;
-    right: 30px;
+    bottom: 24px;
+    right: 24px;
     z-index: 2000;
     display: flex;
     flex-direction: column;
@@ -595,20 +595,19 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 }
 
 .toast {
-    background: #222;
-    color: white;
-    padding: 12px 16px;
+    background: var(--card-bg, #2d2d2d);
+    color: var(--text, #ffffff);
+    padding: 8px 12px;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     border-left: 3px solid var(--primary);
-    font-size: 0.9em;
+    font-size: 13px;
     animation: fadeUp 0.3s;
     cursor: pointer;
-    max-width: 400px;
-    min-width: 200px;
+    max-width: 320px;
     width: fit-content;
     word-wrap: break-word;
-    line-height: 1.4;
+    line-height: 1.2;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -618,7 +617,15 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
 }
 
 .toast.error {
-    border-left-color: #ff4444;
+    border-left-color: var(--error-color, #e74c3c);
+}
+
+.toast.success {
+    border-left-color: var(--success-color, #27ae60);
+}
+
+.toast.warning {
+    border-left-color: var(--warning-color, #f39c12);
 }
 
 @keyframes fadeUp {
@@ -983,5 +990,5 @@ select:focus-visible {
         transition-duration: 0.01ms !important;
     }
 }
-body.has-sync-toast #toast-container { bottom: 90px; }
-body.has-sync-toast-expanded #toast-container { bottom: 100px; }
+body.has-sync-toast #toast-container { bottom: 88px; }
+body.has-sync-toast-expanded #toast-container { bottom: 104px; }

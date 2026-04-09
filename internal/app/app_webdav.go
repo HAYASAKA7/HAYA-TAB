@@ -93,8 +93,19 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 		var skippedCount int32
 		var errorCount int32
 
-		// Get only active volumes for linking
-		volumes, _ := a.store.GetActiveVolumes()
+		// Ensure volumes are discovered first if not already initialized
+		var volumes []store.CloudVolume
+		if !a.volumesReady.Load() {
+			a.logger.Info("Volumes not ready, running discovery before download")
+			discovered, err := a.WebDAVDiscoverVolumes()
+			if err != nil {
+				a.logger.Error("Failed to discover volumes during download: %v", err)
+			} else {
+				volumes = discovered
+			}
+		} else {
+			volumes, _ = a.store.GetActiveVolumes()
+		}
 
 		var wg sync.WaitGroup
 		sem := make(chan struct{}, 5)
@@ -211,7 +222,7 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 	url = strings.TrimRight(url, "/")
 	client := syncpkg.NewWebDAVClient(url, user, password)
 
-	a.emitEvent("cloud-upload-progress", map[string]interface{}{
+	a.emitEvent("cloud-upload-progress", map[string]any{
 		"status": "start",
 		"total":  len(localPaths),
 	})
@@ -219,11 +230,23 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 	go func() {
 		var successCount int32
 
-		// Get only active volumes (available and deduplicated by mount path)
-		volumes, err := a.store.GetActiveVolumes()
-		if err != nil {
-			a.logger.Error("Failed to get active volumes: %v", err)
-			volumes = []store.CloudVolume{}
+		// Ensure volumes are discovered first if not already initialized
+		var volumes []store.CloudVolume
+		var err error
+		if !a.volumesReady.Load() {
+			a.logger.Info("Volumes not ready, running discovery before upload")
+			volumes, err = a.WebDAVDiscoverVolumes()
+			if err != nil {
+				a.logger.Error("Failed to discover volumes during upload: %v", err)
+				volumes = []store.CloudVolume{}
+			}
+		} else {
+			// Get only active volumes (available and deduplicated by mount path)
+			volumes, err = a.store.GetActiveVolumes()
+			if err != nil {
+				a.logger.Error("Failed to get active volumes: %v", err)
+				volumes = []store.CloudVolume{}
+			}
 		}
 
 		// Find the volume that contains remoteDir
@@ -548,6 +571,16 @@ func (a *App) WebDAVCheckStatus() bool {
 	return err == nil
 }
 
+// WebDAVIsReady checks if WebDAV is fully ready for use (connected + volumes initialized)
+func (a *App) WebDAVIsReady() bool {
+	// First check if we have valid connection
+	if !a.WebDAVCheckStatus() {
+		return false
+	}
+	// Then check if volumes have been initialized
+	return a.volumesReady.Load()
+}
+
 // WebDAVReconnect attempts to reconnect and reinitialize WebDAV
 // This should be called when connection is restored after being lost
 func (a *App) WebDAVReconnect() error {
@@ -584,6 +617,7 @@ func (a *App) monitorWebDAVConnection() {
 		// Only monitor if WebDAV is enabled
 		if !settings.WebDAVEnabled || settings.WebDAVURL == "" {
 			lastStatus = false
+			a.volumesReady.Store(false) // Volumes not ready when WebDAV is disabled
 			time.Sleep(checkInterval)
 			continue
 		}
@@ -593,6 +627,7 @@ func (a *App) monitorWebDAVConnection() {
 		// If connection was lost and now restored, reinitialize
 		if !lastStatus && currentStatus {
 			a.logger.Info("WebDAV connection restored, reinitializing...")
+			a.volumesReady.Store(false) // Mark volumes as not ready during reinitialization
 			go func() {
 				if err := a.WebDAVReconnect(); err != nil {
 					a.logger.Error("WebDAV reconnection failed: %v", err)
@@ -602,6 +637,7 @@ func (a *App) monitorWebDAVConnection() {
 			}()
 		} else if lastStatus && !currentStatus {
 			a.logger.Info("WebDAV connection lost")
+			a.volumesReady.Store(false) // Mark volumes as not ready when connection is lost
 		}
 
 		lastStatus = currentStatus
@@ -683,7 +719,9 @@ func (a *App) WebDAVInitialize() error {
 		return nil
 	}
 
-	a.emitEvent("webdav-sync-progress", map[string]interface{}{
+	a.volumesReady.Store(false) // Mark volumes as not ready during initialization
+
+	a.emitEvent("webdav-sync-progress", map[string]any{
 		"status":     "start",
 		"messageKey": "toast.syncTask.connecting",
 	})
@@ -702,7 +740,7 @@ func (a *App) WebDAVInitialize() error {
 		settings.WebDAVPassword,
 	)
 
-	a.emitEvent("webdav-sync-progress", map[string]interface{}{
+	a.emitEvent("webdav-sync-progress", map[string]any{
 		"status":     "progress",
 		"messageKey": "toast.syncTask.discovering",
 	})
@@ -711,7 +749,7 @@ func (a *App) WebDAVInitialize() error {
 	volumes, err := a.WebDAVDiscoverVolumes()
 	if err != nil {
 		a.logger.Error("Failed to discover volumes: %v", err)
-		a.emitEvent("webdav-sync-progress", map[string]interface{}{
+		a.emitEvent("webdav-sync-progress", map[string]any{
 			"status":     "error",
 			"messageKey": "errors.webdavDiscoverVolumesFailed",
 		})
@@ -720,7 +758,7 @@ func (a *App) WebDAVInitialize() error {
 
 	a.logger.Info("Discovered %d volumes", len(volumes))
 
-	a.emitEvent("webdav-sync-progress", map[string]interface{}{
+	a.emitEvent("webdav-sync-progress", map[string]any{
 		"status":     "progress",
 		"messageKey": "toast.syncTask.syncing",
 	})
@@ -760,7 +798,7 @@ func (a *App) WebDAVInitialize() error {
 	healthMap, err := a.WebDAVCheckVolumeHealth()
 	if err != nil {
 		a.logger.Error("Failed to check volume health: %v", err)
-		a.emitEvent("webdav-sync-progress", map[string]interface{}{
+		a.emitEvent("webdav-sync-progress", map[string]any{
 			"status":     "error",
 			"messageKey": "errors.webdavVolumeHealthCheckFailed",
 		})
@@ -777,8 +815,10 @@ func (a *App) WebDAVInitialize() error {
 		}
 	}
 
+	a.volumesReady.Store(true) // Mark volumes as ready after successful initialization
+
 	a.logger.Info("WebDAV initialization complete")
-	a.emitEvent("webdav-sync-progress", map[string]interface{}{
+	a.emitEvent("webdav-sync-progress", map[string]any{
 		"status":     "success",
 		"messageKey": "toast.syncTask.success",
 	})

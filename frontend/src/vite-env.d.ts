@@ -50,6 +50,7 @@ interface Window {
         WebDAVUploadFiles(url: string, user: string, pass: string, localPaths: string[], remoteDir: string): Promise<void>
         WebDAVAddOnlineFiles(url: string, user: string, pass: string, remotePaths: string[]): Promise<void>
         WebDAVCheckStatus(): Promise<boolean>
+        WebDAVIsReady(): Promise<boolean>
         DownloadCloudTabToLocal(tabId: string): Promise<void>
         CheckMigration(target: string): Promise<{ count: number, size: number }>
         MigrateData(target: string, newPath: string, copyOnly: boolean): Promise<void>

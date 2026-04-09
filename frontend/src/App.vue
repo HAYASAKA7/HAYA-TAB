@@ -60,13 +60,30 @@ onMounted(async () => {
 
   // Event listeners
   Events.On('tab-updated', (ev: any) => {
-    const updatedTab = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
-    // Use in-place update to preserve scroll position and avoid full refresh
-    if (updatedTab && updatedTab.id) {
-      tabsStore.updateTabInPlace(updatedTab.id, updatedTab)
-    } else {
-      // Fallback to full refresh if no tab data provided
-      tabsStore.refreshData()
+    const hasDataField = ev && typeof ev === 'object' && Object.prototype.hasOwnProperty.call(ev, 'data')
+    const payload = hasDataField ? ev.data : ev
+
+    // Skip full refresh when event has no payload (used by WebDAV volume initialization).
+    // This preserves scroll position and avoids jumping back to top.
+    if (payload === null || payload === undefined) {
+      return
+    }
+
+    // Support both single-item and array payloads from backend emitters.
+    const items = Array.isArray(payload) ? payload : [payload]
+    const tabs = items.filter((item: any) => item && item.id)
+
+    if (tabs.length === 0) {
+      return
+    }
+
+    for (const tab of tabs) {
+      const exists = tabsStore.tabs.some(t => t.id === tab.id)
+      if (exists) {
+        tabsStore.updateTabInPlace(tab.id, tab)
+      } else {
+        tabsStore.addTabsInPlace([tab])
+      }
     }
   })
 

@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import type { Settings } from '@/types'
 import { setLocale, type Locale } from '@/i18n'
 import { SettingsService, TabService, CloudService } from '@/services'
+import { Events } from '@wailsio/runtime'
 
 export const useSettingsStore = defineStore('settings', () => {
   // State
@@ -56,6 +57,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const loading = ref(false)
   const webdavConnected = ref(false)
   let webdavCheckInterval: ReturnType<typeof setInterval> | null = null
+  let webdavSyncProgressUnregister: (() => void) | null = null
 
   // Actions
   async function loadSettings() {
@@ -206,6 +208,16 @@ export const useSettingsStore = defineStore('settings', () => {
     window.addEventListener('offline', () => {
       webdavConnected.value = false
     })
+
+    // Listen for volume initialization completion to update status immediately
+    webdavSyncProgressUnregister = Events.On('webdav-sync-progress', (ev: any) => {
+      const data = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev
+      if (data.status === 'success') {
+        webdavConnected.value = true
+      } else if (data.status === 'error') {
+        webdavConnected.value = false
+      }
+    })
   }
 
   // Stop periodic WebDAV status checks
@@ -213,6 +225,10 @@ export const useSettingsStore = defineStore('settings', () => {
     if (webdavCheckInterval) {
       clearInterval(webdavCheckInterval)
       webdavCheckInterval = null
+    }
+    if (webdavSyncProgressUnregister) {
+      webdavSyncProgressUnregister()
+      webdavSyncProgressUnregister = null
     }
   }
 

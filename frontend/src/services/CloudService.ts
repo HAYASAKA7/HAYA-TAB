@@ -5,9 +5,16 @@ import { callBackend } from './api';
  */
 export const CloudService = {
   /**
-   * Check WebDAV connection status.
+   * Check WebDAV connection status and if volumes are fully initialized.
    */
   async checkStatus(): Promise<boolean> {
+    return await callBackend<boolean>('WebDAVIsReady');
+  },
+
+  /**
+   * Check only if WebDAV connection is available, regardless of volume initialization status.
+   */
+  async checkConnectionOnly(): Promise<boolean> {
     return await callBackend<boolean>('WebDAVCheckStatus');
   },
 

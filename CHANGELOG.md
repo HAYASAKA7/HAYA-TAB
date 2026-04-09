@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.2] - 2026-04-09
+
+### Added
+- **WebDAV Ready Status API:** New `WebDAVIsReady()` endpoint that checks both connection status and volume initialization completeness
+- **Toast Style Variants:** Added success/warning toast styles with full theme integration
+- **Real-time Connection Status:** Added event listener for `webdav-sync-progress` to update UI connection state immediately
+
+### Improved
+- **Tab Update Event Handling:** Enhanced `tab-updated` event to support both single and array payloads, and added new tabs automatically when they don't exist locally
+- **Scroll Position Preservation:** Skip full UI refresh during WebDAV volume initialization to avoid jumping to top
+- **Auto Volume Discovery:** Automatically run volume discovery during upload/download operations if volumes haven't been initialized yet
+- **Toast UI Improvements:** Updated toast styling to match application theme, reduced size, improved positioning and readability
+- **Cloud Service API:** Rewrote `CloudService.checkStatus()` to use the new `WebDAVIsReady()` API for more accurate status reporting
+- **WebDAV State Management:** Added atomic flags to track volume initialization state and prevent race conditions
+
+### Fixed
+- **CSS User-Select Ordering:** Fixed cross-browser user-select CSS property ordering
+- **Toast Positioning:** Fixed incorrect toast container positioning when sync status toast is active
+- **WebDAV Initialization Races:** Fixed multiple race conditions in the WebDAV initialization and reconnection flow
+
 ## [3.1.1] - 2026-04-07
 
 ### Added
