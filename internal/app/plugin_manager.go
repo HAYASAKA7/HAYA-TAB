@@ -18,6 +18,11 @@ import (
 	"github.com/dop251/goja"
 )
 
+const (
+	// PluginHTTPTimeout is the HTTP request timeout for plugin network calls.
+	PluginHTTPTimeout = 15 * time.Second
+)
+
 type PluginManifest struct {
 	ID             string            `json:"id"`
 	Name           string            `json:"name"`
@@ -60,7 +65,7 @@ func NewPluginManager(logger *logger.Logger) *PluginManager {
 		plugins: make([]Plugin, 0),
 		logger:  logger,
 		httpClient: &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout: PluginHTTPTimeout,
 		},
 	}
 }

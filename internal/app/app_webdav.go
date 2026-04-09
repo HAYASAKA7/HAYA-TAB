@@ -15,6 +15,13 @@ import (
 	"time"
 )
 
+const (
+	// WebDAVHealthCheckInterval is how often the WebDAV connection status is checked.
+	WebDAVHealthCheckInterval = 30 * time.Second
+	// WebDAVConcurrentOps is the maximum concurrent WebDAV download/upload operations.
+	WebDAVConcurrentOps = 5
+)
+
 // getDeviceName returns a device identifier for fingerprint tracking
 func getDeviceName() string {
 	hostname, err := os.Hostname()
@@ -108,7 +115,7 @@ func (a *App) WebDAVDownloadFiles(url, user, password string, remotePaths []stri
 		}
 
 		var wg sync.WaitGroup
-		sem := make(chan struct{}, 5)
+		sem := make(chan struct{}, WebDAVConcurrentOps)
 
 		for i, remotePath := range remotePaths {
 			wg.Add(1)
@@ -263,7 +270,7 @@ func (a *App) WebDAVUploadFiles(url, user, password string, localPaths []string,
 		}
 
 		var wg sync.WaitGroup
-		sem := make(chan struct{}, 5)
+		sem := make(chan struct{}, WebDAVConcurrentOps)
 
 		for i, localPath := range localPaths {
 			wg.Add(1)
@@ -409,7 +416,7 @@ func (a *App) WebDAVAddOnlineFiles(url, user, password string, remotePaths []str
 		var mu sync.Mutex
 
 		var wg sync.WaitGroup
-		sem := make(chan struct{}, 5)
+		sem := make(chan struct{}, WebDAVConcurrentOps)
 
 		for i, remotePath := range remotePaths {
 			wg.Add(1)
@@ -609,7 +616,7 @@ func (a *App) monitorWebDAVConnection() {
 		lastStatus = a.WebDAVCheckStatus()
 	}
 
-	checkInterval := 30 * time.Second // Check every 30 seconds
+	checkInterval := WebDAVHealthCheckInterval
 
 	for {
 		settings := a.store.GetSettings()

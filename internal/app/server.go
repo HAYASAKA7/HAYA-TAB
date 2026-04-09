@@ -13,6 +13,13 @@ import (
 	"strings"
 )
 
+const (
+	// FileCacheMaxAge is the Cache-Control max-age for streamed tab files (1 hour).
+	FileCacheMaxAge = 3600
+	// CoverCacheMaxAge is the Cache-Control max-age for cover images (24 hours).
+	CoverCacheMaxAge = 86400
+)
+
 // StartFileServer starts a local HTTP server to serve files
 func (a *App) StartFileServer() (int, error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -179,7 +186,7 @@ func (h *FileHandler) serveTabFile(w http.ResponseWriter, r *http.Request, id st
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filepath.Base(tab.FilePath)))
-	w.Header().Set("Cache-Control", "private, max-age=3600")
+	w.Header().Set("Cache-Control", fmt.Sprintf("private, max-age=%d", FileCacheMaxAge))
 
 	// Stream the file
 	io.Copy(w, file)
@@ -247,7 +254,7 @@ func (h *FileHandler) serveCoverFile(w http.ResponseWriter, r *http.Request, id 
 	// Set headers
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
-	w.Header().Set("Cache-Control", "public, max-age=86400") // Cache covers for 24 hours
+	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", CoverCacheMaxAge)) // Cache covers for 24 hours
 
 	// Stream the file
 	io.Copy(w, file)

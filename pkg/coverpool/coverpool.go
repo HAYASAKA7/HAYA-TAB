@@ -6,7 +6,10 @@ import (
 )
 
 const (
+	// PendingBuffer is the maximum number of pending cover download jobs.
 	PendingBuffer = 100
+	// DefaultWorkers is the default number of concurrent cover download workers.
+	DefaultWorkers = 3
 )
 
 // CoverJob represents a cover download task
@@ -34,7 +37,7 @@ type CoverPool struct {
 // NewCoverPool creates a new worker pool with the specified number of workers
 func NewCoverPool(workers int, downloadFn func(artist, album, title, country, lang, dstPath string) error) *CoverPool {
 	if workers < 1 {
-		workers = 3
+		workers = DefaultWorkers
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	pool := &CoverPool{

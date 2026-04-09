@@ -8,6 +8,13 @@ import (
 	syncpkg "haya-tab/pkg/sync"
 )
 
+const (
+	// FingerprintCacheFlushInterval is the automatic flush interval for the fingerprint cache.
+	FingerprintCacheFlushInterval = 3 * time.Second
+	// FingerprintCacheMaxBuckets is the maximum number of buckets kept in the fingerprint cache.
+	FingerprintCacheMaxBuckets = 100
+)
+
 // getFingerprintCache returns the fingerprint cache, creating it if needed
 func (a *App) getFingerprintCache() *syncpkg.FingerprintCache {
 	a.fingerprintCacheMu.Lock()
@@ -25,9 +32,9 @@ func (a *App) getFingerprintCache() *syncpkg.FingerprintCache {
 			settings.WebDAVPassword,
 		)
 
-		// Create cache with 3 second flush interval and 100 bucket max size
-		a.fingerprintCache = syncpkg.NewFingerprintCache(client, 3*time.Second, 100)
-		a.logger.Info("Fingerprint cache initialized with 3s flush interval and 100 bucket max size")
+		// Create cache with configured flush interval and max bucket size
+		a.fingerprintCache = syncpkg.NewFingerprintCache(client, FingerprintCacheFlushInterval, FingerprintCacheMaxBuckets)
+		a.logger.Info("Fingerprint cache initialized with %v flush interval and %d bucket max size", FingerprintCacheFlushInterval, FingerprintCacheMaxBuckets)
 	}
 
 	return a.fingerprintCache

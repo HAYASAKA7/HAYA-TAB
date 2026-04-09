@@ -10,6 +10,11 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+const (
+	// DefaultDebounceMs is the default debounce interval in milliseconds for file change events.
+	DefaultDebounceMs = 500
+)
+
 // Logger interface for dependency injection
 type Logger interface {
 	Info(format string, args ...interface{})
@@ -32,7 +37,7 @@ type FileWatcher struct {
 func NewFileWatcher(onChange func()) *FileWatcher {
 	return &FileWatcher{
 		onChange:   onChange,
-		debounceMs: 500, // 0.5 second debounce
+		debounceMs: DefaultDebounceMs, // 0.5 second debounce
 		stopChan:   make(chan struct{}),
 	}
 }

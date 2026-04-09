@@ -7,6 +7,11 @@ import (
 	"haya-tab/pkg/store"
 )
 
+const (
+	// DefaultVolumeCacheTTL is the default time-to-live for cached volume entries.
+	DefaultVolumeCacheTTL = 5 * time.Minute
+)
+
 // VolumeCache provides in-memory caching of volume metadata with TTL
 // This eliminates redundant volume scanning operations
 type VolumeCache struct {
@@ -25,7 +30,7 @@ type cachedVolume struct {
 // NewVolumeCache creates a new volume cache with specified TTL
 func NewVolumeCache(ttl time.Duration) *VolumeCache {
 	if ttl == 0 {
-		ttl = 5 * time.Minute // Default: 5 minutes
+		ttl = DefaultVolumeCacheTTL
 	}
 
 	return &VolumeCache{

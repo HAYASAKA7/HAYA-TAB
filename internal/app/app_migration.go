@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+const (
+	// MigrationSettleTime is the delay after migration to let the filesystem settle.
+	MigrationSettleTime = 1 * time.Second
+	// DiskSpaceSafetyMultiplier is the factor by which required space exceeds data size for safe migration.
+	DiskSpaceSafetyMultiplier = 2
+)
+
 // MigrationStatus holds information about a directory migration
 type MigrationStatus struct {
 	Count int   `json:"count"`
@@ -94,8 +101,8 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 	if count > 0 {
 		// Check free space on destination drive
 		freeSpace, err := GetDiskFreeSpace(newPath)
-		if err == nil && totalSize > 0 && freeSpace < uint64(totalSize)*2 {
-			return apperrors.MigrationDiskSpaceError(uint64(totalSize)*2, freeSpace)
+		if err == nil && totalSize > 0 && freeSpace < uint64(totalSize)*DiskSpaceSafetyMultiplier {
+			return apperrors.MigrationDiskSpaceError(uint64(totalSize)*DiskSpaceSafetyMultiplier, freeSpace)
 		}
 
 		// Pause Watcher if it's running and we're modifying related things
@@ -193,7 +200,7 @@ func (a *App) MigrateData(target string, newPath string, copyOnly bool) error {
 	}
 
 	// Notify frontend to reload view (only in real app context)
-	time.Sleep(1 * time.Second) // Let file system settle
+	time.Sleep(MigrationSettleTime) // Let file system settle
 	a.emitEvent("migration-completed", target)
 
 	return nil

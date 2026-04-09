@@ -8,6 +8,13 @@ import (
 	"strconv"
 )
 
+const (
+	// MaxWebDAVURLLength is the maximum allowed length for a WebDAV URL.
+	MaxWebDAVURLLength = 2048
+	// MaxWebDAVCredentialLength is the maximum allowed length for WebDAV username or password.
+	MaxWebDAVCredentialLength = 256
+)
+
 // GetSettings returns the current settings
 func (a *App) GetSettings() store.Settings {
 	return a.store.GetSettings()
@@ -96,13 +103,13 @@ func (a *App) validateWebDAVSettings(s store.Settings) error {
 // validateWebDAV checks WebDAV connection info for validity
 func (a *App) validateWebDAV(webdavURL, user, password string) error {
 	// 1. Max length checks
-	if len(webdavURL) > 2048 {
+	if len(webdavURL) > MaxWebDAVURLLength {
 		return apperrors.NewAppError("errors.webdavUrlTooLong", "WebDAV URL is too long", nil, nil)
 	}
-	if len(user) > 256 {
+	if len(user) > MaxWebDAVCredentialLength {
 		return apperrors.NewAppError("errors.webdavUserTooLong", "WebDAV username is too long", nil, nil)
 	}
-	if len(password) > 256 {
+	if len(password) > MaxWebDAVCredentialLength {
 		return apperrors.NewAppError("errors.webdavPasswordTooLong", "WebDAV password is too long", nil, nil)
 	}
 

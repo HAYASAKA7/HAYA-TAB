@@ -13,6 +13,13 @@ import (
 	"time"
 )
 
+const (
+	// DefaultPageSize is the default number of tabs per page.
+	DefaultPageSize = 50
+	// MaxPageSize is the maximum allowed page size.
+	MaxPageSize = 200
+)
+
 // TabsResponse represents a paginated response for tabs
 type TabsResponse struct {
 	Tabs     []store.Tab `json:"tabs"`
@@ -37,8 +44,8 @@ func (a *App) GetTabsPaginated(categoryId string, page, pageSize int, searchQuer
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 200 {
-		pageSize = 50
+	if pageSize < 1 || pageSize > MaxPageSize {
+		pageSize = DefaultPageSize
 	}
 
 	if len(filterBy) == 0 {

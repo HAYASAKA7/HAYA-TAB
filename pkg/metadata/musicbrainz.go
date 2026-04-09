@@ -11,10 +11,12 @@ import (
 )
 
 const (
-	// MusicBrainz API base URL
+	// musicBrainzBaseURL is the MusicBrainz API base URL.
 	musicBrainzBaseURL = "https://musicbrainz.org/ws/2"
-	// User-Agent required by MusicBrainz API
+	// musicBrainzUserAgent is the User-Agent required by MusicBrainz API.
 	musicBrainzUserAgent = "HAYA-TAB/2.0.0 ( contact@example.com )"
+	// MusicBrainzRequestTimeout is the HTTP request timeout for MusicBrainz API calls.
+	MusicBrainzRequestTimeout = 30 * time.Second
 )
 
 // MusicBrainzArtistResponse represents the response from MusicBrainz artist search
@@ -45,7 +47,7 @@ type MusicBrainzClient struct {
 func NewMusicBrainzClient() *MusicBrainzClient {
 	return &MusicBrainzClient{
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: MusicBrainzRequestTimeout,
 		},
 	}
 }

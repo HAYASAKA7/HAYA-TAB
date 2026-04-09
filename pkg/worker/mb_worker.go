@@ -9,7 +9,10 @@ import (
 )
 
 const (
+	// JobBuffer is the maximum number of pending MusicBrainz jobs.
 	JobBuffer = 1000
+	// MBRateLimit is the MusicBrainz API rate limit (1 request per second).
+	MBRateLimit = 1 * time.Second
 )
 
 // MBJob represents a job to fetch artist origin country from MusicBrainz
@@ -116,7 +119,7 @@ func (w *MBWorker) run() {
 
 	// CRITICAL: MusicBrainz allows only 1 request per second
 	// Using a ticker ensures we never exceed this limit
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(MBRateLimit)
 	defer ticker.Stop()
 
 	for {

@@ -6,6 +6,15 @@ import (
 	"time"
 )
 
+const (
+	// DefaultCacheFlushInterval is the default interval for flushing dirty buckets to WebDAV.
+	DefaultCacheFlushInterval = 5 * time.Second
+	// DefaultCacheMaxSize is the default maximum number of buckets to keep in cache.
+	DefaultCacheMaxSize = 100
+	// MaxFlushRetries is the maximum number of retry attempts when a bucket write conflict occurs.
+	MaxFlushRetries = 3
+)
+
 // FingerprintCache provides an in-memory LRU cache for fingerprint operations
 // with delayed batch writes to reduce WebDAV I/O overhead
 // OPTIMIZED: Cache persists after flush, only dirty buckets are written
@@ -32,10 +41,10 @@ type cachedBucket struct {
 // maxSize: maximum number of buckets to cache (0 = unlimited, recommended: 100)
 func NewFingerprintCache(client *WebDAVClient, flushInterval time.Duration, maxSize int) *FingerprintCache {
 	if flushInterval == 0 {
-		flushInterval = 5 * time.Second // Default: flush every 5 seconds
+		flushInterval = DefaultCacheFlushInterval
 	}
 	if maxSize == 0 {
-		maxSize = 100 // Default: cache up to 100 buckets
+		maxSize = DefaultCacheMaxSize
 	}
 
 	cache := &FingerprintCache{
@@ -315,7 +324,7 @@ func (c *FingerprintCache) Flush() error {
 
 	var lastErr error
 	flushedCount := 0
-	const maxRetries = 3
+	const maxRetries = MaxFlushRetries
 
 	// Write to WebDAV without lock
 	for _, item := range itemsToWrite {

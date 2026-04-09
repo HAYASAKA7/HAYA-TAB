@@ -21,6 +21,21 @@ import (
 // BrowserUserAgent is a Chrome-like User-Agent to avoid 403 blocks from WebDAV servers
 const BrowserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
+const (
+	// DefaultMetadataTimeout is the HTTP request timeout for WebDAV metadata operations.
+	DefaultMetadataTimeout = 30 * time.Second
+	// MaxDirectoryScanDepth is the maximum recursion depth when scanning remote directories.
+	MaxDirectoryScanDepth = 10
+	// MaxIdleConns is the maximum number of idle connections in the HTTP transport.
+	MaxIdleConns = 10
+	// IdleConnTimeout is the timeout for idle connections before they are closed.
+	IdleConnTimeout = 90 * time.Second
+	// MaxIdleConnsPerHost is the maximum number of idle connections per host.
+	MaxIdleConnsPerHost = 5
+	// MaxConnsPerHost is the strict concurrency limit per host to avoid overwhelming WebDAV servers.
+	MaxConnsPerHost = 5
+)
+
 // customTransport wraps http.Transport to inject headers on every request
 type customTransport struct {
 	base http.RoundTripper
@@ -106,7 +121,7 @@ func NewWebDAVClient(serverURL, user, password string) *WebDAVClient {
 	metadataTransport := createTransport(true)
 	metadataClient := gowebdav.NewClient(serverURL, user, password)
 	metadataClient.SetTransport(&customTransport{base: metadataTransport})
-	metadataClient.SetTimeout(30 * time.Second) // 30 second timeout for metadata operations
+	metadataClient.SetTimeout(DefaultMetadataTimeout)
 	metadataClient.SetHeader("User-Agent", BrowserUserAgent)
 
 	// Create transport for file transfers (Keep-Alive disabled)
@@ -142,13 +157,13 @@ func createTransport(enableKeepAlive bool) *http.Transport {
 		baseTransport = &http.Transport{}
 	}
 
-	baseTransport.MaxIdleConns = 10
-	baseTransport.IdleConnTimeout = 90 * time.Second
+	baseTransport.MaxIdleConns = MaxIdleConns
+	baseTransport.IdleConnTimeout = IdleConnTimeout
 	baseTransport.DisableCompression = false
 	baseTransport.DisableKeepAlives = !enableKeepAlive // Enable/disable Keep-Alive based on parameter
-	baseTransport.MaxIdleConnsPerHost = 5
+	baseTransport.MaxIdleConnsPerHost = MaxIdleConnsPerHost
 	// Add strict concurrency limits per host to prevent overwhelming WebDAV servers
-	baseTransport.MaxConnsPerHost = 5
+	baseTransport.MaxConnsPerHost = MaxConnsPerHost
 	// Disable HTTP/2 for better compatibility
 	baseTransport.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
 
@@ -228,7 +243,7 @@ func (c *WebDAVClient) ScanRemoteFiles(dir string) ([]store.RemoteFile, error) {
 }
 
 func (c *WebDAVClient) scanRecursive(dir string, depth int) ([]store.RemoteFile, error) {
-	if depth > 10 { // Depth limit to prevent infinite loops or excessively deep scans
+	if depth > MaxDirectoryScanDepth { // Depth limit to prevent infinite loops or excessively deep scans
 		return nil, nil
 	}
 
