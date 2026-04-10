@@ -8,36 +8,27 @@ import (
 	"time"
 )
 
-func setupTestDB(t *testing.T) (*DBStore, string) {
-	tmpDir, err := os.MkdirTemp("", "store-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+func setupTestDB(t *testing.T) *DBStore {
+	tmpDir := t.TempDir()
 
 	dbPath := filepath.Join(tmpDir, "test.db")
 	store := NewDBStore(dbPath)
 
 	if err := store.Initialize(); err != nil {
-		os.RemoveAll(tmpDir)
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
 
-	return store, tmpDir
+	return store
 }
 
-func cleanupTestDB(store *DBStore, tmpDir string) {
+func cleanupTestDB(store *DBStore) {
 	if store != nil {
 		store.Close()
 	}
-	os.RemoveAll(tmpDir)
 }
 
 func TestNewDBStore(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "store-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	dbPath := filepath.Join(tmpDir, "test.db")
 	store := NewDBStore(dbPath)
@@ -54,8 +45,8 @@ func TestNewDBStore(t *testing.T) {
 }
 
 func TestDBStore_Initialize(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Verify database file was created
 	if _, err := os.Stat(store.dbPath); os.IsNotExist(err) {
@@ -69,8 +60,8 @@ func TestDBStore_Initialize(t *testing.T) {
 }
 
 func TestDBStore_AddAndGetTab(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	tab := Tab{
 		ID:       "test-tab-1",
@@ -109,8 +100,8 @@ func TestDBStore_AddAndGetTab(t *testing.T) {
 }
 
 func TestDBStore_UpdateTab(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add initial tab
 	tab := Tab{
@@ -139,8 +130,8 @@ func TestDBStore_UpdateTab(t *testing.T) {
 }
 
 func TestDBStore_DeleteTab(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab
 	tab := Tab{
@@ -163,8 +154,8 @@ func TestDBStore_DeleteTab(t *testing.T) {
 }
 
 func TestDBStore_GetAllTabs(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add multiple tabs
 	tabs := []Tab{
@@ -189,8 +180,8 @@ func TestDBStore_GetAllTabs(t *testing.T) {
 }
 
 func TestDBStore_SearchTabs(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tabs with searchable content
 	tabs := []Tab{
@@ -226,8 +217,8 @@ func TestDBStore_SearchTabs(t *testing.T) {
 }
 
 func TestDBStore_AddAndGetCategory(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	category := Category{
 		ID:   "cat-1",
@@ -259,8 +250,8 @@ func TestDBStore_AddAndGetCategory(t *testing.T) {
 }
 
 func TestDBStore_DeleteCategory(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add category
 	category := Category{
@@ -285,8 +276,8 @@ func TestDBStore_DeleteCategory(t *testing.T) {
 }
 
 func TestDBStore_Settings(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Get default settings
 	settings := store.GetSettings()
@@ -313,8 +304,8 @@ func TestDBStore_Settings(t *testing.T) {
 }
 
 func TestDBStore_HasData(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Initially should have no data
 	if store.HasData() {
@@ -335,8 +326,8 @@ func TestDBStore_HasData(t *testing.T) {
 }
 
 func TestDBStore_UpdateTabOriginCountry(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab
 	tab := Tab{
@@ -360,8 +351,8 @@ func TestDBStore_UpdateTabOriginCountry(t *testing.T) {
 }
 
 func TestDBStore_UpdateTabInitials(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab
 	tab := Tab{
@@ -387,8 +378,8 @@ func TestDBStore_UpdateTabInitials(t *testing.T) {
 }
 
 func TestDBStore_GetTabByPath(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab with specific path
 	tab := Tab{
@@ -412,8 +403,8 @@ func TestDBStore_GetTabByPath(t *testing.T) {
 }
 
 func TestDBStore_GetTabByTitle(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab with specific title
 	tab := Tab{
@@ -436,8 +427,8 @@ func TestDBStore_GetTabByTitle(t *testing.T) {
 }
 
 func TestDBStore_UpdateLastOpened(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab
 	tab := Tab{
@@ -461,8 +452,7 @@ func TestDBStore_UpdateLastOpened(t *testing.T) {
 }
 
 func TestDBStore_Close(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer os.RemoveAll(tmpDir)
+	store := setupTestDB(t)
 
 	// Close should not error
 	err := store.Close()
@@ -478,8 +468,8 @@ func TestDBStore_Close(t *testing.T) {
 }
 
 func TestDBStore_GetRecentCategories(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add categories
 	cat1 := Category{ID: "cat-1", Name: "Rock"}
@@ -511,8 +501,8 @@ func TestDBStore_GetRecentCategories(t *testing.T) {
 }
 
 func TestDBStore_MoveCategory(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add categories
 	cat1 := Category{ID: "cat-1", Name: "Rock"}
@@ -534,8 +524,8 @@ func TestDBStore_MoveCategory(t *testing.T) {
 }
 
 func TestDBStore_EnsureCloudCategory(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Ensure cloud category
 	err := store.EnsureCloudCategory()
@@ -563,8 +553,8 @@ func TestDBStore_EnsureCloudCategory(t *testing.T) {
 }
 
 func TestDBStore_GetCategory(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add category
 	cat := Category{ID: "cat-1", Name: "Rock"}
@@ -593,8 +583,8 @@ func TestDBStore_GetCategory(t *testing.T) {
 }
 
 func TestDBStore_GetTabsPaginated(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add test tabs
 	for i := 0; i < 25; i++ {
@@ -639,8 +629,8 @@ func TestDBStore_GetTabsPaginated(t *testing.T) {
 }
 
 func TestDBStore_UpdateTab2(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab
 	tab := Tab{
@@ -665,8 +655,8 @@ func TestDBStore_UpdateTab2(t *testing.T) {
 }
 
 func TestDBStore_SetTabCategories(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab and categories
 	tab := Tab{ID: "tab-1", Title: "Song"}
@@ -691,8 +681,8 @@ func TestDBStore_SetTabCategories(t *testing.T) {
 }
 
 func TestDBStore_GetRecentTabs(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tabs with different last opened times
 	for i := 0; i < 5; i++ {
@@ -721,8 +711,8 @@ func TestDBStore_GetRecentTabs(t *testing.T) {
 }
 
 func TestDBStore_GetTabsNeedingOriginCountry(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab with cover but no origin country
 	tab := Tab{
@@ -745,8 +735,8 @@ func TestDBStore_GetTabsNeedingOriginCountry(t *testing.T) {
 }
 
 func TestDBStore_GetTabsNeedingInitials(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tab without initials
 	tab := Tab{
@@ -767,8 +757,8 @@ func TestDBStore_GetTabsNeedingInitials(t *testing.T) {
 }
 
 func TestDBStore_SearchTabs_MultipleResults(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add test tabs
 	tabs := []Tab{
@@ -793,8 +783,8 @@ func TestDBStore_SearchTabs_MultipleResults(t *testing.T) {
 }
 
 func TestDBStore_GetTabsPaginated_Sorting(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add tabs with different timestamps
 	now := time.Now().Unix()
@@ -820,8 +810,8 @@ func TestDBStore_GetTabsPaginated_Sorting(t *testing.T) {
 }
 
 func TestDBStore_HasData_AfterAdding(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add a tab
 	tab := Tab{ID: "tab-1", Title: "Song"}
@@ -835,8 +825,8 @@ func TestDBStore_HasData_AfterAdding(t *testing.T) {
 }
 
 func TestDBStore_DeleteCategory_WithSubcategories(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add parent and child categories
 	parent := Category{ID: "parent", Name: "Parent"}
@@ -858,8 +848,8 @@ func TestDBStore_DeleteCategory_WithSubcategories(t *testing.T) {
 }
 
 func TestDBStore_GetTabsPaginatedLike(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add test tabs with various fields
 	tabs := []Tab{
@@ -1084,8 +1074,8 @@ func TestDBStore_GetTabsPaginatedLike(t *testing.T) {
 }
 
 func TestDBStore_GetTabsPaginatedLike_EdgeCases(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Test with empty database
 	results, total, err := store.getTabsPaginatedLike("", 1, 10, "test", []string{"title"}, true, "title", false)

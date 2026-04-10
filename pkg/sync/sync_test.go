@@ -26,15 +26,11 @@ func (m *mockEventEmitter) Emit(eventName string, data interface{}) {
 }
 
 func setupTestSyncService(t *testing.T) (*SyncService, *store.DBStore, string, func()) {
-	tmpDir, err := os.MkdirTemp("", "sync-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+	tmpDir := t.TempDir()
 
 	dbPath := filepath.Join(tmpDir, "test.db")
 	testStore := store.NewDBStore(dbPath)
 	if err := testStore.Initialize(); err != nil {
-		os.RemoveAll(tmpDir)
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
 
@@ -48,7 +44,6 @@ func setupTestSyncService(t *testing.T) (*SyncService, *store.DBStore, string, f
 	cleanup := func() {
 		testStore.Close()
 		testLogger.Close()
-		os.RemoveAll(tmpDir)
 	}
 
 	return service, testStore, tmpDir, cleanup

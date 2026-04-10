@@ -17,20 +17,16 @@ import (
 // It sets up isolated storage and covers directories within the temp directory.
 func setupTestApp(t *testing.T) (*App, string) {
 	t.Helper()
-	tmpDir, err := os.MkdirTemp("", "app-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+	tmpDir := t.TempDir()
 
 	appDir := filepath.Join(tmpDir, "app")
 	os.MkdirAll(appDir, 0755)
 
 	dbPath := filepath.Join(appDir, "data", "test.db")
 	os.MkdirAll(filepath.Dir(dbPath), 0755)
-	
+
 	s := store.NewDBStore(dbPath)
 	if err := s.Initialize(); err != nil {
-		os.RemoveAll(tmpDir)
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
 
@@ -49,14 +45,14 @@ func setupTestApp(t *testing.T) (*App, string) {
 	l := logger.NewLogger(appDir)
 	cp := coverpool.NewCoverPool(1, nil) // No downloader for tests
 	mb := worker.NewMBWorker(s, l)
-	
+
 	app := &App{
 		store:     s,
 		logger:    l,
 		coverPool: cp,
 		mbWorker:  mb,
 	}
-	
+
 	emitter := &WailsEventEmitter{}
 	app.syncService = syncpkg.NewSyncService(s, l, cp, emitter, appDir, mb, nil)
 	app.volumeCache = syncpkg.NewVolumeCache(5 * time.Minute)
@@ -64,11 +60,13 @@ func setupTestApp(t *testing.T) (*App, string) {
 	return app, tmpDir
 }
 
-func cleanupTestApp(app *App, tmpDir string) {
+func cleanupTestApp(app *App) {
+	if app != nil && app.logger != nil {
+		app.logger.Close()
+	}
 	if app != nil && app.store != nil {
 		app.store.Close()
 	}
-	os.RemoveAll(tmpDir)
 }
 
 // --- Tests for pure functions ---
@@ -166,11 +164,7 @@ func TestParseMetadataFromFilename(t *testing.T) {
 }
 
 func TestCopyFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "copyfile-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Create source file
 	srcPath := filepath.Join(tmpDir, "source.txt")
@@ -196,41 +190,29 @@ func TestCopyFile(t *testing.T) {
 }
 
 func TestCopyFile_SourceNotExist(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "copyfile-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
-	err = copyFile(filepath.Join(tmpDir, "nonexistent"), filepath.Join(tmpDir, "dst"))
+	err := copyFile(filepath.Join(tmpDir, "nonexistent"), filepath.Join(tmpDir, "dst"))
 	if err == nil {
 		t.Error("Expected error when source doesn't exist")
 	}
 }
 
 func TestCopyFile_InvalidDestination(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "copyfile-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	srcPath := filepath.Join(tmpDir, "source.txt")
 	os.WriteFile(srcPath, []byte("data"), 0644)
 
 	// Destination in a non-existent directory
-	err = copyFile(srcPath, filepath.Join(tmpDir, "no-such-dir", "dst.txt"))
+	err := copyFile(srcPath, filepath.Join(tmpDir, "no-such-dir", "dst.txt"))
 	if err == nil {
 		t.Error("Expected error when destination directory doesn't exist")
 	}
 }
 
 func TestCopyFile_EmptyFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "copyfile-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	srcPath := filepath.Join(tmpDir, "empty.txt")
 	os.WriteFile(srcPath, []byte{}, 0644)
@@ -250,11 +232,7 @@ func TestCopyFile_EmptyFile(t *testing.T) {
 }
 
 func TestCopyFile_LargeFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "copyfile-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Create a 1MB file
 	data := make([]byte, 1024*1024)
@@ -300,7 +278,8 @@ func TestApp_SetGetFileServerPort(t *testing.T) {
 
 func TestApp_GetStorageDir(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	dir := app.GetStorageDir()
 	if dir == "" {
@@ -319,7 +298,8 @@ func TestApp_GetStorageDir(t *testing.T) {
 
 func TestApp_GetStorageDir_CustomPath(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	customPath := filepath.Join(tmpDir, "custom_storage")
 	settings := app.store.GetSettings()
@@ -343,7 +323,8 @@ func TestApp_GetStorageDir_CustomPath(t *testing.T) {
 
 func TestApp_GetCoversDir(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	dir := app.GetCoversDir()
 	if dir == "" {
@@ -361,7 +342,8 @@ func TestApp_GetCoversDir(t *testing.T) {
 
 func TestApp_GetCoversDir_CustomPath(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	customPath := filepath.Join(tmpDir, "custom_covers")
 	settings := app.store.GetSettings()
@@ -376,7 +358,8 @@ func TestApp_GetCoversDir_CustomPath(t *testing.T) {
 
 func TestApp_ResolveTabPath(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	tests := []struct {
 		name      string
@@ -429,7 +412,8 @@ func TestApp_ResolveTabPath(t *testing.T) {
 
 func TestApp_ResolveCoverPath(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	tests := []struct {
 		name     string
@@ -469,7 +453,8 @@ func TestApp_ResolveCoverPath(t *testing.T) {
 
 func TestApp_GetCover(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	t.Run("empty path returns empty", func(t *testing.T) {
 		result := app.GetCover("")

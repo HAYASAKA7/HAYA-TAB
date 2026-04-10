@@ -84,7 +84,6 @@ func (w *FileWatcher) Stop() {
 
 	if w.watcher != nil {
 		w.watcher.Close()
-		w.watcher = nil
 	}
 }
 

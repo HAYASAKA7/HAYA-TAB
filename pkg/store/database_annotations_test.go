@@ -5,8 +5,8 @@ import (
 )
 
 func TestDBStore_SaveTabAnnotation(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add a tab first
 	tab := Tab{ID: "tab1", Title: "Test", FilePath: "/test.gp5", Type: "gp5"}
@@ -60,8 +60,8 @@ func TestDBStore_SaveTabAnnotation(t *testing.T) {
 }
 
 func TestDBStore_GetTabAnnotation(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	tab := Tab{ID: "tab1", Title: "Test", FilePath: "/test.gp5", Type: "gp5"}
 	store.AddTab(tab)
@@ -115,8 +115,8 @@ func TestDBStore_GetTabAnnotation(t *testing.T) {
 }
 
 func TestDBStore_DeleteTabAnnotations(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	tab := Tab{ID: "tab1", Title: "Test", FilePath: "/test.gp5", Type: "gp5"}
 	store.AddTab(tab)
@@ -144,8 +144,8 @@ func TestDBStore_DeleteTabAnnotations(t *testing.T) {
 }
 
 func TestDBStore_DeleteTabAnnotations_NonExistentTab(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Should not error when deleting annotations for non-existent tab
 	err := store.DeleteTabAnnotations("nonexistent")

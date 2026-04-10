@@ -7,7 +7,8 @@ import (
 
 func TestApp_WebDAVTestConnection_EmptyURL(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	err := app.WebDAVTestConnection("", "user", "pass")
 	if err == nil {
@@ -17,7 +18,8 @@ func TestApp_WebDAVTestConnection_EmptyURL(t *testing.T) {
 
 func TestApp_WebDAVTestConnection_InvalidURL(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	// Test with an invalid/unreachable URL
 	err := app.WebDAVTestConnection("http://invalid.local.test:9999", "user", "pass")
@@ -28,7 +30,8 @@ func TestApp_WebDAVTestConnection_InvalidURL(t *testing.T) {
 
 func TestApp_WebDAVTestConnection_URLNormalization(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	// Even if connection fails, the URL normalization should happen
 	// The error message should not contain trailing slashes
@@ -40,7 +43,8 @@ func TestApp_WebDAVTestConnection_URLNormalization(t *testing.T) {
 
 func TestApp_WebDAVCheckStatus_NotEnabled(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	// WebDAV is not enabled by default
 	status := app.WebDAVCheckStatus()
@@ -51,7 +55,8 @@ func TestApp_WebDAVCheckStatus_NotEnabled(t *testing.T) {
 
 func TestApp_WebDAVCheckStatus_EnabledButInvalidURL(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	settings := app.GetSettings()
 	settings.WebDAVEnabled = true
@@ -68,7 +73,8 @@ func TestApp_WebDAVCheckStatus_EnabledButInvalidURL(t *testing.T) {
 
 func TestApp_WebDAVCheckStatus_NoURL(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	settings := app.GetSettings()
 	settings.WebDAVEnabled = true
@@ -83,7 +89,8 @@ func TestApp_WebDAVCheckStatus_NoURL(t *testing.T) {
 
 func TestApp_DownloadCloudTabToLocal_NotCloud(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	// Add a non-cloud tab
 	app.store.AddTab(store.Tab{
@@ -100,7 +107,8 @@ func TestApp_DownloadCloudTabToLocal_NotCloud(t *testing.T) {
 
 func TestApp_DownloadCloudTabToLocal_NotFound(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	err := app.DownloadCloudTabToLocal("nonexistent")
 	if err == nil {
@@ -110,7 +118,8 @@ func TestApp_DownloadCloudTabToLocal_NotFound(t *testing.T) {
 
 func TestApp_DownloadCloudTabToLocal_WebDAVDisabled(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	// Add a cloud tab
 	app.store.AddTab(store.Tab{
@@ -175,7 +184,8 @@ func TestParseMetadataFromFilename_WebDAV(t *testing.T) {
 
 func TestApp_WebDAVScanRemoteFiles_InvalidURL(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	_, err := app.WebDAVScanRemoteFiles("http://invalid.local.test:9999", "user", "pass", "/")
 	if err == nil {
@@ -185,7 +195,8 @@ func TestApp_WebDAVScanRemoteFiles_InvalidURL(t *testing.T) {
 
 func TestApp_WebDAVListRemoteDirectories_InvalidURL(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	_, err := app.WebDAVListRemoteDirectories("http://invalid.local.test:9999", "user", "pass", "/")
 	if err == nil {
@@ -195,7 +206,8 @@ func TestApp_WebDAVListRemoteDirectories_InvalidURL(t *testing.T) {
 
 func TestApp_WebDAVListDir_InvalidURL(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
-	defer cleanupTestApp(app, tmpDir)
+	defer cleanupTestApp(app)
+	_ = tmpDir // Ignore unused variable error
 
 	_, err := app.WebDAVListDir("http://invalid.local.test:9999", "user", "pass", "/")
 	if err == nil {

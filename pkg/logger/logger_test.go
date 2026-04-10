@@ -9,11 +9,7 @@ import (
 )
 
 func TestNewLogger(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	if logger == nil {
@@ -36,11 +32,7 @@ func TestNewLogger(t *testing.T) {
 }
 
 func TestLogger_Info(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	defer logger.Close()
@@ -66,11 +58,7 @@ func TestLogger_Info(t *testing.T) {
 }
 
 func TestLogger_Error(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	defer logger.Close()
@@ -96,11 +84,7 @@ func TestLogger_Error(t *testing.T) {
 }
 
 func TestLogger_Debug(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	defer logger.Close()
@@ -129,11 +113,7 @@ func TestLogger_Debug(t *testing.T) {
 }
 
 func TestLogger_Close(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 
@@ -159,11 +139,7 @@ func TestLogger_InvalidDirectory(t *testing.T) {
 }
 
 func TestLogger_MultipleMessages(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	defer logger.Close()
@@ -203,11 +179,7 @@ func TestLogger_MultipleMessages(t *testing.T) {
 }
 
 func TestLogger_NoContextAPIRegression(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	defer logger.Close()
@@ -218,11 +190,7 @@ func TestLogger_NoContextAPIRegression(t *testing.T) {
 }
 
 func TestLogger_EmptyMessage(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	defer logger.Close()
@@ -234,11 +202,7 @@ func TestLogger_EmptyMessage(t *testing.T) {
 }
 
 func TestLogger_LongMessage(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	defer logger.Close()
@@ -261,11 +225,7 @@ func TestLogger_LongMessage(t *testing.T) {
 }
 
 func TestLogger_SpecialCharacters(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	defer logger.Close()
@@ -290,11 +250,7 @@ func TestLogger_SpecialCharacters(t *testing.T) {
 }
 
 func TestLogger_ConcurrentWrites(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "logger-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	logger := NewLogger(tmpDir)
 	defer logger.Close()

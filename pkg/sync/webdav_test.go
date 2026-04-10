@@ -332,8 +332,7 @@ func TestWebDAVClient_DownloadFile(t *testing.T) {
 
 	client := NewWebDAVClient(server.URL, "user", "pass")
 
-	tmpDir, _ := os.MkdirTemp("", "webdav-test-*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	localPath := filepath.Join(tmpDir, "test.pdf")
 	err := client.DownloadFile("/test.pdf", localPath)
@@ -350,8 +349,7 @@ func TestWebDAVClient_UploadFile(t *testing.T) {
 
 	client := NewWebDAVClient(server.URL, "user", "pass")
 
-	tmpDir, _ := os.MkdirTemp("", "webdav-test-*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Create a test file
 	testFile := filepath.Join(tmpDir, "test.pdf")
@@ -415,8 +413,7 @@ func TestWebDAVClient_DownloadFile_Success(t *testing.T) {
 
 	client := NewWebDAVClient(server.URL, "user", "pass")
 
-	tmpDir, _ := os.MkdirTemp("", "webdav-test-*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	localPath := filepath.Join(tmpDir, "downloaded.pdf")
 	err := client.DownloadFile("/test.pdf", localPath)

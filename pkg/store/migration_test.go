@@ -8,8 +8,9 @@ import (
 )
 
 func TestMigrateFromJSON_NoFile(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
+	tmpDir := t.TempDir()
 
 	// Test with non-existent file
 	err := MigrateFromJSON(store, filepath.Join(tmpDir, "nonexistent.json"))
@@ -19,8 +20,9 @@ func TestMigrateFromJSON_NoFile(t *testing.T) {
 }
 
 func TestMigrateFromJSON_FullData(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
+	tmpDir := t.TempDir()
 
 	// Create test JSON file with full data
 	jsonPath := filepath.Join(tmpDir, "test-data.json")
@@ -94,8 +96,9 @@ func TestMigrateFromJSON_FullData(t *testing.T) {
 }
 
 func TestMigrateFromJSON_TabsOnlyArray(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
+	tmpDir := t.TempDir()
 
 	// Create test JSON file with old format (array of tabs)
 	jsonPath := filepath.Join(tmpDir, "test-tabs.json")
@@ -136,8 +139,9 @@ func TestMigrateFromJSON_TabsOnlyArray(t *testing.T) {
 }
 
 func TestMigrateFromJSON_InvalidJSON(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
+	tmpDir := t.TempDir()
 
 	// Create invalid JSON file
 	jsonPath := filepath.Join(tmpDir, "invalid.json")
@@ -153,8 +157,9 @@ func TestMigrateFromJSON_InvalidJSON(t *testing.T) {
 }
 
 func TestMigrateFromJSON_EmptySettings(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
+	tmpDir := t.TempDir()
 
 	// Create test JSON with empty settings
 	jsonPath := filepath.Join(tmpDir, "test-empty-settings.json")

@@ -2,7 +2,6 @@ package worker
 
 import (
 	"haya-tab/pkg/store"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -22,26 +21,21 @@ func (m *MockLogger) Error(format string, args ...interface{}) {
 	m.ErrorMessages = append(m.ErrorMessages, format)
 }
 
-func setupTestStore(t *testing.T) (*store.DBStore, string) {
-	tmpDir, err := os.MkdirTemp("", "worker-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+func setupTestStore(t *testing.T) *store.DBStore {
+	tmpDir := t.TempDir()
 
 	dbPath := filepath.Join(tmpDir, "test.db")
 	testStore := store.NewDBStore(dbPath)
 
 	if err := testStore.Initialize(); err != nil {
-		os.RemoveAll(tmpDir)
 		t.Fatalf("Failed to initialize store: %v", err)
 	}
 
-	return testStore, tmpDir
+	return testStore
 }
 
 func TestNewMBWorker(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -68,8 +62,7 @@ func TestNewMBWorker(t *testing.T) {
 }
 
 func TestMBWorker_StartStop(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -98,8 +91,7 @@ func TestMBWorker_StartStop(t *testing.T) {
 }
 
 func TestMBWorker_StartMultipleTimes(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -118,8 +110,7 @@ func TestMBWorker_StartMultipleTimes(t *testing.T) {
 }
 
 func TestMBWorker_StopMultipleTimes(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -139,8 +130,7 @@ func TestMBWorker_StopMultipleTimes(t *testing.T) {
 }
 
 func TestMBWorker_Submit(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -164,8 +154,7 @@ func TestMBWorker_Submit(t *testing.T) {
 }
 
 func TestMBWorker_SubmitWhenNotRunning(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -186,8 +175,7 @@ func TestMBWorker_SubmitWhenNotRunning(t *testing.T) {
 }
 
 func TestMBWorker_QueueSize(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -215,8 +203,7 @@ func TestMBWorker_QueueSize(t *testing.T) {
 }
 
 func TestMBWorker_RateLimiting(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -245,8 +232,7 @@ func TestMBWorker_RateLimiting(t *testing.T) {
 }
 
 func TestMBWorker_EmptyArtistName(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -263,8 +249,7 @@ func TestMBWorker_EmptyArtistName(t *testing.T) {
 }
 
 func TestMBWorker_NilLogger(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	// Create worker with nil logger
@@ -277,8 +262,7 @@ func TestMBWorker_NilLogger(t *testing.T) {
 }
 
 func TestMBWorker_ProcessJob_Success(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	// Add a test tab
@@ -307,8 +291,7 @@ func TestMBWorker_ProcessJob_Success(t *testing.T) {
 }
 
 func TestMBWorker_ProcessJob_NonExistentTab(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	logger := &MockLogger{}
@@ -329,8 +312,7 @@ func TestMBWorker_ProcessJob_NonExistentTab(t *testing.T) {
 }
 
 func TestMBWorker_ProcessJob_TabAlreadyHasCountry(t *testing.T) {
-	testStore, tmpDir := setupTestStore(t)
-	defer os.RemoveAll(tmpDir)
+	testStore := setupTestStore(t)
 	defer testStore.Close()
 
 	// Add a test tab with origin country already set

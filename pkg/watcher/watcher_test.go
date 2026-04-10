@@ -107,11 +107,7 @@ func TestFileWatcher_AddRemovePath(t *testing.T) {
 	defer watcher.Stop()
 
 	// Create a temporary directory
-	tmpDir, err := os.MkdirTemp("", "watcher-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Add path
 	err = watcher.AddPath(tmpDir)
@@ -151,17 +147,9 @@ func TestFileWatcher_SetPaths(t *testing.T) {
 	defer watcher.Stop()
 
 	// Create temporary directories
-	tmpDir1, err := os.MkdirTemp("", "watcher-test-1-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir 1: %v", err)
-	}
-	defer os.RemoveAll(tmpDir1)
+	tmpDir1 := t.TempDir()
 
-	tmpDir2, err := os.MkdirTemp("", "watcher-test-2-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir 2: %v", err)
-	}
-	defer os.RemoveAll(tmpDir2)
+	tmpDir2 := t.TempDir()
 
 	// Set paths
 	err = watcher.SetPaths([]string{tmpDir1, tmpDir2})
@@ -192,11 +180,7 @@ func TestFileWatcher_FileChange(t *testing.T) {
 	defer watcher.Stop()
 
 	// Create a temporary directory
-	tmpDir, err := os.MkdirTemp("", "watcher-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Add path
 	err = watcher.AddPath(tmpDir)
@@ -238,11 +222,7 @@ func TestFileWatcher_IgnoreNonRelevantFiles(t *testing.T) {
 	defer watcher.Stop()
 
 	// Create a temporary directory
-	tmpDir, err := os.MkdirTemp("", "watcher-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Add path
 	err = watcher.AddPath(tmpDir)
@@ -284,11 +264,7 @@ func TestFileWatcher_Debounce(t *testing.T) {
 	defer watcher.Stop()
 
 	// Create a temporary directory
-	tmpDir, err := os.MkdirTemp("", "watcher-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Add path
 	err = watcher.AddPath(tmpDir)

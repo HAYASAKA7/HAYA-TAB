@@ -6,8 +6,8 @@ import (
 )
 
 func TestDBStore_AddVolume(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	volume := CloudVolume{
 		ID:              "vol-1",
@@ -38,8 +38,8 @@ func TestDBStore_AddVolume(t *testing.T) {
 }
 
 func TestDBStore_GetVolume(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	volume := CloudVolume{
 		ID:              "vol-1",
@@ -83,8 +83,8 @@ func TestDBStore_GetVolume(t *testing.T) {
 }
 
 func TestDBStore_GetVolumeByMountPath(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	volume := CloudVolume{
 		ID:              "vol-1",
@@ -133,8 +133,8 @@ func TestDBStore_GetVolumeByMountPath(t *testing.T) {
 }
 
 func TestDBStore_GetAllVolumes(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Initially empty
 	volumes, err := store.GetAllVolumes()
@@ -159,8 +159,8 @@ func TestDBStore_GetAllVolumes(t *testing.T) {
 }
 
 func TestDBStore_GetActiveVolumes(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add available and unavailable volumes
 	store.AddVolume(CloudVolume{ID: "vol-1", Name: "Available", MountPath: "/a", IsAvailable: true, LastSeenAt: 1000})
@@ -177,8 +177,8 @@ func TestDBStore_GetActiveVolumes(t *testing.T) {
 }
 
 func TestDBStore_GetActiveVolumes_DeduplicatesByMountPath(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add two volumes with same mount path, different timestamps
 	store.AddVolume(CloudVolume{ID: "vol-old", Name: "Old", MountPath: "/same", IsAvailable: true, LastSeenAt: 1000})
@@ -198,8 +198,8 @@ func TestDBStore_GetActiveVolumes_DeduplicatesByMountPath(t *testing.T) {
 }
 
 func TestDBStore_MarkAllVolumesUnavailable(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	store.AddVolume(CloudVolume{ID: "vol-1", Name: "A", MountPath: "/a", IsAvailable: true})
 	store.AddVolume(CloudVolume{ID: "vol-2", Name: "B", MountPath: "/b", IsAvailable: true})
@@ -217,8 +217,8 @@ func TestDBStore_MarkAllVolumesUnavailable(t *testing.T) {
 }
 
 func TestDBStore_UpdateVolume(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	store.AddVolume(CloudVolume{ID: "vol-1", Name: "Original", MountPath: "/orig"})
 
@@ -246,8 +246,8 @@ func TestDBStore_UpdateVolume(t *testing.T) {
 }
 
 func TestDBStore_UpdateVolumeMountPath(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	store.AddVolume(CloudVolume{ID: "vol-1", Name: "Test", MountPath: "/old"})
 
@@ -263,8 +263,8 @@ func TestDBStore_UpdateVolumeMountPath(t *testing.T) {
 }
 
 func TestDBStore_MarkVolumeAvailable(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	store.AddVolume(CloudVolume{ID: "vol-1", Name: "Test", MountPath: "/test", IsAvailable: false})
 
@@ -292,8 +292,8 @@ func TestDBStore_MarkVolumeAvailable(t *testing.T) {
 }
 
 func TestDBStore_DeleteVolume(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	// Add volume with associated tabs
 	store.AddVolume(CloudVolume{ID: "vol-1", Name: "Test", MountPath: "/test"})
@@ -319,8 +319,8 @@ func TestDBStore_DeleteVolume(t *testing.T) {
 }
 
 func TestDBStore_GetTabsByVolume(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	store.AddVolume(CloudVolume{ID: "vol-1", Name: "Test", MountPath: "/test"})
 	store.AddTab(Tab{ID: "tab1", Title: "Song A", FilePath: "/test/a.gp5", Type: "gp5", VolumeID: "vol-1"})
@@ -337,8 +337,8 @@ func TestDBStore_GetTabsByVolume(t *testing.T) {
 }
 
 func TestDBStore_GetTabByVolumeAndPath(t *testing.T) {
-	store, tmpDir := setupTestDB(t)
-	defer cleanupTestDB(store, tmpDir)
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
 
 	store.AddVolume(CloudVolume{ID: "vol-1", Name: "Test", MountPath: "/test"})
 	store.AddTab(Tab{ID: "tab1", Title: "Song A", FilePath: "a.gp5", Type: "gp5", VolumeID: "vol-1"})

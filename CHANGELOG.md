@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.3] - 2026-04-10
+
+### Added
+- **Test Infrastructure Improvements:** Consolidated test setup helpers to use `t.TempDir()` for improved test isolation and automatic cleanup
+
+### Changed
+- **Test Cleanup:** Refactored all test cleanup functions to leverage Go's built-in temporary directory management
+
+### Fixed
+- **Test Stability:** Improved test reliability by eliminating manual temporary directory cleanup operations
+
 ## [3.1.2] - 2026-04-09
 
 ### Added
