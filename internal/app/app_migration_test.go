@@ -7,9 +7,8 @@ import (
 )
 
 func TestApp_MigrateData_InvalidTarget(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	err := app.MigrateData("invalid", "/some/path", false)
 	if err == nil {
@@ -18,9 +17,8 @@ func TestApp_MigrateData_InvalidTarget(t *testing.T) {
 }
 
 func TestApp_MigrateData_SamePath(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	storageDir := app.GetStorageDir()
 
@@ -39,7 +37,6 @@ func TestApp_MigrateData_SamePath(t *testing.T) {
 func TestApp_MigrateData_StorageMove(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	storageDir := app.GetStorageDir()
 
@@ -77,7 +74,6 @@ func TestApp_MigrateData_StorageMove(t *testing.T) {
 func TestApp_MigrateData_StorageCopy(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	storageDir := app.GetStorageDir()
 
@@ -105,7 +101,6 @@ func TestApp_MigrateData_StorageCopy(t *testing.T) {
 func TestApp_MigrateData_CoversMigration(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	coversDir := app.GetCoversDir()
 
@@ -134,7 +129,6 @@ func TestApp_MigrateData_CoversMigration(t *testing.T) {
 func TestApp_MigrateData_EmptyDirectory(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	newPath := filepath.Join(tmpDir, "empty_migration")
 

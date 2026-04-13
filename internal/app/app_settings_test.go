@@ -6,9 +6,8 @@ import (
 )
 
 func TestApp_SaveSettings(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	settings := app.GetSettings()
 	originalTheme := settings.Theme
@@ -38,7 +37,6 @@ func TestApp_SaveSettings(t *testing.T) {
 func TestApp_SaveSettings_SyncPaths(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	settings := app.GetSettings()
 
@@ -70,9 +68,8 @@ func TestApp_SaveSettings_SyncPaths(t *testing.T) {
 }
 
 func TestApp_SaveSettings_AutoSync(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	settings := app.GetSettings()
 
@@ -110,7 +107,6 @@ func TestApp_SaveSettings_AutoSync(t *testing.T) {
 func TestApp_SaveSettings_StoragePaths(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	settings := app.GetSettings()
 
@@ -181,9 +177,8 @@ func TestApp_SaveSettings_StoragePaths(t *testing.T) {
 }
 
 func TestApp_Settings_DefaultValues(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	settings := app.GetSettings()
 

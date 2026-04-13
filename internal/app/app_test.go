@@ -277,9 +277,8 @@ func TestApp_SetGetFileServerPort(t *testing.T) {
 }
 
 func TestApp_GetStorageDir(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	dir := app.GetStorageDir()
 	if dir == "" {
@@ -299,7 +298,6 @@ func TestApp_GetStorageDir(t *testing.T) {
 func TestApp_GetStorageDir_CustomPath(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	customPath := filepath.Join(tmpDir, "custom_storage")
 	settings := app.store.GetSettings()
@@ -322,9 +320,8 @@ func TestApp_GetStorageDir_CustomPath(t *testing.T) {
 }
 
 func TestApp_GetCoversDir(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	dir := app.GetCoversDir()
 	if dir == "" {
@@ -343,7 +340,6 @@ func TestApp_GetCoversDir(t *testing.T) {
 func TestApp_GetCoversDir_CustomPath(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	customPath := filepath.Join(tmpDir, "custom_covers")
 	settings := app.store.GetSettings()
@@ -359,7 +355,6 @@ func TestApp_GetCoversDir_CustomPath(t *testing.T) {
 func TestApp_ResolveTabPath(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	tests := []struct {
 		name      string
@@ -413,7 +408,6 @@ func TestApp_ResolveTabPath(t *testing.T) {
 func TestApp_ResolveCoverPath(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	tests := []struct {
 		name     string
@@ -454,7 +448,6 @@ func TestApp_ResolveCoverPath(t *testing.T) {
 func TestApp_GetCover(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	t.Run("empty path returns empty", func(t *testing.T) {
 		result := app.GetCover("")

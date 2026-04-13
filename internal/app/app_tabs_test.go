@@ -9,9 +9,8 @@ import (
 )
 
 func TestApp_GetTabs(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	// Initially empty
 	tabs := app.GetTabs()
@@ -30,9 +29,8 @@ func TestApp_GetTabs(t *testing.T) {
 }
 
 func TestApp_GetTabsPaginated(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	// Add 15 tabs
 	for i := 1; i <= 15; i++ {
@@ -84,9 +82,8 @@ func TestApp_GetTabsPaginated(t *testing.T) {
 }
 
 func TestApp_GetRecentTabs(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	// Add tabs with different last opened times
 	now := time.Now().Unix()
@@ -105,9 +102,8 @@ func TestApp_GetRecentTabs(t *testing.T) {
 }
 
 func TestApp_DeleteTab(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	t.Run("delete non-existent tab", func(t *testing.T) {
 		err := app.DeleteTab("nonexistent")
@@ -158,9 +154,8 @@ func TestApp_DeleteTab(t *testing.T) {
 }
 
 func TestApp_BatchDeleteTabs(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	// Add tabs
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Tab 1"})
@@ -183,9 +178,8 @@ func TestApp_BatchDeleteTabs(t *testing.T) {
 }
 
 func TestApp_MoveTab(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Tab 1"})
 	app.store.AddCategory(store.Category{ID: "cat1", Name: "Category 1"})
@@ -202,9 +196,8 @@ func TestApp_MoveTab(t *testing.T) {
 }
 
 func TestApp_BatchMoveTabs(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Tab 1"})
 	app.store.AddTab(store.Tab{ID: "tab2", Title: "Tab 2"})
@@ -230,9 +223,8 @@ func TestApp_BatchMoveTabs(t *testing.T) {
 }
 
 func TestApp_AddTabToCategory(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Tab 1"})
 	app.store.AddCategory(store.Category{ID: "cat1", Name: "Category 1"})
@@ -274,9 +266,8 @@ func TestApp_AddTabToCategory(t *testing.T) {
 }
 
 func TestApp_RemoveTabFromCategory(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Tab 1"})
 	app.store.AddCategory(store.Category{ID: "cat1", Name: "Category 1"})
@@ -315,9 +306,8 @@ func TestApp_RemoveTabFromCategory(t *testing.T) {
 }
 
 func TestApp_UpdateTabCategories(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Tab 1"})
 	app.store.AddCategory(store.Category{ID: "cat1", Name: "Category 1"})
@@ -335,9 +325,8 @@ func TestApp_UpdateTabCategories(t *testing.T) {
 }
 
 func TestApp_BatchAddTabsToCategory(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Tab 1"})
 	app.store.AddTab(store.Tab{ID: "tab2", Title: "Tab 2", CategoryIDs: []string{"cat1"}})
@@ -356,7 +345,6 @@ func TestApp_BatchAddTabsToCategory(t *testing.T) {
 func TestApp_ExportTab(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	// Create a managed file
 	storageDir := app.GetStorageDir()
@@ -398,9 +386,8 @@ func TestApp_ExportTab(t *testing.T) {
 }
 
 func TestApp_MarkAsOpened(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	initialTime := time.Now().Add(-time.Hour).Unix()
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Tab 1", LastOpened: initialTime})
@@ -417,9 +404,8 @@ func TestApp_MarkAsOpened(t *testing.T) {
 }
 
 func TestApp_RecalculateAllInitials(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Stairway to Heaven"})
 	app.store.AddTab(store.Tab{ID: "tab2", Title: "Bohemian Rhapsody"})
@@ -441,7 +427,6 @@ func TestApp_RecalculateAllInitials(t *testing.T) {
 func TestApp_SaveTab(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	t.Run("save tab with invalid file", func(t *testing.T) {
 		tab := store.Tab{Title: "Invalid", FilePath: "/nonexistent/file.gp5"}
@@ -478,9 +463,8 @@ func TestApp_SaveTab(t *testing.T) {
 }
 
 func TestApp_UpdateTab(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	// Add initial tab
 	initialTab := store.Tab{ID: "tab1", Title: "Initial", Artist: "Artist"}
@@ -507,9 +491,8 @@ func TestApp_UpdateTab(t *testing.T) {
 }
 
 func TestApp_UpdateTabMetadata(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddTab(store.Tab{ID: "tab1", Title: "Old Title"})
 
@@ -525,9 +508,8 @@ func TestApp_UpdateTabMetadata(t *testing.T) {
 }
 
 func TestApp_RecalculateAllInitials_Empty(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	count, err := app.RecalculateAllInitials()
 	if err != nil {

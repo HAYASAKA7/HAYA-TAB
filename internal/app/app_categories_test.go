@@ -9,9 +9,8 @@ import (
 )
 
 func TestApp_GetCategories(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	// Initialize() always creates the system cloud category (sys_cloud)
 	cats := app.GetCategories()
@@ -30,9 +29,8 @@ func TestApp_GetCategories(t *testing.T) {
 }
 
 func TestApp_GetRecentCategories(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	// Add categories and tabs
 	app.store.AddCategory(store.Category{ID: "cat1", Name: "Rock"})
@@ -46,9 +44,8 @@ func TestApp_GetRecentCategories(t *testing.T) {
 }
 
 func TestApp_AddCategory(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	t.Run("with provided ID", func(t *testing.T) {
 		cat := store.Category{ID: "custom-id", Name: "Rock"}
@@ -90,9 +87,8 @@ func TestApp_AddCategory(t *testing.T) {
 }
 
 func TestApp_DeleteCategory(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddCategory(store.Category{ID: "cat1", Name: "Rock"})
 
@@ -108,9 +104,8 @@ func TestApp_DeleteCategory(t *testing.T) {
 }
 
 func TestApp_MoveCategory(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	app.store.AddCategory(store.Category{ID: "cat1", Name: "Rock"})
 	app.store.AddCategory(store.Category{ID: "cat2", Name: "Jazz"})
@@ -136,9 +131,8 @@ func TestApp_MoveCategory(t *testing.T) {
 }
 
 func TestApp_GetSettings(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	settings := app.GetSettings()
 	if settings.Theme != "system" {
@@ -147,9 +141,8 @@ func TestApp_GetSettings(t *testing.T) {
 }
 
 func TestApp_CheckMigration(t *testing.T) {
-	app, tmpDir := setupTestApp(t)
+	app, _ := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	t.Run("invalid target", func(t *testing.T) {
 		_, err := app.CheckMigration("invalid")
@@ -199,7 +192,6 @@ func TestApp_CheckMigration(t *testing.T) {
 func TestApp_SafeCopyFile(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	srcPath := filepath.Join(tmpDir, "source.txt")
 	os.WriteFile(srcPath, []byte("hello world"), 0644)
@@ -219,7 +211,6 @@ func TestApp_SafeCopyFile(t *testing.T) {
 func TestApp_SafeCopyFile_NonExistentSource(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	err := app.safeCopyFile(filepath.Join(tmpDir, "nope"), filepath.Join(tmpDir, "dest"))
 	if err == nil {
@@ -230,7 +221,6 @@ func TestApp_SafeCopyFile_NonExistentSource(t *testing.T) {
 func TestApp_CheckDirSize(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	testDir := filepath.Join(tmpDir, "checkdir")
 	os.MkdirAll(testDir, 0755)
@@ -266,7 +256,6 @@ func TestApp_CheckDirSize(t *testing.T) {
 func TestApp_CheckDirSize_NonExistentDir(t *testing.T) {
 	app, tmpDir := setupTestApp(t)
 	defer cleanupTestApp(app)
-	_ = tmpDir // Ignore unused variable error
 
 	_, _, err := app.checkDirSize(filepath.Join(tmpDir, "nonexistent"))
 	if err == nil {

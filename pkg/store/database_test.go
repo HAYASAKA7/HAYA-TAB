@@ -628,7 +628,7 @@ func TestDBStore_GetTabsPaginated(t *testing.T) {
 	}
 }
 
-func TestDBStore_UpdateTab2(t *testing.T) {
+func TestDBStore_UpdateTabMethod(t *testing.T) {
 	store := setupTestDB(t)
 	defer cleanupTestDB(store)
 
@@ -809,20 +809,6 @@ func TestDBStore_GetTabsPaginated_Sorting(t *testing.T) {
 	}
 }
 
-func TestDBStore_HasData_AfterAdding(t *testing.T) {
-	store := setupTestDB(t)
-	defer cleanupTestDB(store)
-
-	// Add a tab
-	tab := Tab{ID: "tab-1", Title: "Song"}
-	store.AddTab(tab)
-
-	// Now should have data
-	hasData := store.HasData()
-	if !hasData {
-		t.Error("Expected to have data after adding tab")
-	}
-}
 
 func TestDBStore_DeleteCategory_WithSubcategories(t *testing.T) {
 	store := setupTestDB(t)
