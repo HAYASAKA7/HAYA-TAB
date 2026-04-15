@@ -469,7 +469,7 @@ func TestMergeFingerprintFiles_NilTombstones(t *testing.T) {
 
 func TestMergeFingerprintFiles_EmptyInputs(t *testing.T) {
 	result := MergeFingerprintFiles(nil, nil, nil)
-	if result != nil && len(result) != 0 {
+	if len(result) != 0 {
 		t.Errorf("expected empty result for nil inputs, got %v", result)
 	}
 
