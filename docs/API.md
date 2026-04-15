@@ -1,6 +1,6 @@
 ﻿# HAYA-TAB Go API Documentation
 
-> Generated from Go code using `go doc` command. Updated for v3.1.3
+> Generated from Go code using `go doc` command. Updated for v3.1.4
 
 ## Package: haya-tab/internal/app
 
@@ -9,7 +9,7 @@ package app // import "haya-tab/internal/app"
 
 VARIABLES
 
-var AppVersion = "3.1.3"
+var AppVersion = "3.1.4"
     AppVersion is the application version. Can be set via ldflags during build:
     -ldflags "-X haya-tab/internal/app.AppVersion=3.1.2"
 FUNCTIONS

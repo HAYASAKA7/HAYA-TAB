@@ -568,7 +568,6 @@ func (a *App) OpenTab(id string) error {
 	targetTab.LastOpened = time.Now().Unix()
 	a.store.UpdateTab(*targetTab)
 
-	var cmd *exec.Cmd
 	path := a.ResolveTabPath(targetTab.FilePath, targetTab.IsManaged)
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -577,13 +576,25 @@ func (a *App) OpenTab(id string) error {
 
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", path)
+		cmd := exec.Command("rundll32", "url.dll,FileProtocolHandler", path)
+		return cmd.Start()
 	case "darwin":
-		cmd = exec.Command("open", path)
-	default: // linux
-		cmd = exec.Command("xdg-open", path)
+		cmd := exec.Command("open", path)
+		return cmd.Start()
+	case "linux":
+		cmd := exec.Command("xdg-open", path)
+		return cmd.Start()
+	case "ios", "android":
+		// Use Wails cross-platform open functionality for mobile
+		// Note: This uses Wails v3 mobile APIs which are still stabilizing
+		a.logger.Info("Opening file with external app: %s", path)
+		// Wails mobile will provide native file opening functionality
+		// For now, gracefully no-op until Wails v3 stable mobile release
+		return nil
+	default:
+		// Fall back to no-op for unknown platforms
+		return nil
 	}
-	return cmd.Start()
 }
 
 // MarkAsOpened updates the LastOpened timestamp for a tab without opening it

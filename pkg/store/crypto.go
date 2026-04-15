@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/zalando/go-keyring"
@@ -22,16 +24,29 @@ const (
 	encryptionV2Prefix = "v2:"
 )
 
-// getOrCreateMasterKey retrieves or creates a random master key stored in the OS keyring.
-// This provides strong security by:
-// - Using a cryptographically random 32-byte key
-// - Storing the key in the OS-native credential manager (Keychain/Credential Manager/Secret Service)
-// - Leveraging OS-level encryption and access controls
+// getMasterKeyFilePath returns the path to store the master key when keyring is not available
+func getMasterKeyFilePath() string {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			cwd, _ := os.Getwd()
+			return filepath.Join(cwd, "master.key")
+		}
+		return filepath.Join(homeDir, ".haya-tab", "master.key")
+	}
+	return filepath.Join(configDir, "HAYA-TAB", "master.key")
+}
+
+// getOrCreateMasterKey retrieves or creates a random master key.
+// On desktop platforms, it uses the OS keyring for maximum security.
+// On mobile platforms or when keyring is unavailable, it falls back to storing the key
+// in the app's private sandboxed data directory (secure on mobile OSes).
 func getOrCreateMasterKey() ([]byte, error) {
-	// Try to retrieve existing key from keyring
+	// Try keyring first for all platforms
 	keyStr, err := keyring.Get(keyringService, keyringUsername)
 	if err == nil {
-		// Key exists, decode and return it
+		// Key exists in keyring, decode and return it
 		key, err := base64.StdEncoding.DecodeString(keyStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode master key: %w", err)
@@ -42,19 +57,45 @@ func getOrCreateMasterKey() ([]byte, error) {
 		return key, nil
 	}
 
-	// Key doesn't exist or error occurred
-	if err != keyring.ErrNotFound {
-		// Real error occurred (not just "not found")
-		return nil, fmt.Errorf("failed to access keyring: %w", err)
+	// Check if we're on a platform where keyring is known to not exist
+	keyringUnavailable := (runtime.GOOS == "ios" || runtime.GOOS == "android")
+	// Also fall back if keyring returned any error other than "not found"
+	if keyringUnavailable || err != keyring.ErrNotFound {
+		// Fall back to file storage in app data directory
+		keyPath := getMasterKeyFilePath()
+
+		// Try to read existing key from file
+		if _, err := os.Stat(keyPath); err == nil {
+			keyStr, err := os.ReadFile(keyPath)
+			if err == nil {
+				key, err := base64.StdEncoding.DecodeString(string(keyStr))
+				if err == nil && len(key) == 32 {
+					return key, nil
+				}
+			}
+		}
+
+		// Generate new key and store it in file
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			return nil, fmt.Errorf("failed to generate random key: %w", err)
+		}
+		keyStr = base64.StdEncoding.EncodeToString(key)
+
+		// Ensure directory exists
+		os.MkdirAll(filepath.Dir(keyPath), 0700)
+		if err := os.WriteFile(keyPath, []byte(keyStr), 0600); err != nil {
+			return nil, fmt.Errorf("failed to store key in file: %w", err)
+		}
+
+		return key, nil
 	}
 
-	// Generate new random master key
+	// Key not found in keyring, generate new one and store in keyring
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err != nil {
 		return nil, fmt.Errorf("failed to generate random key: %w", err)
 	}
-
-	// Store in keyring
 	keyStr = base64.StdEncoding.EncodeToString(key)
 	if err := keyring.Set(keyringService, keyringUsername, keyStr); err != nil {
 		return nil, fmt.Errorf("failed to store key in keyring: %w", err)

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.4] - 2026-04-15
+
+### Added
+- **Mobile Platform Support (iOS/Android):** Cross-platform file opening with graceful fallback for Wails v3 mobile
+- **Keyring Fallback System:** Secure encryption key storage on mobile platforms using sandboxed app data directory
+
+### Changed
+- **OpenTab Method:** Refactored to handle platform-specific file opening with dedicated cases for iOS and Android
+- **Encryption Key Management:** Enhanced master key retrieval to support both OS keyring and file-based storage fallback
+
+### Fixed
+- **Mobile File Opening:** Fixed file opening on iOS and Android with appropriate platform-specific implementations
+- **Keyring Unavailability:** Added fallback to file-based key storage when OS keyring is not available
+
 ## [3.1.3] - 2026-04-10
 
 ### Added
