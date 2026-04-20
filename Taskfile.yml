@@ -58,3 +58,15 @@ tasks:
     summary: Builds and runs the Docker image
     cmds:
       - task: common:run:docker
+
+  test:e2e:
+    summary: Runs End-to-End tests using Playwright against dev mode
+    dir: frontend
+    cmds:
+      - npm run test:e2e
+
+  test:e2e-ui:
+    summary: Opens Playwright UI runner against dev mode
+    dir: frontend
+    cmds:
+      - npm run test:e2e-ui

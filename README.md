@@ -70,6 +70,16 @@ To fix this:
    ```
    Note: when cross-compiling from a different host OS, run `wails3 task setup:docker` once first.
 
+### Testing (E2E)
+End-to-End UI integration tests are configured via Playwright. Note that your environment must support Node.js.
+```bash
+# Run headlessly against the Vite + Wails dev server
+npx @go-task/cli test:e2e
+
+# Run with Playwright UI visualizer for debugging
+npx @go-task/cli test:e2e-ui
+```
+
 ## 🚀 Usage
 
 1. **Add Tabs**: Right-click on empty space → "Upload TAB" or "Link Local TAB"

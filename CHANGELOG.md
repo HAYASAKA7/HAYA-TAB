@@ -2,9 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [3.1.3] - 2026-04-10
+## [3.1.3] - 2026-04-20
 
 ### Added
+- **Playwright E2E Tests:** Introduced an extensive end-to-end testing orchestrator with Playwright utilizing native Wails Dev Mode to run cross-stack interaction tests seamlessly across frontend and backend.
 - **Test Infrastructure Improvements:** Consolidated test setup helpers to use `t.TempDir()` for improved test isolation and automatic cleanup
 
 ### Changed

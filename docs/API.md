@@ -1,4 +1,4 @@
-﻿# HAYA-TAB Go API Documentation
+# HAYA-TAB Go API Documentation
 
 > Generated from Go code using `go doc` command. Updated for v3.1.3
 
@@ -11,7 +11,7 @@ VARIABLES
 
 var AppVersion = "3.1.3"
     AppVersion is the application version. Can be set via ldflags during build:
-    -ldflags "-X haya-tab/internal/app.AppVersion=3.1.2"
+    -ldflags "-X haya-tab/internal/app.AppVersion=3.1.3"
 FUNCTIONS
 
 func GetDiskFreeSpace(path string) (uint64, error)
