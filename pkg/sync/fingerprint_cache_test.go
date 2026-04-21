@@ -18,7 +18,7 @@ func TestFingerprintCache_AddFile(t *testing.T) {
 		Metadata: FingerprintMetadata{VolumeID: "vol-1", BucketCount: 16},
 		Files:    []FingerprintFile{},
 	}
-	
+
 	// Mock other buckets
 	buckets := make(map[int]*BucketData)
 	for i := 0; i < 16; i++ {
@@ -30,7 +30,8 @@ func TestFingerprintCache_AddFile(t *testing.T) {
 		var bucketNum int
 		fmt.Sscanf(r.URL.Path, "/vol1/haya-metadata/bucket-%02d.json", &bucketNum)
 
-		if r.Method == "GET" {
+		switch r.Method {
+		case "GET":
 			w.WriteHeader(http.StatusOK)
 			var data []byte
 			if bucketNum == 0 {
@@ -39,7 +40,7 @@ func TestFingerprintCache_AddFile(t *testing.T) {
 				data, _ = json.Marshal(buckets[bucketNum])
 			}
 			w.Write(data)
-		} else if r.Method == "PUT" {
+		case "PUT":
 			w.WriteHeader(http.StatusCreated)
 		}
 	}))
@@ -225,12 +226,12 @@ func TestFingerprintCache_Eviction(t *testing.T) {
 	defer cache.Close()
 
 	// Add files that land in different buckets
-	// We'll just use different paths and hope they land in different buckets, 
+	// We'll just use different paths and hope they land in different buckets,
 	// or we can manually put buckets if we want to be precise.
-	
-	// Since we want to test eviction of non-dirty buckets, 
+
+	// Since we want to test eviction of non-dirty buckets,
 	// we need to load them first (making them non-dirty), then load more.
-	
+
 	// Force load 3 different buckets (0, 1, 2)
 	_, _ = cache.getBucket("/vol1", 0)
 	_, _ = cache.getBucket("/vol1", 1)
@@ -395,8 +396,8 @@ func TestFingerprintCache_FlushRetriesAndPreservesNewerLocalFile(t *testing.T) {
 			{
 				RelativePath: relativePath,
 				Title:        "Local New",
-				UploadedAt:    "2024-06-01T00:00:00Z",
-				UploadedBy:    "device-local",
+				UploadedAt:   "2024-06-01T00:00:00Z",
+				UploadedBy:   "device-local",
 			},
 		},
 	}
@@ -406,8 +407,8 @@ func TestFingerprintCache_FlushRetriesAndPreservesNewerLocalFile(t *testing.T) {
 			{
 				RelativePath: relativePath,
 				Title:        "Remote Old",
-				UploadedAt:    "2024-01-01T00:00:00Z",
-				UploadedBy:    "device-remote",
+				UploadedAt:   "2024-01-01T00:00:00Z",
+				UploadedBy:   "device-remote",
 			},
 		},
 	}
@@ -440,8 +441,8 @@ func TestFingerprintCache_FlushRetriesAndPreservesNewerLocalFile(t *testing.T) {
 						{
 							RelativePath: relativePath,
 							Title:        "Remote Conflict",
-							UploadedAt:    "2024-02-01T00:00:00Z",
-							UploadedBy:    "device-remote",
+							UploadedAt:   "2024-02-01T00:00:00Z",
+							UploadedBy:   "device-remote",
 						},
 					},
 				}
