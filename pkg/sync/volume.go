@@ -31,13 +31,13 @@ const (
 
 // VolumeFingerprint represents the content of a volume fingerprint file
 type VolumeFingerprint struct {
-	VolumeID    string              `json:"volume_id"`     // Unique identifier for this volume
-	VolumeName  string              `json:"volume_name"`   // User-friendly name
-	CreatedAt   string              `json:"created_at"`    // ISO 8601 timestamp
-	AppVersion  string              `json:"app_version"`   // Version of the app that created this
-	DeviceName  string              `json:"device_name"`   // Name of the device that created this (optional)
-	LastUpdated string              `json:"last_updated"`  // ISO 8601 timestamp of last update
-	Files       []FingerprintFile   `json:"files"`         // List of files uploaded via the app
+	VolumeID    string            `json:"volume_id"`    // Unique identifier for this volume
+	VolumeName  string            `json:"volume_name"`  // User-friendly name
+	CreatedAt   string            `json:"created_at"`   // ISO 8601 timestamp
+	AppVersion  string            `json:"app_version"`  // Version of the app that created this
+	DeviceName  string            `json:"device_name"`  // Name of the device that created this (optional)
+	LastUpdated string            `json:"last_updated"` // ISO 8601 timestamp of last update
+	Files       []FingerprintFile `json:"files"`        // List of files uploaded via the app
 }
 
 // FingerprintFile represents metadata for a file uploaded to this volume
@@ -99,9 +99,9 @@ type FingerprintMetadata struct {
 
 // BucketData stores files for a specific bucket
 type BucketData struct {
-	BucketNumber int                 `json:"bucket_number"` // Bucket number (0-15)
-	Files        []FingerprintFile   `json:"files"`         // Files in this bucket
-	ETag         string              `json:"-"`             // ETag for version control (not serialized)
+	BucketNumber int               `json:"bucket_number"` // Bucket number (0-15)
+	Files        []FingerprintFile `json:"files"`         // Files in this bucket
+	ETag         string            `json:"-"`             // ETag for version control (not serialized)
 }
 
 // CalculateBucketNumber calculates which bucket (0-15) a file should be stored in
@@ -288,7 +288,7 @@ func (c *WebDAVClient) ReadVolumeFingerprint(remotePath string) (*VolumeFingerpr
 				// Skip missing buckets (they might be empty)
 				return
 			}
-			
+
 			mu.Lock()
 			allFiles = append(allFiles, bucket.Files...)
 			mu.Unlock()
@@ -451,10 +451,20 @@ func (c *WebDAVClient) ReadVolumeFingerprintMetadataOnly(remotePath string) (*Vo
 // RegisterOrUpdateVolume registers a discovered volume in the database or updates if it exists
 // This handles the multi-device sync scenario where a device discovers an existing volume
 func RegisterOrUpdateVolume(db *store.DBStore, mountPath string, fingerprint *VolumeFingerprint) (*store.CloudVolume, error) {
-	// Check if volume already exists in database
-	existingVolume, err := db.GetVolume(fingerprint.VolumeID)
+	// Prefer a stable mount-path match first. Fingerprint IDs can drift across devices,
+	// but the mount path is the local canonical identity for an existing WebDAV volume.
+	existingVolume, err := db.GetVolumeByMountPath(mountPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query volume: %w", err)
+		return nil, fmt.Errorf("failed to query volume by mount path: %w", err)
+	}
+
+	// Fall back to the fingerprint ID for cases where the mount path moved but the
+	// remote volume identity stayed the same.
+	if existingVolume == nil {
+		existingVolume, err = db.GetVolume(fingerprint.VolumeID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query volume: %w", err)
+		}
 	}
 
 	now := time.Now().Unix()
@@ -465,6 +475,9 @@ func RegisterOrUpdateVolume(db *store.DBStore, mountPath string, fingerprint *Vo
 		existingVolume.FingerprintPath = getMetadataPath(mountPath)
 		existingVolume.LastSeenAt = now
 		existingVolume.IsAvailable = true
+		if fingerprint.VolumeName != "" {
+			existingVolume.Name = fingerprint.VolumeName
+		}
 
 		if err := db.UpdateVolume(*existingVolume); err != nil {
 			return nil, fmt.Errorf("failed to update volume: %w", err)
@@ -650,17 +663,15 @@ func (c *WebDAVClient) ReadBucket(volumePath string, bucketNum int) (*BucketData
 		return nil, fmt.Errorf("failed to read bucket data: %w", err)
 	}
 
-	// Extract ETag from stream info if available (depends on gowebdav implementation)
+	// Extract ETag from HEAD if available so conditional writes can use a real validator.
 	var etag string
-	if stat, err := c.metadataClient.Stat(bucketPath); err == nil {
-		// Some servers include ETag in the stat response
-		if e := stat.Sys(); e != nil {
-			// ETag might be in sys info, but gowebdav doesn't expose it directly
-			// We'll try to get it from HEAD request instead
-			if resp, err := c.httpClient.Head(bucketPath); err == nil {
-				etag = resp.Header.Get("ETag")
-				resp.Body.Close()
-			}
+	headReq, err := http.NewRequest("HEAD", c.url+bucketPath, nil)
+	if err == nil {
+		headReq.SetBasicAuth(c.username, c.password)
+		headReq.Header.Set("User-Agent", BrowserUserAgent)
+		if resp, err := c.httpClient.Do(headReq); err == nil {
+			etag = resp.Header.Get("ETag")
+			resp.Body.Close()
 		}
 	}
 
@@ -764,7 +775,7 @@ func (c *WebDAVClient) WriteBucketWithETag(volumePath string, bucketNum int, buc
 		if newETag := resp.Header.Get("ETag"); newETag != "" {
 			bucket.ETag = newETag
 		}
-		// Drain the response body to prevent "context canceled" errors on the server side 
+		// Drain the response body to prevent "context canceled" errors on the server side
 		// when the TCP connection is closed prematurely
 		io.Copy(io.Discard, resp.Body)
 		return nil

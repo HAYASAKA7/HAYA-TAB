@@ -132,6 +132,25 @@ func TestDBStore_GetVolumeByMountPath(t *testing.T) {
 	}
 }
 
+func TestDBStore_GetVolumeByMountPath_PrefersMostRecent(t *testing.T) {
+	store := setupTestDB(t)
+	defer cleanupTestDB(store)
+
+	store.AddVolume(CloudVolume{ID: "vol-old", Name: "Old", MountPath: "/same", LastSeenAt: 1000})
+	store.AddVolume(CloudVolume{ID: "vol-new", Name: "New", MountPath: "/same", LastSeenAt: 2000})
+
+	got, err := store.GetVolumeByMountPath("/same")
+	if err != nil {
+		t.Fatalf("GetVolumeByMountPath() error = %v", err)
+	}
+	if got == nil {
+		t.Fatal("GetVolumeByMountPath() returned nil")
+	}
+	if got.ID != "vol-new" {
+		t.Fatalf("GetVolumeByMountPath() ID = %v, want %v", got.ID, "vol-new")
+	}
+}
+
 func TestDBStore_GetAllVolumes(t *testing.T) {
 	store := setupTestDB(t)
 	defer cleanupTestDB(store)
@@ -344,11 +363,11 @@ func TestDBStore_GetTabByVolumeAndPath(t *testing.T) {
 	store.AddTab(Tab{ID: "tab1", Title: "Song A", FilePath: "a.gp5", Type: "gp5", VolumeID: "vol-1"})
 
 	tests := []struct {
-		name       string
-		volumeID   string
-		path       string
-		wantNil    bool
-		wantTabID  string
+		name      string
+		volumeID  string
+		path      string
+		wantNil   bool
+		wantTabID string
 	}{
 		{
 			name:      "existing tab",

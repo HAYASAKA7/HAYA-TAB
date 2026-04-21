@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.4] - 2026-04-21
+
+### Changed
+- **WebDAV API:** Replaced GET stat logic with HEAD requests to reliably extract remote ETags during bucket reads.
+- **WebDAV Sync Migration:** Migrated batch update operations to use the `FingerprintCache` method `.BatchAddFiles()` paired with a single `.Flush()` to massively decrease overall WebDAV API overhead.
+- **WebDAV Client:** Updated the referer string when downloading from `10086.cn` domains.
+
+### Fixed
+- **WebDAV Volume System:** Resolved a deduplication bug where volumes might not properly reuse their DB records if the fingerprint ID changes unexpectedly.
+
 ## [3.1.3] - 2026-04-20
 
 ### Added

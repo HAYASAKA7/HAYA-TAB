@@ -78,12 +78,16 @@ func (s *DBStore) GetVolume(id string) (*CloudVolume, error) {
 // GetVolumeByMountPath retrieves a volume by its mount path
 func (s *DBStore) GetVolumeByMountPath(mountPath string) (*CloudVolume, error) {
 	query := `
-		SELECT id, name, mount_path, fingerprint_path, created_at, last_seen_at, is_available
+		SELECT id, name, mount_path, fingerprint_path, created_at, last_seen_at, is_available,
+		       (SELECT COUNT(*) FROM tabs WHERE volume_id = cloud_volumes.id) AS tab_count
 		FROM cloud_volumes
 		WHERE mount_path = ?
+		ORDER BY tab_count DESC, last_seen_at DESC, created_at DESC
+		LIMIT 1
 	`
 	var volume CloudVolume
 	var isAvailable int
+	var tabCount int
 	err := s.db.QueryRow(query, mountPath).Scan(
 		&volume.ID,
 		&volume.Name,
@@ -92,6 +96,7 @@ func (s *DBStore) GetVolumeByMountPath(mountPath string) (*CloudVolume, error) {
 		&volume.CreatedAt,
 		&volume.LastSeenAt,
 		&isAvailable,
+		&tabCount,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -141,10 +146,11 @@ func (s *DBStore) GetAllVolumes() ([]CloudVolume, error) {
 // For duplicate mount paths, returns the most recently seen volume
 func (s *DBStore) GetActiveVolumes() ([]CloudVolume, error) {
 	query := `
-		SELECT id, name, mount_path, fingerprint_path, created_at, last_seen_at, is_available
+		SELECT id, name, mount_path, fingerprint_path, created_at, last_seen_at, is_available,
+		       (SELECT COUNT(*) FROM tabs WHERE volume_id = cloud_volumes.id) AS tab_count
 		FROM cloud_volumes
 		WHERE is_available = 1
-		ORDER BY mount_path, last_seen_at DESC
+		ORDER BY mount_path, tab_count DESC, last_seen_at DESC, created_at DESC
 	`
 	rows, err := s.db.Query(query)
 	if err != nil {
@@ -157,6 +163,7 @@ func (s *DBStore) GetActiveVolumes() ([]CloudVolume, error) {
 	for rows.Next() {
 		var volume CloudVolume
 		var isAvailable int
+		var tabCount int
 		if err := rows.Scan(
 			&volume.ID,
 			&volume.Name,
@@ -165,6 +172,7 @@ func (s *DBStore) GetActiveVolumes() ([]CloudVolume, error) {
 			&volume.CreatedAt,
 			&volume.LastSeenAt,
 			&isAvailable,
+			&tabCount,
 		); err != nil {
 			return nil, err
 		}

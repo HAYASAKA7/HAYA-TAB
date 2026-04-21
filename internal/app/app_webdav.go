@@ -772,7 +772,8 @@ func (a *App) WebDAVInitialize() error {
 
 	// Migrate existing cloud files to fingerprints
 	a.logger.Info("Migrating existing cloud files to fingerprints...")
-	migratedCount, err := syncpkg.MigrateExistingCloudFilesToFingerprints(client, a.store)
+	cache := a.getFingerprintCache()
+	migratedCount, err := syncpkg.MigrateExistingCloudFilesToFingerprints(client, cache, a.store)
 	if err != nil {
 		a.logger.Error("Failed to migrate cloud files to fingerprints: %v", err)
 		// Don't fail initialization if migration fails

@@ -54,40 +54,20 @@ func (a *App) removeFromFingerprint(volumeID, relativePath string) {
 		return
 	}
 
-	client := syncpkg.NewWebDAVClient(
-		strings.TrimRight(settings.WebDAVURL, "/"),
-		settings.WebDAVUser,
-		settings.WebDAVPassword,
-	)
+	cache := a.getFingerprintCache()
+	if cache == nil {
+		a.logger.Error("Failed to get fingerprint cache")
+		return
+	}
 
-	// Read current fingerprint
-	fingerprint, err := client.ReadVolumeFingerprint(volume.MountPath)
+	removedCount, err := cache.BatchRemoveFiles(volume.MountPath, []string{relativePath})
 	if err != nil {
-		a.logger.Error("Failed to read fingerprint for volume %s: %v", volumeID, err)
+		a.logger.Error("Failed to remove file from fingerprint cache for volume %s: %v", volumeID, err)
 		return
 	}
 
-	// Remove file from fingerprint
-	newFiles := []syncpkg.FingerprintFile{}
-	removed := false
-	for _, file := range fingerprint.Files {
-		if file.RelativePath != relativePath {
-			newFiles = append(newFiles, file)
-		} else {
-			removed = true
-		}
-	}
-
-	if !removed {
+	if removedCount == 0 {
 		a.logger.Info("File %s not found in fingerprint for volume %s", relativePath, volumeID)
-		return
-	}
-
-	fingerprint.Files = newFiles
-
-	// Update fingerprint on WebDAV
-	if err := client.UpdateVolumeFingerprint(volume.MountPath, fingerprint); err != nil {
-		a.logger.Error("Failed to update fingerprint for volume %s: %v", volumeID, err)
 		return
 	}
 
@@ -112,56 +92,16 @@ func (a *App) batchRemoveFromFingerprint(volumeID string, relativePaths []string
 		return
 	}
 
-	client := syncpkg.NewWebDAVClient(
-		strings.TrimRight(settings.WebDAVURL, "/"),
-		settings.WebDAVUser,
-		settings.WebDAVPassword,
-	)
-
-	// Group paths by bucket number
-	bucketPaths := make(map[int]map[string]bool)
-	for _, p := range relativePaths {
-		bucketNum := syncpkg.CalculateBucketNumber(p)
-		if bucketPaths[bucketNum] == nil {
-			bucketPaths[bucketNum] = make(map[string]bool)
-		}
-		bucketPaths[bucketNum][p] = true
+	cache := a.getFingerprintCache()
+	if cache == nil {
+		a.logger.Error("Failed to get fingerprint cache")
+		return
 	}
 
-	// Process each bucket
-	removedCount := 0
-	for bucketNum, pathsToRemove := range bucketPaths {
-		// Read current bucket
-		bucket, err := client.ReadBucket(volume.MountPath, bucketNum)
-		if err != nil {
-			a.logger.Error("Failed to read bucket %d for volume %s: %v", bucketNum, volumeID, err)
-			continue
-		}
-
-		// Remove files from bucket
-		newFiles := []syncpkg.FingerprintFile{}
-		bucketRemovedCount := 0
-		for _, file := range bucket.Files {
-			if !pathsToRemove[file.RelativePath] {
-				newFiles = append(newFiles, file)
-			} else {
-				bucketRemovedCount++
-			}
-		}
-
-		if bucketRemovedCount == 0 {
-			continue
-		}
-
-		bucket.Files = newFiles
-
-		// Write bucket back
-		if err := client.WriteBucket(volume.MountPath, bucketNum, bucket); err != nil {
-			a.logger.Error("Failed to write bucket %d for volume %s: %v", bucketNum, volumeID, err)
-			continue
-		}
-
-		removedCount += bucketRemovedCount
+	removedCount, err := cache.BatchRemoveFiles(volume.MountPath, relativePaths)
+	if err != nil {
+		a.logger.Error("Failed to remove files from fingerprint cache for volume %s: %v", volumeID, err)
+		return
 	}
 
 	if removedCount == 0 {
@@ -242,4 +182,3 @@ func (a *App) batchAddToFingerprint(volumeID string, tabs []store.Tab) {
 
 	a.logger.Info("Added %d files to fingerprint cache for volume %s (will be flushed automatically)", len(tabs), volume.Name)
 }
-

@@ -30,7 +30,7 @@ func TestCalculateBucketNumber_Consistency(t *testing.T) {
 	path := "test/file.gp5"
 	bucket1 := CalculateBucketNumber(path)
 	bucket2 := CalculateBucketNumber(path)
-	
+
 	if bucket1 != bucket2 {
 		t.Errorf("CalculateBucketNumber not consistent: %d != %d", bucket1, bucket2)
 	}
@@ -95,7 +95,6 @@ func TestGetLegacyFingerprintPath(t *testing.T) {
 		})
 	}
 }
-
 
 func TestRegisterOrUpdateVolume_AddsNewVolume(t *testing.T) {
 	_, db, _, cleanup := setupTestSyncService(t)
@@ -175,6 +174,77 @@ func TestRegisterOrUpdateVolume_UpdatesExistingVolume(t *testing.T) {
 	// New timestamp should be greater than the known old timestamp
 	if volume.LastSeenAt <= oldTimestamp {
 		t.Errorf("volume.LastSeenAt = %d, want > %d", volume.LastSeenAt, oldTimestamp)
+	}
+}
+
+func TestRegisterOrUpdateVolume_ReusesVolumeByMountPathWhenFingerprintIDChanges(t *testing.T) {
+	_, db, _, cleanup := setupTestSyncService(t)
+	defer cleanup()
+
+	oldTimestamp := int64(1000)
+
+	existing := store.CloudVolume{
+		ID:              "vol-old",
+		Name:            "Cloud One",
+		MountPath:       "/remote/cloud-one",
+		FingerprintPath: "/remote/cloud-one/haya-metadata",
+		CreatedAt:       oldTimestamp,
+		LastSeenAt:      oldTimestamp,
+		IsAvailable:     false,
+	}
+	if err := db.AddVolume(existing); err != nil {
+		t.Fatalf("AddVolume() error = %v", err)
+	}
+
+	if err := db.AddTab(store.Tab{
+		ID:         "tab-old",
+		Title:      "Song",
+		FilePath:   "song.pdf",
+		Type:       "pdf",
+		VolumeID:   "vol-old",
+		IsCloud:    true,
+		AddedAt:    oldTimestamp,
+		LastOpened: oldTimestamp,
+	}); err != nil {
+		t.Fatalf("AddTab() error = %v", err)
+	}
+
+	fingerprint := &VolumeFingerprint{
+		VolumeID:   "vol-new",
+		VolumeName: "Cloud One",
+	}
+
+	volume, err := RegisterOrUpdateVolume(db, "/remote/cloud-one", fingerprint)
+	if err != nil {
+		t.Fatalf("RegisterOrUpdateVolume() error = %v", err)
+	}
+
+	if volume.ID != "vol-old" {
+		t.Fatalf("volume.ID = %q, want %q", volume.ID, "vol-old")
+	}
+
+	if volume.MountPath != "/remote/cloud-one" {
+		t.Fatalf("volume.MountPath = %q, want %q", volume.MountPath, "/remote/cloud-one")
+	}
+
+	if got, err := db.GetVolume("vol-new"); err != nil {
+		t.Fatalf("GetVolume(new) error = %v", err)
+	} else if got != nil {
+		t.Fatalf("expected no new volume row, found %q", got.ID)
+	}
+
+	stored, err := db.GetVolume("vol-old")
+	if err != nil {
+		t.Fatalf("GetVolume(old) error = %v", err)
+	}
+	if stored == nil {
+		t.Fatal("expected existing volume to remain")
+	}
+	if !stored.IsAvailable {
+		t.Fatal("expected reused volume to be marked available")
+	}
+	if stored.LastSeenAt <= oldTimestamp {
+		t.Fatalf("volume.LastSeenAt = %d, want > %d", stored.LastSeenAt, oldTimestamp)
 	}
 }
 

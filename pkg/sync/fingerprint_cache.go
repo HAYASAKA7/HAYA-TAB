@@ -2,6 +2,7 @@ package sync
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -191,35 +192,8 @@ func (c *FingerprintCache) AddFile(volumePath string, file FingerprintFile) erro
 
 // RemoveFile removes a file from the cache (non-blocking)
 func (c *FingerprintCache) RemoveFile(volumePath, relativePath string) error {
-	bucketNum := CalculateBucketNumber(relativePath)
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.deletedFiles[volumePath] == nil {
-		c.deletedFiles[volumePath] = make(map[string]bool)
-	}
-	c.deletedFiles[volumePath][relativePath] = true
-
-	// Get bucket from cache or load it
-	bucket, err := c.getBucket(volumePath, bucketNum)
-	if err != nil {
-		return err
-	}
-
-	// Remove file from bucket
-	newFiles := make([]FingerprintFile, 0, len(bucket.Files))
-	for _, f := range bucket.Files {
-		if f.RelativePath != relativePath {
-			newFiles = append(newFiles, f)
-		}
-	}
-	bucket.Files = newFiles
-
-	// Mark as dirty
-	c.putBucket(volumePath, bucketNum, bucket, true)
-
-	return nil
+	_, err := c.BatchRemoveFiles(volumePath, []string{relativePath})
+	return err
 }
 
 // BatchAddFiles adds multiple files to the cache (non-blocking)
@@ -271,6 +245,66 @@ func (c *FingerprintCache) BatchAddFiles(volumePath string, files []FingerprintF
 	return nil
 }
 
+// BatchRemoveFiles removes multiple files from the cache and returns how many were removed.
+func (c *FingerprintCache) BatchRemoveFiles(volumePath string, relativePaths []string) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if len(relativePaths) == 0 {
+		return 0, nil
+	}
+
+	if c.deletedFiles[volumePath] == nil {
+		c.deletedFiles[volumePath] = make(map[string]bool)
+	}
+
+	pathsToRemoveByBucket := make(map[int]map[string]bool)
+	for _, relativePath := range relativePaths {
+		bucketNum := CalculateBucketNumber(relativePath)
+		if pathsToRemoveByBucket[bucketNum] == nil {
+			pathsToRemoveByBucket[bucketNum] = make(map[string]bool)
+		}
+		pathsToRemoveByBucket[bucketNum][relativePath] = true
+	}
+
+	removedCount := 0
+	for bucketNum, pathsToRemove := range pathsToRemoveByBucket {
+		bucket, err := c.getBucket(volumePath, bucketNum)
+		if err != nil {
+			return removedCount, fmt.Errorf("failed to get bucket %d: %w", bucketNum, err)
+		}
+
+		newFiles := make([]FingerprintFile, 0, len(bucket.Files))
+		bucketRemovedCount := 0
+		removedPaths := make([]string, 0, len(pathsToRemove))
+		for _, file := range bucket.Files {
+			if pathsToRemove[file.RelativePath] {
+				bucketRemovedCount++
+				removedPaths = append(removedPaths, file.RelativePath)
+				continue
+			}
+			newFiles = append(newFiles, file)
+		}
+
+		if bucketRemovedCount == 0 {
+			continue
+		}
+
+		if c.deletedFiles[volumePath] == nil {
+			c.deletedFiles[volumePath] = make(map[string]bool)
+		}
+		for _, removedPath := range removedPaths {
+			c.deletedFiles[volumePath][removedPath] = true
+		}
+
+		bucket.Files = newFiles
+		c.putBucket(volumePath, bucketNum, bucket, true)
+		removedCount += bucketRemovedCount
+	}
+
+	return removedCount, nil
+}
+
 // Flush writes all dirty buckets to WebDAV (blocking)
 // OPTIMIZED: Only writes dirty buckets, keeps cache intact and releases lock before I/O
 // ENHANCED: Uses ETag-based conditional updates with retry logic for conflict resolution
@@ -287,6 +321,7 @@ func (c *FingerprintCache) Flush() error {
 		volumePath string
 		bucketNum  int
 		bucket     *BucketData
+		snapshot   *BucketData
 	}
 	var itemsToWrite []dirtyItem
 
@@ -314,27 +349,30 @@ func (c *FingerprintCache) Flush() error {
 				volumePath: volumePath,
 				bucketNum:  bucketNum,
 				bucket:     bucketCopy,
+				snapshot:   originalBucket.Clone(),
 			})
 		}
 	}
-
-	// Clear dirty flags (but keep cache)
-	c.dirtyBuckets = make(map[string]map[int]bool)
 	c.mu.Unlock()
 
 	var lastErr error
-	flushedCount := 0
 	const maxRetries = MaxFlushRetries
+	var successfulItems []dirtyItem
 
 	// Write to WebDAV without lock
-	for _, item := range itemsToWrite {
-		// Implement retry loop for conflict resolution
+	for i := range itemsToWrite {
+		item := &itemsToWrite[i]
+		var itemErr error
 		for retry := 0; retry < maxRetries; retry++ {
 			// 1. READ: Fetch the latest bucket state from WebDAV with ETag
 			remoteBucket, err := c.client.ReadBucket(item.volumePath, item.bucketNum)
+			if err != nil {
+				itemErr = fmt.Errorf("failed to read bucket %d for volume %s: %w", item.bucketNum, item.volumePath, err)
+				break
+			}
 
 			// 2. MODIFY (MERGE): If read succeeds, merge remote files into our local bucket copy
-			if err == nil && remoteBucket != nil {
+			if remoteBucket != nil {
 				// Use timestamp-based merge with tombstone support
 				var tombstone map[string]bool
 				if deletedFilesCopy[item.volumePath] != nil {
@@ -353,14 +391,8 @@ func (c *FingerprintCache) Flush() error {
 
 			if err == nil {
 				// Success!
-				flushedCount++
-
-				// Update the in-memory cache with the merged data and new ETag
-				c.mu.Lock()
-				if c.cache[item.volumePath] != nil && c.cache[item.volumePath][item.bucketNum] != nil {
-					c.cache[item.volumePath][item.bucketNum].data = item.bucket
-				}
-				c.mu.Unlock()
+				successfulItems = append(successfulItems, *item)
+				itemErr = nil
 				break // Exit retry loop on success
 			}
 
@@ -368,33 +400,62 @@ func (c *FingerprintCache) Flush() error {
 			if err.Error() == "precondition_failed: bucket was modified by another device" {
 				// Conflict detected - retry with fresh data
 				fmt.Printf("[Debug] Conflict detected for bucket %d, retrying (%d/%d)...\n", item.bucketNum, retry+1, maxRetries)
+				if retry == maxRetries-1 {
+					itemErr = err
+				}
 				continue
 			}
 
 			// Other errors - log and continue to next bucket
-			lastErr = fmt.Errorf("failed to write bucket %d for volume %s: %w", item.bucketNum, item.volumePath, err)
-			fmt.Printf("[Warning] %v\n", lastErr)
+			itemErr = fmt.Errorf("failed to write bucket %d for volume %s: %w", item.bucketNum, item.volumePath, err)
+			fmt.Printf("[Warning] %v\n", itemErr)
 			break
+		}
+		if itemErr != nil && lastErr == nil {
+			lastErr = itemErr
 		}
 	}
 
-	// 4. CLEANUP: Remove successfully processed deleted files from the main deletedFiles map
-	if flushedCount > 0 {
-		c.mu.Lock()
-		// Only remove tombstone entries that we actually processed in this flush
-		// This avoids removing newly deleted files that occurred during the flush
-		for volPath, filesMap := range deletedFilesCopy {
-			if c.deletedFiles[volPath] != nil {
-				for relPath := range filesMap {
-					delete(c.deletedFiles[volPath], relPath)
-				}
-				if len(c.deletedFiles[volPath]) == 0 {
-					delete(c.deletedFiles, volPath)
-				}
+	c.mu.Lock()
+	flushedCount := 0
+	for _, item := range successfulItems {
+		currentVolumeBuckets := c.cache[item.volumePath]
+		if currentVolumeBuckets == nil {
+			continue
+		}
+
+		currentCached := currentVolumeBuckets[item.bucketNum]
+		if currentCached == nil || currentCached.data == nil {
+			continue
+		}
+
+		// Only clear the dirty flag if nothing changed locally while the flush was in flight.
+		if !reflect.DeepEqual(currentCached.data, item.snapshot) {
+			continue
+		}
+
+		currentCached.data = item.bucket
+		if c.dirtyBuckets[item.volumePath] != nil {
+			delete(c.dirtyBuckets[item.volumePath], item.bucketNum)
+			if len(c.dirtyBuckets[item.volumePath]) == 0 {
+				delete(c.dirtyBuckets, item.volumePath)
 			}
 		}
-		c.mu.Unlock()
+
+		if c.deletedFiles[item.volumePath] != nil && deletedFilesCopy[item.volumePath] != nil {
+			for relPath := range deletedFilesCopy[item.volumePath] {
+				if CalculateBucketNumber(relPath) == item.bucketNum {
+					delete(c.deletedFiles[item.volumePath], relPath)
+				}
+			}
+			if len(c.deletedFiles[item.volumePath]) == 0 {
+				delete(c.deletedFiles, item.volumePath)
+			}
+		}
+
+		flushedCount++
 	}
+	c.mu.Unlock()
 
 	if flushedCount > 0 {
 		fmt.Printf("[Info] Flushed %d dirty buckets to WebDAV\n", flushedCount)

@@ -216,7 +216,7 @@ func getDeviceName() string {
 
 // MigrateExistingCloudFilesToFingerprints migrates existing cloud files in the database to their volume fingerprints
 // This is used to backfill fingerprint files with metadata from files that were added before the fingerprint system
-func MigrateExistingCloudFilesToFingerprints(client *WebDAVClient, db *store.DBStore) (int, error) {
+func MigrateExistingCloudFilesToFingerprints(client *WebDAVClient, cache *FingerprintCache, db *store.DBStore) (int, error) {
 	// Get all volumes
 	volumes, err := db.GetAllVolumes()
 	if err != nil {
@@ -250,8 +250,8 @@ func MigrateExistingCloudFilesToFingerprints(client *WebDAVClient, db *store.DBS
 			existingFiles[fpFile.RelativePath] = true
 		}
 
-		// Add missing files to fingerprint
-		migratedCount := 0
+		// Build the list of missing files so we can backfill via the cache path
+		missingFiles := make([]FingerprintFile, 0)
 		for _, tab := range tabs {
 			// Skip if file already exists in fingerprint
 			if existingFiles[tab.FilePath] {
@@ -265,8 +265,8 @@ func MigrateExistingCloudFilesToFingerprints(client *WebDAVClient, db *store.DBS
 				categories = []string{}
 			}
 
-			// Add file to fingerprint
-			fpFile := FingerprintFile{
+			// Add file to the backfill list
+			missingFiles = append(missingFiles, FingerprintFile{
 				RelativePath: tab.FilePath,
 				Title:        tab.Title,
 				Artist:       tab.Artist,
@@ -275,21 +275,27 @@ func MigrateExistingCloudFilesToFingerprints(client *WebDAVClient, db *store.DBS
 				Categories:   categories,
 				UploadedAt:   time.Unix(tab.AddedAt, 0).UTC().Format(time.RFC3339),
 				UploadedBy:   getDeviceName(),
-			}
-
-			fingerprint.Files = append(fingerprint.Files, fpFile)
-			migratedCount++
+			})
 		}
 
 		// Update fingerprint file if any files were added
-		if migratedCount > 0 {
-			if err := client.UpdateVolumeFingerprint(volume.MountPath, fingerprint); err != nil {
+		if len(missingFiles) > 0 {
+			if cache != nil {
+				if err := cache.BatchAddFiles(volume.MountPath, missingFiles); err != nil {
+					fmt.Printf("[Warning] Failed to update fingerprint cache for volume %s: %v\n", volume.ID, err)
+					continue
+				}
+				if err := cache.Flush(); err != nil {
+					fmt.Printf("[Warning] Failed to flush fingerprint cache for volume %s: %v\n", volume.ID, err)
+					continue
+				}
+			} else if err := client.UpdateVolumeFingerprint(volume.MountPath, fingerprint); err != nil {
 				fmt.Printf("[Warning] Failed to update fingerprint for volume %s: %v\n", volume.ID, err)
 				continue
 			}
 
-			fmt.Printf("[Info] Migrated %d files to fingerprint for volume %s (%s)\n", migratedCount, volume.Name, volume.ID)
-			totalMigrated += migratedCount
+			fmt.Printf("[Info] Migrated %d files to fingerprint for volume %s (%s)\n", len(missingFiles), volume.Name, volume.ID)
+			totalMigrated += len(missingFiles)
 		}
 	}
 
