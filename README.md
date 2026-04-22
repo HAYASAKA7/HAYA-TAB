@@ -31,12 +31,15 @@ A lightweight music tab manager for guitarists and musicians, built with Go and 
 ## 📦 Installation
 
 ### Pre-built Binary
+
 Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAYA-TAB/releases) page.
 
 #### 🍎 macOS Users (Unverified Developer)
-Since the application is not signed with an Apple Developer account, macOS may show a warning like "cannot be opened because the developer cannot be verified" or "app is damaged". 
+
+Since the application is not signed with an Apple Developer account, macOS may show a warning like "cannot be opened because the developer cannot be verified" or "app is damaged".
 
 To fix this:
+
 1. Go to **System Settings** -> **Privacy & Security**.
 2. Scroll down to the Security section and click **"Open Anyway"** for HAYA-TAB.
 3. Alternatively, run the following command in your terminal to remove the quarantine attribute (assuming you moved the app to `/Applications`):
@@ -45,6 +48,7 @@ To fix this:
    ```
 
 ### Build from Source
+
 1. Ensure you have [Go](https://go.dev/), [Node.js](https://nodejs.org/) (npm), and [Wails](https://v3.wails.io/getting-started/installation/) (v3) installed
 2. Clone this repository
 3. Install frontend dependencies:
@@ -61,17 +65,20 @@ To fix this:
    ```bash
    # Build for current platform
    wails3 task build
-   
+
    # Cross-platform builds
    wails3 task windows:build ARCH=amd64
    wails3 task darwin:build ARCH=amd64     # macOS Intel
    wails3 task darwin:build ARCH=arm64     # macOS Apple Silicon
    wails3 task linux:build ARCH=amd64
    ```
+
    Note: when cross-compiling from a different host OS, run `wails3 task setup:docker` once first.
 
 ### Testing (E2E)
+
 End-to-End UI integration tests are configured via Playwright. Note that your environment must support Node.js.
+
 ```bash
 # Run headlessly against the Vite + Wails dev server
 npx @go-task/cli test:e2e
@@ -221,7 +228,9 @@ npx @go-task/cli test:e2e-ui
 HAYA-TAB is open-sourced software licensed under the **Apache License 2.0**.
 
 ### Terms and Conditions
+
 This project is free for personal and commercial use, modification, and distribution, provided that:
+
 1. **License & Copyright**: You include a copy of the Apache 2.0 license and the original copyright notice in any substantial portion of the software.
 2. **State Changes**: You explicitly state significant changes made to the files.
 3. **No Liability**: The software is provided "as is", without warranty of any kind.
@@ -231,3 +240,5 @@ See the [LICENSE](LICENSE) file for the full legal text and [NOTICE](NOTICE) for
 ## 👤 Author
 
 **HAYASAKA7** - [cyanluxury267@gmail.com](mailto:cyanluxury267@gmail.com)
+
+![Stats from the past 12 weeks](https://repopulse-l41y.onrender.com/api/status?repo=HAYASAKA7/HAYA-TAB&period=weekly&count=12)
