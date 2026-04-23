@@ -3,7 +3,7 @@
 A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20iOS-blue)
-![Version](https://img.shields.io/badge/version-3.1.4-green)
+![Version](https://img.shields.io/badge/version-3.1.5-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 
 ## ✨ Features

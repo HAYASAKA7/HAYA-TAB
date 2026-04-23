@@ -90,7 +90,7 @@ func SyncVolumeFiles(client *WebDAVClient, db *store.DBStore, volume *store.Clou
 // It automatically creates volumes for the root directory and first-level subdirectories that don't have fingerprints
 func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPath string, cache *VolumeCache, appVersion string) ([]store.CloudVolume, int, error) {
 	// First, scan for existing volumes (directories with fingerprint files)
-	volumeMap, err := client.ScanVolumes(rootPath)
+	volumeMap, subdirs, err := client.ScanVolumes(rootPath)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to scan volumes: %w", err)
 	}
@@ -113,16 +113,13 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 		}
 	}
 
-	// Get all first-level subdirectories
-	subdirs, err := client.ListRemoteDirectories(rootPath)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to list directories: %w", err)
-	}
-
 	// OPTIMIZED: Parallel fingerprint creation for subdirectories
-	// Use a semaphore to limit concurrent WebDAV requests
-	const maxConcurrent = 5
-	sem := make(chan struct{}, maxConcurrent)
+	// Use a dynamic semaphore limit based on HTTP/HTTPS
+	limit := 16
+	if strings.HasPrefix(strings.ToLower(client.url), "https") {
+		limit = 24
+	}
+	sem := make(chan struct{}, limit)
 	var wg sync.WaitGroup
 	var mu sync.Mutex // Protect volumeMap
 

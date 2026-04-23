@@ -6,7 +6,7 @@
 name: "haya-tab"
 arch: ${GOARCH}
 platform: "linux"
-version: "3.1.4"
+version: "3.1.5"
 section: "default"
 priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>

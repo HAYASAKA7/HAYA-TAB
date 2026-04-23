@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.5] - 2026-04-23
+
+### Changed
+- **WebDAV Volume Scanning:** Optimized `ScanVolumes` and `DiscoverAndRegisterVolumes` to process subdirectories concurrently with dynamic limits (16 for HTTP, 24 for HTTPS), significantly reducing volume discovery time.
+
 ## [3.1.4] - 2026-04-21
 
 ### Changed

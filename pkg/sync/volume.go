@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -388,15 +389,16 @@ func (c *WebDAVClient) legacyFingerprintExists(remotePath string) bool {
 }
 
 // ScanVolumes scans the WebDAV root directory for all volumes (directories with fingerprint files)
-// Returns a map of mount_path -> VolumeFingerprint
+// Returns a map of mount_path -> VolumeFingerprint and a list of all remote directories
 // OPTIMIZED: Only reads metadata, not all bucket files, to speed up discovery
-func (c *WebDAVClient) ScanVolumes(rootPath string) (map[string]*VolumeFingerprint, error) {
+func (c *WebDAVClient) ScanVolumes(rootPath string) (map[string]*VolumeFingerprint, []string, error) {
 	volumes := make(map[string]*VolumeFingerprint)
+	var mu sync.Mutex // protects volumes map
 
 	// List directories in root
 	dirs, err := c.ListRemoteDirectories(rootPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list directories: %w", err)
+		return nil, nil, fmt.Errorf("failed to list directories: %w", err)
 	}
 
 	// Check root itself for fingerprint
@@ -407,19 +409,39 @@ func (c *WebDAVClient) ScanVolumes(rootPath string) (map[string]*VolumeFingerpri
 		}
 	}
 
-	// Check each subdirectory for fingerprint
+	// Determine concurrency limit based on URL scheme
+	limit := 16 // HTTP default
+	if strings.HasPrefix(strings.ToLower(c.url), "https") {
+		limit = 24 // HTTPS limit
+	}
+	sem := make(chan struct{}, limit)
+	var wg sync.WaitGroup
+
+	// Check each subdirectory for fingerprint concurrently
 	for _, dir := range dirs {
-		if c.FingerprintExists(dir) {
-			fingerprint, err := c.ReadVolumeFingerprintMetadataOnly(dir)
-			if err != nil {
-				fmt.Printf("[Warning] Failed to read fingerprint metadata at %s: %v\n", dir, err)
-				continue
+		wg.Add(1)
+		go func(remoteDir string) {
+			defer wg.Done()
+
+			// Acquire semaphore
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			if c.FingerprintExists(remoteDir) {
+				fingerprint, err := c.ReadVolumeFingerprintMetadataOnly(remoteDir)
+				if err != nil {
+					fmt.Printf("[Warning] Failed to read fingerprint metadata at %s: %v\n", remoteDir, err)
+					return
+				}
+				mu.Lock()
+				volumes[remoteDir] = fingerprint
+				mu.Unlock()
 			}
-			volumes[dir] = fingerprint
-		}
+		}(dir)
 	}
 
-	return volumes, nil
+	wg.Wait()
+	return volumes, dirs, nil
 }
 
 // ReadVolumeFingerprintMetadataOnly reads only the metadata without loading all files
