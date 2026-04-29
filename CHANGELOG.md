@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.6] - 2026-04-29
+
+### Fixed
+- **Cloud Category Offline Access:** Cloud tabs now appear in the Cloud Storage category even when WebDAV is offline. The cloud category assignment is now performed before volume discovery, ensuring cloud tabs remain accessible regardless of connection status.
+
 ## [3.1.5] - 2026-04-23
 
 ### Changed

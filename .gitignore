@@ -14,3 +14,4 @@ phases/
 *.tsbuildinfo
 *.exe
 .task/
+.worktrees/

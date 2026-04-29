@@ -199,6 +199,13 @@ func DiscoverAndRegisterVolumes(client *WebDAVClient, db *store.DBStore, rootPat
 		fmt.Printf("[Info] Volume cache updated with %d volumes\n", len(registeredVolumes))
 	}
 
+	// CRITICAL FIX: Ensure all cloud tabs have the cloud category after discovery
+	// This handles the case where tabs exist but don't have the sys_cloud category assigned
+	fmt.Printf("[Info] Volume discovery complete. Ensuring all cloud tabs have cloud category...\n")
+	if _, err := db.EnsureCloudTabsHaveCloudCategory(); err != nil {
+		fmt.Printf("[Warning] Failed to ensure cloud tabs have cloud category: %v\n", err)
+	}
+
 	return registeredVolumes, totalAdded, nil
 }
 

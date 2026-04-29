@@ -741,6 +741,18 @@ func (a *App) WebDAVInitialize() error {
 		// Don't fail initialization if category creation fails
 	}
 
+	// CRITICAL: Ensure all cloud tabs have the cloud category BEFORE volume discovery
+	// Cloud tabs exist in the database and should be visible in the cloud storage category
+	// even when WebDAV is offline. This must happen regardless of connection status.
+	a.logger.Info("Ensuring all cloud tabs have cloud category...")
+	addedCount, err := a.store.EnsureCloudTabsHaveCloudCategory()
+	if err != nil {
+		a.logger.Error("Failed to ensure cloud tabs have cloud category: %v", err)
+		// Don't fail initialization if migration fails
+	} else if addedCount > 0 {
+		a.logger.Info("Added cloud category to %d existing cloud tabs", addedCount)
+	}
+
 	client := syncpkg.NewWebDAVClient(
 		strings.TrimRight(settings.WebDAVURL, "/"),
 		settings.WebDAVUser,
@@ -785,16 +797,6 @@ func (a *App) WebDAVInitialize() error {
 	if err := a.WebDAVMigrateCloudTabs(); err != nil {
 		a.logger.Error("Failed to migrate cloud tabs: %v", err)
 		// Don't fail initialization if migration fails
-	}
-
-	// Ensure all cloud tabs have the cloud category
-	a.logger.Info("Ensuring all cloud tabs have cloud category...")
-	addedCount, err := a.store.EnsureCloudTabsHaveCloudCategory()
-	if err != nil {
-		a.logger.Error("Failed to ensure cloud tabs have cloud category: %v", err)
-		// Don't fail initialization if migration fails
-	} else if addedCount > 0 {
-		a.logger.Info("Added cloud category to %d existing cloud tabs", addedCount)
 	}
 
 	if migratedCount > 0 || addedCount > 0 {
