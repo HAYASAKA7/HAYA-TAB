@@ -34,18 +34,18 @@ func (e *AppError) I18nData() (string, map[string]interface{}) {
 
 // Error codes for categorization (used as i18n keys)
 const (
-	ErrCodeFileNotFound    = "errors.fileNotFound"
-	ErrCodeFileAccess      = "errors.fileAccess"
-	ErrCodeDuplicate       = "errors.duplicate"
-	ErrCodeDatabase        = "errors.database"
-	ErrCodeNetwork         = "errors.network"
-	ErrCodeWebDAV          = "errors.webdav"
-	ErrCodeMetadata        = "errors.metadata"
-	ErrCodeCoverDownload   = "errors.coverDownload"
-	ErrCodeMusicBrainz     = "errors.musicbrainz"
-	ErrCodeInvalidInput    = "errors.invalidInput"
-	ErrCodePermission      = "errors.permission"
-	ErrCodeUnknown         = "errors.unknown"
+	ErrCodeFileNotFound  = "errors.fileNotFound"
+	ErrCodeFileAccess    = "errors.fileAccess"
+	ErrCodeDuplicate     = "errors.duplicate"
+	ErrCodeDatabase      = "errors.database"
+	ErrCodeNetwork       = "errors.network"
+	ErrCodeWebDAV        = "errors.webdav"
+	ErrCodeMetadata      = "errors.metadata"
+	ErrCodeCoverDownload = "errors.coverDownload"
+	ErrCodeMusicBrainz   = "errors.musicbrainz"
+	ErrCodeInvalidInput  = "errors.invalidInput"
+	ErrCodePermission    = "errors.permission"
+	ErrCodeUnknown       = "errors.unknown"
 )
 
 // NewAppError creates a new application error

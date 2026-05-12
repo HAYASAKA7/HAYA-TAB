@@ -364,4 +364,3 @@ func isHanzi(r rune) bool {
 func isLatin(r rune) bool {
 	return unicode.IsLetter(r) && ((r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z'))
 }
-

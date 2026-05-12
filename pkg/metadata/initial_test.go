@@ -6,10 +6,10 @@ import (
 
 func TestCalculateInitials_Chinese(t *testing.T) {
 	testCases := []struct {
-		title          string
-		originCountry  string
-		expectedAZ     string
-		expectedKana   string
+		title         string
+		originCountry string
+		expectedAZ    string
+		expectedKana  string
 	}{
 		{"青春", "CN", "Q", "#"},
 		{"爱情故事", "CN", "A", "#"},
@@ -33,10 +33,10 @@ func TestCalculateInitials_Chinese(t *testing.T) {
 
 func TestCalculateInitials_Japanese(t *testing.T) {
 	testCases := []struct {
-		title          string
-		originCountry  string
-		expectedAZ     string
-		expectedKana   string
+		title         string
+		originCountry string
+		expectedAZ    string
+		expectedKana  string
 	}{
 		{"さくら", "JP", "S", "さ"},
 		{"カラオケ", "JP", "K", "か"},
@@ -60,10 +60,10 @@ func TestCalculateInitials_Japanese(t *testing.T) {
 
 func TestCalculateInitials_English(t *testing.T) {
 	testCases := []struct {
-		title          string
-		originCountry  string
-		expectedAZ     string
-		expectedKana   string
+		title         string
+		originCountry string
+		expectedAZ    string
+		expectedKana  string
 	}{
 		{"Stairway to Heaven", "US", "S", "S"},
 		{"Hotel California", "US", "H", "H"},
@@ -454,10 +454,10 @@ func TestCalculateLatinInitials_EdgeCases(t *testing.T) {
 
 func TestCalculateInitials_LatinWithJapaneseOrigin(t *testing.T) {
 	testCases := []struct {
-		title          string
-		originCountry  string
-		expectedAZ     string
-		expectedKana   string
+		title         string
+		originCountry string
+		expectedAZ    string
+		expectedKana  string
 	}{
 		{"Distortion!!", "JP", "D", "D"},
 		{"Final Distortion", "JP", "F", "F"},

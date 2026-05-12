@@ -338,7 +338,7 @@ func (pm *PluginManager) UpdatePluginConfig(id string, config map[string]string,
 	if err != nil {
 		return err
 	}
-	
+
 	if err := os.WriteFile(cfgPath, data, 0644); err != nil {
 		return err
 	}

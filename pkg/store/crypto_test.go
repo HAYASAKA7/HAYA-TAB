@@ -14,11 +14,11 @@ func TestEncryptDecrypt(t *testing.T) {
 	testCases := []string{
 		"simple password",
 		"password with spaces",
-		"パスワード", // Japanese
-		"密码",      // Chinese
-		"пароль",    // Russian
-		"!@#$%^&*()", // Special characters
-		"a",          // Single character
+		"パスワード",                   // Japanese
+		"密码",                      // Chinese
+		"пароль",                  // Russian
+		"!@#$%^&*()",              // Special characters
+		"a",                       // Single character
 		strings.Repeat("x", 1000), // Long string
 	}
 
@@ -84,7 +84,7 @@ func TestDecryptInvalidData(t *testing.T) {
 		input string
 	}{
 		{"invalid base64", "not-valid-base64!!!"},
-		{"too short", "YWJj"}, // "abc" in base64, but too short for cipher
+		{"too short", "YWJj"},               // "abc" in base64, but too short for cipher
 		{"random data", "SGVsbG8gV29ybGQ="}, // "Hello World" in base64
 	}
 
@@ -259,7 +259,3 @@ func TestEncryptLongString(t *testing.T) {
 		t.Error("Failed to encrypt/decrypt long string")
 	}
 }
-
-
-
-

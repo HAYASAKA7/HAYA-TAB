@@ -809,7 +809,6 @@ func TestDBStore_GetTabsPaginated_Sorting(t *testing.T) {
 	}
 }
 
-
 func TestDBStore_DeleteCategory_WithSubcategories(t *testing.T) {
 	store := setupTestDB(t)
 	defer cleanupTestDB(store)
@@ -1101,4 +1100,3 @@ func TestDBStore_GetTabsPaginatedLike_EdgeCases(t *testing.T) {
 		t.Errorf("Expected total 1, got %d", total)
 	}
 }
-

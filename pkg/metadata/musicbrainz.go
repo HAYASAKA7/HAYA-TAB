@@ -29,12 +29,12 @@ type MusicBrainzArtistResponse struct {
 
 // MusicBrainzArtistInfo represents an artist entry from MusicBrainz
 type MusicBrainzArtistInfo struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	SortName    string `json:"sort-name"`
-	Country     string `json:"country"`
-	Type        string `json:"type"`
-	Score       int    `json:"score"`
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	SortName       string `json:"sort-name"`
+	Country        string `json:"country"`
+	Type           string `json:"type"`
+	Score          int    `json:"score"`
 	Disambiguation string `json:"disambiguation"`
 }
 

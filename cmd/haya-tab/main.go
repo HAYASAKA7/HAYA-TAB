@@ -45,7 +45,7 @@ func main() {
 		myApp.Startup()
 		myApp.DomReady() // Called after startup since WindowDomReady was removed
 	})
-	
+
 	// Ensure we shut down gracefully
 	appInstance.OnShutdown(func() {
 		myApp.Shutdown()

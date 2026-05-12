@@ -98,7 +98,7 @@ func (l *Logger) Error(format string, args ...interface{}) {
 	}
 	msg := fmt.Sprintf(format, args...)
 	l.logger.Printf("[ERROR] %s", msg)
-	
+
 	// Emit event to frontend for toast notifications
 	if app := application.Get(); app != nil {
 		app.Event.Emit("app-error", msg)

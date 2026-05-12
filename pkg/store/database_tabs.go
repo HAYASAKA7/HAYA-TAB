@@ -994,4 +994,3 @@ func (s *DBStore) UpdateLastOpened(tabID string) error {
 	_, err := s.db.Exec("UPDATE tabs SET last_opened = ? WHERE id = ?", sql.NullInt64{Int64: int64(time.Now().Unix()), Valid: true}, tabID)
 	return err
 }
-

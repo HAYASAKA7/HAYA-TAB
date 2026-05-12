@@ -22,12 +22,12 @@ type Tab struct {
 	Title         string   `json:"title"`
 	Artist        string   `json:"artist"`
 	Album         string   `json:"album"`
-	FilePath      string   `json:"filePath"`      // For local: absolute path. For cloud: relative path within volume
-	CloudPath     string   `json:"cloudPath"`     // Relative path within volume (persists after download)
-	VolumeID      string   `json:"volumeId"`      // Cloud volume ID (empty for local files)
-	Type          string   `json:"type"`          // "pdf" or "gp"
+	FilePath      string   `json:"filePath"`  // For local: absolute path. For cloud: relative path within volume
+	CloudPath     string   `json:"cloudPath"` // Relative path within volume (persists after download)
+	VolumeID      string   `json:"volumeId"`  // Cloud volume ID (empty for local files)
+	Type          string   `json:"type"`      // "pdf" or "gp"
 	IsManaged     bool     `json:"isManaged"`
-	IsCloud       bool     `json:"isCloud"`       // True if this is a cloud/online tab (not downloaded)
+	IsCloud       bool     `json:"isCloud"` // True if this is a cloud/online tab (not downloaded)
 	CoverPath     string   `json:"coverPath"`
 	CategoryIDs   []string `json:"categoryIds"`   // List of Category IDs
 	Country       string   `json:"country"`       // e.g. "US", "JP" (user's preferred search country)
@@ -115,9 +115,8 @@ type Settings struct {
 }
 
 type RemoteFile struct {
-	Name string `json:"name"`
-	Path string `json:"path"` // Full remote path
-	Size int64  `json:"size"`
-	IsDir bool  `json:"isDir"`
+	Name  string `json:"name"`
+	Path  string `json:"path"` // Full remote path
+	Size  int64  `json:"size"`
+	IsDir bool   `json:"isDir"`
 }
-

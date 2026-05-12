@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	keyringService  = "haya-tab"
-	keyringUsername = "encryption-master-key"
+	keyringService     = "haya-tab"
+	keyringUsername    = "encryption-master-key"
 	encryptionV2Prefix = "v2:"
 )
 

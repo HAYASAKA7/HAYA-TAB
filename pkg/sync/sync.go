@@ -83,11 +83,13 @@ func NewSyncService(
 // 1. Iterate through all configured sync paths (settings.SyncPaths)
 // 2. Recursively scan each path for supported file types (.pdf, .gp, .gpx, .xml, etc.)
 // 3. For each file, perform duplicate detection:
-//    - Check if file path already exists (exact match)
-//    - Check if title conflicts (via metadata parsing)
+//   - Check if file path already exists (exact match)
+//   - Check if title conflicts (via metadata parsing)
+//
 // 4. Handle conflicts based on sync strategy:
-//    - "skip": Skip duplicate file, keep existing data unchanged
-//    - "overwrite": Non-destructive rename (add _copy1, _copy2 suffix), keep original file
+//   - "skip": Skip duplicate file, keep existing data unchanged
+//   - "overwrite": Non-destructive rename (add _copy1, _copy2 suffix), keep original file
+//
 // 5. Add new tab to database, trigger async cover download
 // 6. Update last sync timestamp
 //
@@ -247,9 +249,9 @@ func (s *SyncService) ProcessFile(path string) store.Tab {
 // 2. Generate cover filename (using Tab ID for uniqueness)
 // 3. Submit download task to worker pool (3 concurrent workers)
 // 4. On completion:
-//    - Update cover path in database
-//    - Trigger frontend update event
-//    - If artist origin country is unknown, submit MusicBrainz query task
+//   - Update cover path in database
+//   - Trigger frontend update event
+//   - If artist origin country is unknown, submit MusicBrainz query task
 //
 // Performance Optimization:
 // - Uses worker pool to avoid blocking main thread

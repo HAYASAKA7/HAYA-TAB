@@ -453,7 +453,7 @@ func TestApp_SaveTab(t *testing.T) {
 		if !savedTab.IsManaged {
 			t.Error("Saved tab should be managed")
 		}
-		
+
 		// Verify file was copied to storage
 		storagePath := filepath.Join(app.GetStorageDir(), savedTab.FilePath)
 		if _, err := os.Stat(storagePath); os.IsNotExist(err) {
