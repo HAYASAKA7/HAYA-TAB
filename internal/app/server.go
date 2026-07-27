@@ -53,6 +53,18 @@ func NewFileHandler(app *App) *FileHandler {
 	return &FileHandler{app: app}
 }
 
+// NewAssetHandler routes application API requests to the in-process file
+// handler and delegates every other request to the embedded frontend.
+func NewAssetHandler(api http.Handler, frontend http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
+			api.ServeHTTP(w, r)
+			return
+		}
+		frontend.ServeHTTP(w, r)
+	})
+}
+
 // ServeHTTP implements http.Handler for streaming files
 func (h *FileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("[FileHandler] ServeHTTP called: %s %s\n", r.Method, r.URL.String())

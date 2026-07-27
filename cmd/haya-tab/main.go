@@ -19,6 +19,8 @@ func main() {
 		log.Fatal("Error starting file server:", err)
 	}
 	myApp.SetFileServerPort(port)
+	frontendAssets := application.AssetFileServerFS(appassets.FS)
+	assetHandler := app.NewAssetHandler(app.NewFileHandler(myApp), frontendAssets)
 
 	// Create application with options
 	opts := application.Options{
@@ -28,7 +30,7 @@ func main() {
 			application.NewService(myApp),
 		},
 		Assets: application.AssetOptions{
-			Handler: application.AssetFileServerFS(appassets.FS),
+			Handler: assetHandler,
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
