@@ -7,6 +7,7 @@ const props = withDefaults(defineProps<{
   open: boolean
   title: string
   size?: ModalSize
+  contentClass?: string
   closeOnOverlay?: boolean
 }>(), {
   size: 'small',
@@ -63,7 +64,7 @@ watch(
     document.removeEventListener('keydown', handleKeydown, true)
     restoreFocus()
   },
-  { flush: 'post' },
+  { flush: 'post', immediate: true },
 )
 
 onBeforeUnmount(() => {
@@ -90,12 +91,13 @@ onBeforeUnmount(() => {
         aria-modal="true"
         :aria-labelledby="titleId"
         tabindex="-1"
+        @keydown.stop
       >
         <header class="modal-header">
           <h2 :id="titleId">{{ title }}</h2>
         </header>
 
-        <div class="modal-body">
+        <div class="modal-body" :class="contentClass">
           <slot />
         </div>
 
@@ -167,6 +169,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex: none;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 16px;
 }

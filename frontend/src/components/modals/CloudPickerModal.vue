@@ -489,4 +489,21 @@ function formatSize(bytes: number) {
   background: var(--primary);
   color: white;
 }
+
+@media (max-width: 600px) {
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .search-input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+}
 </style>

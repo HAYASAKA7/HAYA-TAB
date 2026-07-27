@@ -1,5 +1,4 @@
 import { expect, test, type Page } from '@playwright/test'
-import { readFileSync } from 'node:fs'
 
 type DialogName =
   | 'edit'
@@ -132,6 +131,27 @@ test('every dialog stays inside a 375 by 667 viewport with sixteen-pixel margins
     expect(box!.y, `${dialogName} top margin`).toBeGreaterThanOrEqual(15)
     expect(box!.x + box!.width, `${dialogName} right edge`).toBeLessThanOrEqual(360)
     expect(box!.y + box!.height, `${dialogName} bottom edge`).toBeLessThanOrEqual(652)
+
+    const horizontalOverflows = await dialog.evaluate((surface) => {
+      const surfaceRect = surface.getBoundingClientRect()
+      return Array.from(surface.querySelectorAll<HTMLElement>('*')).flatMap((element) => {
+        const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        if (style.display === 'none' || style.visibility === 'hidden' || rect.width === 0) return []
+        if (rect.left >= surfaceRect.left - 0.5 && rect.right <= surfaceRect.right + 0.5) return []
+        return [`${element.tagName.toLowerCase()}.${element.className}: ${rect.left}-${rect.right}`]
+      })
+    })
+    expect(horizontalOverflows, `${dialogName} descendant horizontal overflow`).toEqual([])
+
+    const footer = dialog.locator('.modal-actions')
+    if (await footer.count()) {
+      const footerBox = await footer.boundingBox()
+      expect(footerBox).not.toBeNull()
+      expect(footerBox!.x).toBeGreaterThanOrEqual(box!.x)
+      expect(footerBox!.x + footerBox!.width).toBeLessThanOrEqual(box!.x + box!.width)
+      expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(box!.y + box!.height)
+    }
   }
 })
 
@@ -153,33 +173,44 @@ test('Escape closes a dialog and restores focus to its trigger', async ({ page }
   await expect(page.locator('#modal-focus-trigger')).toBeFocused()
 })
 
-test('ordinary and sync notifications share one responsive surface contract', async ({ page }) => {
-  const toastSource = readFileSync('src/components/common/Toast.vue', 'utf8')
-  const syncToastSource = readFileSync('src/components/common/SyncTaskToast.vue', 'utf8')
-  expect(toastSource).toContain('notification-surface')
-  expect(syncToastSource).toContain('notification-surface')
-
-  await page.setViewportSize({ width: 375, height: 667 })
+test('dialog keyboard events do not reach application shortcuts behind it', async ({ page }) => {
   await page.evaluate(() => {
-    const fixtures = [
-      ['ordinary-notification-fixture', 'toast notification-surface'],
-      ['sync-notification-fixture', 'toast-mode notification-surface'],
-    ]
-
-    for (const [id, className] of fixtures) {
-      const surface = document.createElement('div')
-      surface.id = id
-      surface.className = className
-      surface.textContent = 'A deliberately long notification message that must remain inside the narrow viewport.'
-      surface.style.position = 'fixed'
-      surface.style.right = '24px'
-      surface.style.bottom = id.startsWith('ordinary') ? '24px' : '96px'
-      document.body.append(surface)
-    }
+    ;(window as any).__backgroundKeydownCount = 0
+    window.addEventListener('keydown', () => {
+      ;(window as any).__backgroundKeydownCount += 1
+    })
   })
 
-  const ordinary = page.locator('#ordinary-notification-fixture')
-  const sync = page.locator('#sync-notification-fixture')
+  await openDialog(page, 'keyBindings')
+  await expect(page.getByTestId('base-modal')).toBeFocused()
+  await page.keyboard.press('x')
+
+  expect(await page.evaluate(() => (window as any).__backgroundKeydownCount)).toBe(0)
+})
+
+test('ordinary and sync notifications share one responsive surface contract', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 })
+  await page.evaluate(() => {
+    const app = document.querySelector('#app') as any
+    app.__vue_app__._instance.setupState.showToast(
+      'A deliberately long notification message that must remain inside the narrow viewport.',
+      'error',
+    )
+
+    const dispatch = (window as any)._wails.dispatchWailsEvent
+    dispatch({
+      name: 'webdav-sync-progress',
+      data: {
+        status: 'error',
+        message: 'A deliberately long sync notification that must remain inside the narrow viewport.',
+      },
+    })
+  })
+
+  const ordinary = page.locator('#toast-container .toast.notification-surface').first()
+  const sync = page.locator('#sync-task-toast-container .toast-mode.notification-surface')
+  await expect(ordinary).toBeVisible()
+  await expect(sync).toBeVisible()
   const properties = ['padding', 'borderRadius', 'borderLeftWidth', 'boxShadow', 'maxWidth'] as const
 
   const ordinaryStyles = await ordinary.evaluate((element, names) => {
