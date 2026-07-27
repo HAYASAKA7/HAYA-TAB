@@ -76,7 +76,7 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			clone.Header.Set("Referer", "https://www.123pan.com/")
 			clone.Header.Set("Origin", "https://www.123pan.com")
 		case strings.Contains(host, "10086.cn"):
-			clone.Header.Set("Referer", "https://caiyun.islfeixin.10086.cn/")
+			clone.Header.Set("Referer", "https://caiyun.feixin.10086.cn/")
 			clone.Header.Set("Origin", "https://caiyun.feixin.10086.cn")
 		case strings.Contains(host, "mypikpak.com"):
 			clone.Header.Set("Referer", "https://mypikpak.com/")
