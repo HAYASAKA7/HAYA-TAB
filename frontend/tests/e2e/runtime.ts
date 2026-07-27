@@ -49,6 +49,11 @@ export const androidCapabilities = {
   selfUpdate: false,
 } as const satisfies RuntimeCapabilities
 
+export const iosTabletCapabilities = {
+  ...iosCapabilities,
+  formFactor: 'tablet',
+} as const satisfies RuntimeCapabilities
+
 export async function installRuntime(page: Page, capabilities: RuntimeCapabilities) {
   await page.addInitScript((runtimeCapabilities) => {
     const testWindow = window as typeof window & {

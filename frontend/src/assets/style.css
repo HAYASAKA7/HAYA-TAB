@@ -1,4 +1,9 @@
 :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --minimum-touch-target: 44px;
     --bg: #1e1e1e;
     --sidebar-bg: #252526;
     --card-bg: #2d2d2d;
@@ -28,6 +33,11 @@
     --notification-radius: 8px;
     --notification-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     --notification-max-width: 320px;
+}
+
+html[data-runtime-target='ios'],
+html[data-runtime-target='android'] {
+    overscroll-behavior: none;
 }
 
 [data-theme="light"] {
@@ -78,8 +88,53 @@ input, textarea, [contenteditable], pre, code, .selectable {
     display: flex;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
+    box-sizing: border-box;
+    position: relative;
     background-size: cover;
     background-position: center;
+}
+
+html[data-runtime-target='ios'] #app-layout,
+html[data-runtime-target='android'] #app-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+html[data-runtime-target='ios'] #main-content,
+html[data-runtime-target='android'] #main-content {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+}
+
+html[data-form-factor='tablet'][data-runtime-target='ios'] #app-layout,
+html[data-form-factor='tablet'][data-runtime-target='android'] #app-layout {
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+html[data-form-factor='tablet'][data-runtime-target='ios'] #sidebar,
+html[data-form-factor='tablet'][data-runtime-target='android'] #sidebar {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+html[data-form-factor='tablet'][data-runtime-target='ios'] #main-content,
+html[data-form-factor='tablet'][data-runtime-target='android'] #main-content {
+    grid-column: 2;
+}
+
+html[data-runtime-target='ios'] button,
+html[data-runtime-target='android'] button,
+html[data-runtime-target='ios'] [role='button'],
+html[data-runtime-target='android'] [role='button'],
+html[data-runtime-target='ios'] .sidebar-item,
+html[data-runtime-target='android'] .sidebar-item {
+    min-width: var(--minimum-touch-target);
+    min-height: var(--minimum-touch-target);
+    box-sizing: border-box;
 }
 
 /* Sidebar */
@@ -232,6 +287,7 @@ input, textarea, [contenteditable], pre, code, .selectable {
     flex-direction: column;
     flex: 1;
     width: 100%;
+    min-width: 0;
     min-height: 0;
 }
 .hidden { display: none !important; }
@@ -370,6 +426,7 @@ h1 { font-size: 1.3rem; margin: 0; font-weight: 600; cursor: pointer; }
     max-width: 800px;
     margin: 0 auto;
     width: 100%;
+    box-sizing: border-box;
 }
 .settings-section { margin-bottom: 40px; }
 .settings-section h3 { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; color: var(--primary); }

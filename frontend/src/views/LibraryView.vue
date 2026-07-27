@@ -558,4 +558,59 @@ async function addTab(isUpload: boolean) {
   padding: 4rem;
   color: var(--text-muted);
 }
+
+:global(html[data-form-factor='phone'] .library-view .view-header) {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+:global(html[data-form-factor='phone'] .library-view .view-header h1) {
+  flex-basis: 100%;
+  min-width: 0;
+  font-size: 1.35rem;
+}
+
+:global(html[data-form-factor='phone'] .library-view .toggle-group) {
+  position: static;
+  order: 3;
+  width: 100%;
+  transform: none;
+}
+
+:global(html[data-form-factor='phone'] .library-view .toggle-btn) {
+  flex: 1;
+}
+
+:global(html[data-form-factor='phone'] .library-view .actions) {
+  flex: 0 0 100%;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+:global(html[data-form-factor='phone'] .library-view .search-container) {
+  padding: 0.75rem 1rem 0;
+}
+
+:global(html[data-form-factor='phone'] .library-view .view-content) {
+  padding: 0.75rem 1rem;
+}
+
+:global(html[data-form-factor='phone'] .library-view .tab-grid-row) {
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+:global(html[data-form-factor='phone'] .library-view .tab-grid) {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+:global(html[data-form-factor='phone'] .library-view .alphabet-bar) {
+  right: 4px;
+}
 </style>

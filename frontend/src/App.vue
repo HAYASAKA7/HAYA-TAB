@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Events } from "@wailsio/runtime"
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTabsStore, useSettingsStore, useUIStore, useViewersStore, usePlatformStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
@@ -39,6 +39,11 @@ const platformStore = usePlatformStore()
 const { showToast, showErrorToast } = useToast()
 const { t } = useI18n()
 useNativeTabs()
+
+const showSidebar = computed(() => (
+  platformStore.capabilities.target === 'desktop'
+  || platformStore.capabilities.formFactor === 'tablet'
+))
 
 onMounted(async () => {
   await platformStore.load()
@@ -169,8 +174,11 @@ function isViewActive(viewType: string): boolean {
 </script>
 
 <template>
-  <div id="app-layout" :class="{ 'sidebar-collapsed': uiStore.sidebarCollapsed }">
-    <AppSidebar />
+  <div
+    id="app-layout"
+    :class="{ 'sidebar-collapsed': uiStore.sidebarCollapsed }"
+  >
+    <AppSidebar v-if="showSidebar" />
 
     <main id="main-content">
       <!-- Home View -->

@@ -1,12 +1,17 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useTabsStore, useUIStore, useViewersStore } from '@/stores'
+import { usePlatformStore, useTabsStore, useUIStore, useViewersStore } from '@/stores'
 import SidebarTabItem from './SidebarTabItem.vue'
 
 const { t } = useI18n()
 const tabsStore = useTabsStore()
 const uiStore = useUIStore()
 const viewersStore = useViewersStore()
+const platformStore = usePlatformStore()
+const isMobileTablet = computed(() => (
+  platformStore.isMobile && platformStore.capabilities.formFactor === 'tablet'
+))
 
 function goHome() {
   tabsStore.goHome()
@@ -32,6 +37,7 @@ function toggleSidebar() {
       <span class="icon-menu"></span>
     </button>
     <div
+      v-if="!isMobileTablet"
       id="nav-home"
       class="sidebar-item"
       :class="{ active: uiStore.currentView === 'home' }"
@@ -41,6 +47,7 @@ function toggleSidebar() {
       <span class="sidebar-label">{{ t('nav.home') }}</span>
     </div>
     <div
+      v-if="!isMobileTablet"
       id="nav-library"
       class="sidebar-item"
       :class="{ active: uiStore.currentView === 'library' }"
@@ -50,6 +57,7 @@ function toggleSidebar() {
       <span class="sidebar-label">{{ t('nav.library') }}</span>
     </div>
     <div
+      v-if="!isMobileTablet"
       id="nav-settings"
       class="sidebar-item"
       :class="{ active: uiStore.currentView === 'settings' }"
@@ -62,7 +70,7 @@ function toggleSidebar() {
       <span class="sidebar-label">{{ t('nav.settings') }}</span>
     </div>
     <div
-      v-if="uiStore.hasPlugins"
+      v-if="!isMobileTablet && uiStore.hasPlugins"
       id="nav-plugins"
       data-testid="plugins-navigation"
       class="sidebar-item"
@@ -72,7 +80,7 @@ function toggleSidebar() {
       <span class="icon"><span class="icon-plugins"></span></span>
       <span class="sidebar-label">{{ t('nav.plugins') }}</span>
     </div>
-    <div class="sidebar-divider"></div>
+    <div v-if="!isMobileTablet" class="sidebar-divider"></div>
     <div id="opened-tabs-list">
       <SidebarTabItem
         v-for="tabId in viewersStore.sortedOpenedTabs"

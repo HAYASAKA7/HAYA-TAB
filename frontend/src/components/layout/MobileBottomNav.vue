@@ -43,14 +43,12 @@ const destinations: Array<{
 
 <style scoped>
 .mobile-bottom-nav {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  grid-column: 1 / -1;
+  grid-row: 2;
   z-index: 120;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 4px 8px calc(4px + env(safe-area-inset-bottom));
+  padding: 4px 8px;
   border-top: 1px solid var(--border);
   background: var(--sidebar-bg);
 }
