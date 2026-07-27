@@ -55,3 +55,23 @@ export async function installRuntime(page: Page, capabilities: RuntimeCapabiliti
     })
   }, capabilities)
 }
+
+export async function installBackend(page: Page, responses: Record<string, unknown>) {
+  await page.addInitScript((backendResponses) => {
+    const testWindow = window as typeof window & {
+      __HAYA_BACKEND_CALLS__?: Array<{ method: string; args: unknown[] }>
+      __HAYA_TEST_BACKEND__?: Record<string, (...args: unknown[]) => unknown>
+    }
+
+    testWindow.__HAYA_BACKEND_CALLS__ = []
+    testWindow.__HAYA_TEST_BACKEND__ = Object.fromEntries(
+      Object.entries(backendResponses).map(([method, response]) => [
+        method,
+        (...args: unknown[]) => {
+          testWindow.__HAYA_BACKEND_CALLS__!.push({ method, args })
+          return response
+        },
+      ]),
+    )
+  }, responses)
+}

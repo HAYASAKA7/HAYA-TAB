@@ -127,6 +127,10 @@ export function GetCover(path: string): $CancellablePromise<string> {
     return $Call.ByID(3366959344, path);
 }
 
+export function GetCoverContentURL(id: string): $CancellablePromise<string> {
+    return $Call.ByID(1707724014, id);
+}
+
 /**
  * GetCoversDir returns the directory for cover images.
  */
@@ -196,6 +200,10 @@ export function GetStorageDir(): $CancellablePromise<string> {
  */
 export function GetTabAnnotations(tabID: string, pageNumber: number): $CancellablePromise<string> {
     return $Call.ByID(4116741406, tabID, pageNumber);
+}
+
+export function GetTabContentURL(id: string): $CancellablePromise<string> {
+    return $Call.ByID(2639814362, id);
 }
 
 /**

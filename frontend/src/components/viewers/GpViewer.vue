@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useTabsStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { useAlphaTab } from '@/composables/useAlphaTab'
-import { TabService, SettingsService } from '@/services'
+import { FileService, TabService } from '@/services'
 import GpFloatingToolbar from './GpFloatingToolbar.vue'
 import GpSelectionMenu from './GpSelectionMenu.vue'
 import { Events } from '@wailsio/runtime'
@@ -181,8 +181,7 @@ async function loadGpTab() {
     }
 
     updateAudioOutput(settingsStore.settings.audioDevice)
-    const port = await SettingsService.getFileServerPort()
-    const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
+    const url = await FileService.getTabContentURL(props.tabId)
     
     await load(url)
 
