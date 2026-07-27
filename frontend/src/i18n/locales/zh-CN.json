@@ -2,6 +2,8 @@
   "nav": {
     "home": "首页",
     "library": "曲库",
+    "offline": "离线",
+    "search": "搜索",
     "settings": "设置",
     "plugins": "插件",
     "back": ".. (返回)"

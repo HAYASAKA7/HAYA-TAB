@@ -33,6 +33,22 @@ export const desktopCapabilities = {
   selfUpdate: true,
 } as const satisfies RuntimeCapabilities
 
+export const androidCapabilities = {
+  target: 'android',
+  formFactor: 'phone',
+  nativeTopLevelTabs: false,
+  webTopLevelTabs: true,
+  inProcessContent: true,
+  loopbackContent: false,
+  nativeFileImport: true,
+  safeAreaInsets: true,
+  folderWatcher: false,
+  customStoragePaths: false,
+  plugins: false,
+  webMIDI: false,
+  selfUpdate: false,
+} as const satisfies RuntimeCapabilities
+
 export async function installRuntime(page: Page, capabilities: RuntimeCapabilities) {
   await page.addInitScript((runtimeCapabilities) => {
     const testWindow = window as typeof window & {

@@ -2,6 +2,8 @@
   "nav": {
     "home": "首頁",
     "library": "曲庫",
+    "offline": "離線",
+    "search": "搜尋",
     "settings": "設置",
     "plugins": "外掛",
     "back": ".. (返回)"

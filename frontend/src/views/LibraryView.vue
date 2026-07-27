@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
@@ -25,6 +25,12 @@ const { width } = useElementSize(viewContentRef)
 const columns = computed(() => Math.max(1, Math.floor((width.value - 64) / 310))) // 310px item + gap, 64px padding buffer
 
 const scrollerRef = ref<any>(null)
+const searchBarRef = ref<{ focus: () => void } | null>(null)
+const displayTabs = computed(() => (
+  uiStore.libraryMode === 'offline'
+    ? tabsStore.tabs.filter(tab => !tab.isCloud)
+    : tabsStore.tabs
+))
 
 const shouldShowFilters = computed(() => {
   if (viewMode.value === 'singles') return true
@@ -64,6 +70,18 @@ watch(() => tabsStore.currentCategoryId, async (newId) => {
   }
 })
 
+watch(() => uiStore.topLevelRequestKey, () => {
+  const destination = uiStore.topLevelDestination
+  if (destination === 'settings') return
+  viewMode.value = 'singles'
+  if (tabsStore.currentCategoryId) tabsStore.goHome()
+})
+
+watch(() => uiStore.searchRequestKey, async () => {
+  await nextTick()
+  searchBarRef.value?.focus()
+})
+
 // Kana row order for Japanese UI Quick Jump Bar
 const KANA_ROWS = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ']
 const AZ_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
@@ -86,7 +104,7 @@ const groupedTabs = computed(() => {
   const groups: Record<string, typeof tabsStore.tabs> = {}
 
   // Sort tabs alphabetically first
-  const sorted = [...tabsStore.tabs].sort((a, b) => a.title.localeCompare(b.title))
+  const sorted = [...displayTabs.value].sort((a, b) => a.title.localeCompare(b.title))
 
   for (const tab of sorted) {
     const key = getInitialKey(tab)
@@ -312,17 +330,18 @@ async function addTab(isUpload: boolean) {
     </header>
 
     <div class="search-container">
-      <SearchBar :show-filters="shouldShowFilters" />
+      <SearchBar ref="searchBarRef" :show-filters="shouldShowFilters" />
     </div>
 
     <div ref="viewContentRef" class="view-content" @contextmenu="handleBlankContextMenu">
       <!-- Singles View -->
       <div v-if="viewMode === 'singles'" class="singles-container">
         <div v-if="tabsStore.loading" class="loading-state">{{ t('library.loading') }}</div>
-        <div v-else-if="tabsStore.tabs.length === 0" class="empty-state">{{ t('library.noTabs') }}</div>
+        <div v-else-if="displayTabs.length === 0" class="empty-state">{{ t('library.noTabs') }}</div>
 
         <template v-else>
           <DynamicScroller
+            :key="uiStore.libraryMode"
             ref="scrollerRef"
             :items="virtualItems"
             :min-item-size="50"
@@ -372,7 +391,7 @@ async function addTab(isUpload: boolean) {
         <div v-if="tabsStore.currentCategoryId" class="playlist-view">
              <div class="tab-grid">
                <BackCard />
-               <TabCard v-for="tab in tabsStore.tabs" :key="tab.id" :tab="tab" />
+               <TabCard v-for="tab in displayTabs" :key="tab.id" :tab="tab" />
              </div>
              <!-- Infinite scroll trigger could go here -->
         </div>

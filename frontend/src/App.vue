@@ -7,6 +7,8 @@ import { useToast } from '@/composables/useToast'
 import { UpdateService } from '@/services'
 import { midiService } from '@/services/MidiService'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
+import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
+import { useNativeTabs } from '@/composables/useNativeTabs'
 import HomeView from '@/views/HomeView.vue'
 import LibraryView from '@/views/LibraryView.vue'
 import SettingsView from '@/components/SettingsView.vue'
@@ -36,9 +38,13 @@ const viewersStore = useViewersStore()
 const platformStore = usePlatformStore()
 const { showToast, showErrorToast } = useToast()
 const { t } = useI18n()
+useNativeTabs()
 
 onMounted(async () => {
   await platformStore.load()
+  if (platformStore.capabilities.nativeTopLevelTabs || platformStore.capabilities.webTopLevelTabs) {
+    uiStore.selectTopLevelDestination('library')
+  }
   await tabsStore.refreshData()
   await settingsStore.loadSettings()
 
@@ -231,6 +237,8 @@ function isViewActive(viewType: string): boolean {
         />
       </div>
     </main>
+
+    <MobileBottomNav />
 
     <!-- Batch Action Bar -->
     <BatchActionBar />

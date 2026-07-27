@@ -16,6 +16,7 @@ const tabsStore = useTabsStore()
 const { searchQuery, searchFilters, searchScope } = storeToRefs(tabsStore)
 const isExpanded = ref(false)
 const searchBarRef = ref<HTMLElement | null>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
 
 // Debounce search
 let timeout: any
@@ -49,6 +50,13 @@ function toggleExpand() {
 function expand() {
   if (props.showFilters && !isExpanded.value) isExpanded.value = true
 }
+
+function focus() {
+  expand()
+  inputRef.value?.focus()
+}
+
+defineExpose({ focus })
 
 function handleClickOutside(event: MouseEvent) {
   if (isExpanded.value && searchBarRef.value && !searchBarRef.value.contains(event.target as Node)) {
@@ -85,6 +93,7 @@ onUnmounted(() => {
         </svg>
       </div>
       <input
+        ref="inputRef"
         type="text"
         v-model="localQuery"
         :placeholder="t('search.placeholder')"

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ViewType } from '@/types'
+import type { TopLevelDestination, ViewType } from '@/types'
 import type { UpdateInfo } from '@/services/UpdateService'
 
 export const useUIStore = defineStore('ui', () => {
@@ -9,6 +9,10 @@ export const useUIStore = defineStore('ui', () => {
   const sidebarCollapsed = ref(true)
   const updateInfo = ref<UpdateInfo | null>(null)
   const hasPlugins = ref(false)
+  const topLevelDestination = ref<TopLevelDestination>('library')
+  const topLevelRequestKey = ref(0)
+  const libraryMode = ref<'all' | 'offline'>('all')
+  const searchRequestKey = ref(0)
 
   // Modal states
   const editModalVisible = ref(false)
@@ -53,6 +57,19 @@ export const useUIStore = defineStore('ui', () => {
 
   function toggleSidebar() {
     sidebarCollapsed.value = !sidebarCollapsed.value
+  }
+
+  function selectTopLevelDestination(destination: TopLevelDestination) {
+    topLevelDestination.value = destination
+    topLevelRequestKey.value++
+    if (destination === 'settings') {
+      switchView('settings')
+      return
+    }
+
+    libraryMode.value = destination === 'offline' ? 'offline' : 'all'
+    switchView('library')
+    if (destination === 'search') searchRequestKey.value++
   }
 
   function showEditModal(data: any) {
@@ -173,6 +190,10 @@ export const useUIStore = defineStore('ui', () => {
     sidebarCollapsed,
     updateInfo,
     hasPlugins,
+    topLevelDestination,
+    topLevelRequestKey,
+    libraryMode,
+    searchRequestKey,
     editModalVisible,
     categoryModalVisible,
     moveModalVisible,
@@ -197,6 +218,7 @@ export const useUIStore = defineStore('ui', () => {
     // Actions
     switchView,
     toggleSidebar,
+    selectTopLevelDestination,
     showEditModal,
     hideEditModal,
     showCategoryModal,
