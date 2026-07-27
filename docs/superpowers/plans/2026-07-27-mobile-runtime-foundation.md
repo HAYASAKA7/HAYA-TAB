@@ -447,12 +447,12 @@ Run:
 
 ```powershell
 go test ./internal/platform ./internal/app
-go test -tags ios ./internal/platform
-go test -tags android ./internal/platform
+$env:GOOS='ios'; $env:GOARCH='arm64'; go list -f "{{.GoFiles}}" ./internal/platform
+$env:GOOS='android'; $env:GOARCH='arm64'; go list -f "{{.GoFiles}}" ./internal/platform
 npm --prefix frontend run build
 ```
 
-Expected: all four commands pass. If a host toolchain cannot link a mobile-tagged Wails package, compile only the pure `internal/platform` package for that tag and leave device linking to Task 9.
+Expected: the host tests pass; the iOS list contains `target_ios.go`; and the Android list contains `target_android.go`. Do not pass `ios` or `android` through `-tags`: they are reserved GOOS tags and would select conflicting standard-library files on a Windows host. Device linking remains in Task 9.
 
 - [ ] **Step 6: Commit**
 

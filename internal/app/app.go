@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"haya-tab/internal/platform"
 	"haya-tab/pkg/coverpool"
 	"haya-tab/pkg/logger"
 	"haya-tab/pkg/metadata"
@@ -268,17 +269,18 @@ func (a *App) Startup() {
 	a.volumeCache = syncpkg.NewVolumeCache(5 * time.Minute)
 	a.logger.Info("Volume cache initialized with 5-minute TTL")
 
-	// Auto Sync Logic
-	go a.runAutoSync()
-
 	// Background backfill for legacy data: fetch origin_country for tabs with covers but no origin_country
 	go a.backfillOriginCountry()
 
 	// Background backfill for legacy data: calculate initials for tabs without them
 	go a.backfillInitials()
 
-	// Initialize file watcher if sync paths are configured
-	a.initFileWatcher()
+	// Desktop folder synchronization is not valid in the mobile app sandbox.
+	runtimeCapabilities := platform.CapabilitiesFor(platform.CurrentTarget(), 0)
+	if runtimeCapabilities.FolderWatcher {
+		go a.runAutoSync()
+		a.initFileWatcher()
+	}
 }
 
 // runAutoSync handles automatic synchronization based on settings

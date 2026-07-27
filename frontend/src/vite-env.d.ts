@@ -41,6 +41,7 @@ interface Window {
         TriggerSync(): Promise<string>
         GetCover(path: string): Promise<string>
         GetFileServerPort(): Promise<number>
+        GetRuntimeCapabilities(viewportWidth: number): Promise<import('./types/platform').RuntimeCapabilities>
         // WebDAV
         WebDAVTestConnection(url: string, user: string, pass: string): Promise<void>
         WebDAVScanRemoteFiles(url: string, user: string, pass: string, dir: string): Promise<any[]>
