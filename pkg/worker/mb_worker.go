@@ -144,6 +144,14 @@ func (w *MBWorker) processJob(job MBJob) {
 		return
 	}
 
+	tab, err := w.store.GetTab(job.TabID)
+	if err != nil || tab == nil {
+		if w.logger != nil {
+			w.logger.Error("Failed to get tab %s before MusicBrainz lookup: %v", job.TabID, err)
+		}
+		return
+	}
+
 	country, err := w.client.SearchArtistCountry(job.ArtistName)
 	if err != nil {
 		if w.logger != nil {
@@ -165,14 +173,6 @@ func (w *MBWorker) processJob(job MBJob) {
 	}
 
 	// Recalculate initials after origin_country update
-	tab, err := w.store.GetTab(job.TabID)
-	if err != nil || tab == nil {
-		if w.logger != nil {
-			w.logger.Error("Failed to get tab %s for initial recalculation: %v", job.TabID, err)
-		}
-		return
-	}
-
 	az, kana := metadata.CalculateInitials(tab.Title, country)
 	if err := w.store.UpdateTabInitials(job.TabID, az, kana); err != nil {
 		if w.logger != nil {
