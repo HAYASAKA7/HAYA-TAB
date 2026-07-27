@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **Modal Containment:** Prevented modal input events from triggering background shortcuts and kept dialog content within mobile viewport boundaries.
 - **China Mobile WebDAV:** Restored the required `10086.cn` referer behavior for compatible downloads.
+- **Linux Release CI:** Resolve the Wails CLI version from `go.mod` so packaging continues to use the configured GTK3/WebKit2GTK 4.1 toolchain.
 
 ## [3.1.6] - 2026-04-29
 
