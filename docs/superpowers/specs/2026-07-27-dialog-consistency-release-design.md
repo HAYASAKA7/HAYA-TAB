@@ -31,6 +31,7 @@ represents the HAYA-TAB application version must be updated:
 - `docs/API.md`
 - `frontend/package.json`
 - the root package records in `frontend/package-lock.json`
+- `frontend/src/components/SettingsView.vue`
 - `internal/app/app.go`
 
 Third-party version strings and generated source-map contents are outside the

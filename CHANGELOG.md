@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.7] - 2026-07-27
+
+### Changed
+- **Unified Dialogs:** Standardized modal structure, dimensions, spacing, headers, footers, and responsive behavior across application dialogs.
+- **Unified Notifications:** Consolidated notification presentation into the shared toast surface for consistent sizing, placement, and visual treatment.
+
+### Fixed
+- **Modal Containment:** Prevented modal input events from triggering background shortcuts and kept dialog content within mobile viewport boundaries.
+- **China Mobile WebDAV:** Restored the required `10086.cn` referer behavior for compatible downloads.
+
 ## [3.1.6] - 2026-04-29
 
 ### Fixed

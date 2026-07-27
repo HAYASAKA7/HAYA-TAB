@@ -24,6 +24,7 @@
 - Modify: `docs/DEVELOPMENT.md`
 - Modify: `frontend/package.json`
 - Modify: `frontend/package-lock.json`
+- Modify: `frontend/src/components/SettingsView.vue`
 - Modify: `internal/app/app.go`
 
 - [ ] **Step 1: Change all current application-version fields from 3.1.6 to 3.1.7**
