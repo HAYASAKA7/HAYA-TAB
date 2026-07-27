@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores'
 import { PluginService } from '@/services/PluginService'
 import { useToast } from '@/composables/useToast'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -37,42 +38,41 @@ async function handleSave() {
 </script>
 
 <template>
-  <div v-if="uiStore.pluginModalVisible" class="modal-overlay" @click.self="uiStore.hidePluginModal">
-    <div class="modal">
-      <h2>{{ uiStore.currentPlugin?.name }} {{ t('plugins.settings') }}</h2>
-      
-      <div class="modal-content">
-        <div v-for="(type, key) in (uiStore.currentPlugin?.settingsSchema as Record<string, string>)" :key="key" class="form-group">
-          <label>{{ key }}</label>
-          <input 
-            v-if="type === 'password'" 
-            type="password" 
-            v-model="config[key as string]" 
-            :placeholder="key as string"
-          >
-          <input 
-            v-else 
-            type="text" 
-            v-model="config[key as string]" 
-            :placeholder="key as string"
-          >
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn" @click="uiStore.hidePluginModal">{{ t('confirm.cancel') }}</button>
-        <button class="btn primary" @click="handleSave">{{ t('confirm.save') }}</button>
+  <BaseModal
+    :open="uiStore.pluginModalVisible"
+    :title="`${uiStore.currentPlugin?.name || ''} ${t('plugins.settings')}`.trim()"
+    size="small"
+    @close="uiStore.hidePluginModal"
+  >
+    <div class="modal-content">
+      <div v-for="(type, key) in (uiStore.currentPlugin?.settingsSchema as Record<string, string>)" :key="key" class="form-group">
+        <label>{{ key }}</label>
+        <input
+          v-if="type === 'password'"
+          type="password"
+          v-model="config[key as string]"
+          :placeholder="key as string"
+        >
+        <input
+          v-else
+          type="text"
+          v-model="config[key as string]"
+          :placeholder="key as string"
+        >
       </div>
     </div>
-  </div>
+
+    <template #actions>
+      <button class="btn" @click="uiStore.hidePluginModal">{{ t('confirm.cancel') }}</button>
+      <button class="btn primary" @click="handleSave">{{ t('confirm.save') }}</button>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
 .modal-content {
-  margin-top: 10px;
   max-height: 60vh;
   overflow-y: auto;
-  padding: 5px 8px; /* Added horizontal padding for focus ring */
-  margin-left: -4px; /* Offset margin to keep text alignment if needed */
+  padding: 4px;
 }
 </style>

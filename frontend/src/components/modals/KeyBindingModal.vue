@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore, useSettingsStore } from '@/stores'
 import type { KeyBindings } from '@/types'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -64,56 +65,50 @@ function formatKey(key: string) {
 </script>
 
 <template>
-  <div v-if="isOpen" id="key-binding-modal" class="modal-overlay" @click.self="close">
-    <div class="modal" @keydown.stop>
-      <h2>{{ t('keyBindings.title') }}</h2>
-
-      <div class="modal-body" tabindex="0" @keydown="handleKeyDown">
-        <div v-if="editingKey" class="listening-overlay">
-          <div class="listening-box">
-            <p>{{ t('keyBindings.pressKey') }} <strong>{{ t(`keyBindings.${editingKey}`) }}</strong></p>
-            <button class="btn" @click.stop="editingKey = null">{{ t('confirm.cancel') }}</button>
-          </div>
-        </div>
-
-        <div class="bindings-list">
-          <div
-            v-for="field in bindingKeys"
-            :key="field"
-            class="binding-item"
-          >
-            <span class="binding-label">{{ t(`keyBindings.${field}`) }}</span>
-            <button
-              class="binding-key"
-              @click="startEditing(String(field))"
-              title="Click to change"
-            >
-              {{ formatKey(settingsStore.settings.keyBindings[field]) }}
-            </button>
-          </div>
+  <BaseModal
+    :open="isOpen"
+    :title="t('keyBindings.title')"
+    size="medium"
+    @close="close"
+  >
+    <div class="key-binding-content" tabindex="0" @keydown="handleKeyDown">
+      <div v-if="editingKey" class="listening-overlay">
+        <div class="listening-box">
+          <p>{{ t('keyBindings.pressKey') }} <strong>{{ t(`keyBindings.${editingKey}`) }}</strong></p>
+          <button class="btn" @click.stop="editingKey = null">{{ t('confirm.cancel') }}</button>
         </div>
       </div>
 
-      <div class="modal-actions">
-        <button class="btn primary" @click="close">{{ t('keyBindings.done') }}</button>
+      <div class="bindings-list">
+        <div
+          v-for="field in bindingKeys"
+          :key="field"
+          class="binding-item"
+        >
+          <span class="binding-label">{{ t(`keyBindings.${field}`) }}</span>
+          <button
+            class="binding-key"
+            @click="startEditing(String(field))"
+            title="Click to change"
+          >
+            {{ formatKey(settingsStore.settings.keyBindings[field]) }}
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+
+    <template #actions>
+      <button class="btn primary" @click="close">{{ t('keyBindings.done') }}</button>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
-.modal {
-  width: auto;
-  min-width: 380px;
-  max-width: min(90vw, 500px);
-}
-
-.modal-body {
+.key-binding-content {
   position: relative;
   max-height: 50vh;
   overflow-y: auto;
   outline: none;
-  margin-top: 12px;
 }
 
 .bindings-list {

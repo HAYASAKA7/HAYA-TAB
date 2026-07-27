@@ -5,6 +5,7 @@ import { useUIStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { Events } from "@wailsio/runtime"
 import { CloudService } from '@/services'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -102,11 +103,13 @@ async function handleUpload() {
 </script>
 
 <template>
-  <div v-if="uiStore.cloudUploadModalVisible" class="modal-overlay" @click.self="uiStore.hideCloudUploadModal">
-    <div class="modal">
-      <h2>{{ t('cloud.uploadTitle') }}</h2>
-      
-      <div class="modal-body">
+  <BaseModal
+    :open="uiStore.cloudUploadModalVisible"
+    :title="t('cloud.uploadTitle')"
+    size="medium"
+    @close="uiStore.hideCloudUploadModal"
+  >
+    <div class="cloud-upload-content">
         <p class="instruction">{{ t('cloud.selectDestination') }}:</p>
         <div class="current-path">{{ selectedDir }}</div>
 
@@ -139,27 +142,17 @@ async function handleUpload() {
         </div>
       </div>
 
-      <div class="modal-actions">
-        <button class="btn" @click="uiStore.hideCloudUploadModal" :disabled="loading">{{ t('confirm.cancel') }}</button>
-        <button class="btn primary" @click="handleUpload" :disabled="loading">
-          {{ t('cloud.upload') }} ({{ uiStore.cloudUploadFiles.length }})
-        </button>
-      </div>
-    </div>
-  </div>
+    <template #actions>
+      <button class="btn" @click="uiStore.hideCloudUploadModal" :disabled="loading">{{ t('confirm.cancel') }}</button>
+      <button class="btn primary" @click="handleUpload" :disabled="loading">
+        {{ t('cloud.upload') }} ({{ uiStore.cloudUploadFiles.length }})
+      </button>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
-.modal {
-  width: 500px;
-  max-width: 90vw;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-body {
-  margin-top: 16px;
+.cloud-upload-content {
   flex: 1;
   overflow: hidden;
   display: flex;
@@ -168,6 +161,7 @@ async function handleUpload() {
 }
 
 .instruction {
+  margin: 0;
   color: var(--text);
   font-weight: 500;
 }

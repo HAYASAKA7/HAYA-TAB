@@ -10,7 +10,7 @@ const { toasts, removeToast } = useToast()
       <div
         v-for="toast in toasts"
         :key="toast.id"
-        class="toast"
+        class="toast notification-surface"
         :class="toast.type"
         @click="removeToast(toast.id)"
       >

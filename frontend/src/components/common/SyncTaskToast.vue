@@ -155,7 +155,7 @@ const forceClose = (e: Event) => {
     </div>
     
     <!-- Full Toast mode -->
-    <div v-else class="toast-mode">
+    <div v-else class="toast-mode notification-surface">
       <div class="toast-icon">
         <i v-if="status === 'running'" class="icon-sync rotate-icon"></i>
         <i v-else-if="status === 'success'" class="icon-checkbox"></i>
@@ -190,19 +190,11 @@ const forceClose = (e: Event) => {
 }
 
 .toast-mode {
-  background: var(--card-bg, #2d2d2d);
-  color: var(--text, #ffffff);
-  border-radius: 8px;
-  padding: 12px 16px;
   min-width: 240px;
-  max-width: 320px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border, #3e3e42);
   cursor: pointer;
-  border-left: 4px solid var(--primary, #965233);
 }
 
 .status-error .toast-mode {

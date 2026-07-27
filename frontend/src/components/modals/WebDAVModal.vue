@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useUIStore, useSettingsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { CloudService } from '@/services'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -91,11 +92,13 @@ function cancel() {
 </script>
 
 <template>
-  <div v-if="uiStore.webdavModalVisible" class="modal-overlay" @click.self="cancel">
-    <div class="modal">
-      <h2>{{ t('settings.configureWebdav') }}</h2>
-      
-      <div class="modal-body">
+  <BaseModal
+    :open="uiStore.webdavModalVisible"
+    :title="t('settings.configureWebdav')"
+    size="medium"
+    @close="cancel"
+  >
+    <div class="webdav-form">
         <div class="form-group">
           <label>URL</label>
           <input type="text" v-model="url" placeholder="https://dav.example.com/remote.php/webdav/">
@@ -110,30 +113,26 @@ function cancel() {
         </div>
       </div>
 
-      <div class="modal-actions">
-        <button class="btn" @click="testConnection" :disabled="testing" style="margin-right: auto;">
-          <span v-if="testing" class="spinner-sm"></span>
-          {{ t('settings.testConnection') }}
-        </button>
-        <button class="btn" @click="cancel">{{ t('confirm.cancel') }}</button>
-        <button class="btn primary" @click="save">{{ t('confirm.save') }}</button>
-      </div>
-    </div>
-  </div>
+    <template #actions>
+      <button class="btn modal-actions__leading" @click="testConnection" :disabled="testing">
+        <span v-if="testing" class="spinner-sm"></span>
+        {{ t('settings.testConnection') }}
+      </button>
+      <button class="btn" @click="cancel">{{ t('confirm.cancel') }}</button>
+      <button class="btn primary" @click="save">{{ t('confirm.save') }}</button>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
-.modal {
-  width: auto;
-  min-width: 400px;
-  max-width: min(90vw, 500px);
-}
-
-.modal-body {
-  margin-top: 16px;
+.webdav-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.webdav-form .form-group {
+  margin-bottom: 0;
 }
 
 .form-group {

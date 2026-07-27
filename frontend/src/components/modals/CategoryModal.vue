@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { FileService } from '@/services'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const { t } = useI18n()
 const tabsStore = useTabsStore()
@@ -57,55 +58,52 @@ async function handleSave() {
 </script>
 
 <template>
-  <div
-    v-if="uiStore.categoryModalVisible"
-    id="category-modal"
-    class="modal-overlay"
-    @click.self="uiStore.hideCategoryModal"
+  <BaseModal
+    :open="uiStore.categoryModalVisible"
+    :title="categoryId ? t('category.editCategory') : t('category.newCategory')"
+    size="small"
+    @close="uiStore.hideCategoryModal"
   >
-    <div class="modal">
-      <h2>{{ categoryId ? t('category.editCategory') : t('category.newCategory') }}</h2>
+    <form id="category-form" @submit.prevent="handleSave">
+      <div class="form-group">
+        <label for="cat-name">{{ t('category.name') }}</label>
+        <input
+          id="cat-name"
+          type="text"
+          v-model="categoryName"
+          required
+          autofocus
+        />
+      </div>
 
-      <form @submit.prevent="handleSave">
-        <div class="form-group">
-          <label for="cat-name">{{ t('category.name') }}</label>
-          <input
-            id="cat-name"
-            type="text"
-            v-model="categoryName"
-            required
-            autofocus
-          />
+      <div class="form-group">
+        <label>{{ t('category.coverImage') }}</label>
+        <div class="cover-input">
+          <input type="text" v-model="coverPath" :placeholder="t('category.defaultCover')" readonly />
+          <button type="button" class="btn" @click="selectCover">{{ t('category.select') }}</button>
+          <button type="button" class="btn" @click="coverPath = ''" v-if="coverPath">{{ t('category.clear') }}</button>
         </div>
+      </div>
+    </form>
 
-        <div class="form-group">
-          <label>{{ t('category.coverImage') }}</label>
-          <div class="cover-input">
-            <input type="text" v-model="coverPath" :placeholder="t('category.defaultCover')" readonly />
-            <button type="button" class="btn" @click="selectCover">{{ t('category.select') }}</button>
-            <button type="button" class="btn" @click="coverPath = ''" v-if="coverPath">{{ t('category.clear') }}</button>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn" @click="uiStore.hideCategoryModal">
-            {{ t('confirm.cancel') }}
-          </button>
-          <button type="submit" class="btn primary">
-            {{ t('confirm.save') }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <template #actions>
+      <button type="button" class="btn" @click="uiStore.hideCategoryModal">
+        {{ t('confirm.cancel') }}
+      </button>
+      <button type="submit" form="category-form" class="btn primary">
+        {{ t('confirm.save') }}
+      </button>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
 .cover-input {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 0.5rem;
 }
 .cover-input input {
-  flex: 1;
+  min-width: 0;
 }
 </style>

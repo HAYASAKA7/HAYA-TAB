@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { SYSTEM_CLOUD_CATEGORY_ID } from '@/types'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const { t } = useI18n()
 const tabsStore = useTabsStore()
@@ -34,39 +35,35 @@ async function handleSave() {
 </script>
 
 <template>
-  <div
-    v-if="uiStore.batchMoveModalVisible"
-    id="batch-move-modal"
-    class="modal-overlay"
-    @click.self="uiStore.hideBatchMoveModal"
+  <BaseModal
+    :open="uiStore.batchMoveModalVisible"
+    :title="t('batch.addSelectedToCategory')"
+    size="small"
+    @close="uiStore.hideBatchMoveModal"
   >
-    <div class="modal">
-      <h2>{{ t('batch.addSelectedToCategory') }}</h2>
+    <form id="batch-move-form" @submit.prevent="handleSave">
+      <div class="form-group">
+        <label for="batch-move-select">{{ t('batch.selectCategory') }}</label>
+        <select id="batch-move-select" v-model="selectedCategoryId">
+          <option value="">{{ t('batch.root') }}</option>
+          <option
+            v-for="cat in sortedCategories"
+            :key="cat.id"
+            :value="cat.id"
+          >
+            {{ tabsStore.getCategoryPath(cat.id).join(' / ') }}
+          </option>
+        </select>
+      </div>
+    </form>
 
-      <form @submit.prevent="handleSave">
-        <div class="form-group">
-          <label for="batch-move-select">{{ t('batch.selectCategory') }}</label>
-          <select id="batch-move-select" v-model="selectedCategoryId">
-            <option value="">{{ t('batch.root') }}</option>
-            <option
-              v-for="cat in sortedCategories"
-              :key="cat.id"
-              :value="cat.id"
-            >
-              {{ tabsStore.getCategoryPath(cat.id).join(' / ') }}
-            </option>
-          </select>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn" @click="uiStore.hideBatchMoveModal">
-            {{ t('confirm.cancel') }}
-          </button>
-          <button type="submit" class="btn primary">
-            {{ t('batch.add') }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <template #actions>
+      <button type="button" class="btn" @click="uiStore.hideBatchMoveModal">
+        {{ t('confirm.cancel') }}
+      </button>
+      <button type="submit" form="batch-move-form" class="btn primary">
+        {{ t('batch.add') }}
+      </button>
+    </template>
+  </BaseModal>
 </template>

@@ -5,6 +5,7 @@ import { useUIStore, useSettingsStore, useTabsStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { Events } from "@wailsio/runtime"
 import { CloudService } from '@/services'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -209,11 +210,13 @@ function formatSize(bytes: number) {
 </script>
 
 <template>
-  <div v-if="uiStore.cloudPickerModalVisible" class="modal-overlay" @click.self="uiStore.hideCloudPickerModal">
-    <div class="modal large">
-      <h2>{{ t('cloud.title') }}</h2>
-      
-      <div class="modal-body">
+  <BaseModal
+    :open="uiStore.cloudPickerModalVisible"
+    :title="t('cloud.title')"
+    size="large"
+    @close="uiStore.hideCloudPickerModal"
+  >
+    <div class="cloud-picker-content">
         <div class="toolbar">
            <!-- Breadcrumbs -->
           <div class="breadcrumbs">
@@ -291,34 +294,25 @@ function formatSize(bytes: number) {
         </div>
       </div>
 
-      <div class="modal-actions">
-        <div class="selected-count" v-if="selectedFiles.size > 0">
-          {{ selectedFiles.size }} {{ t('cloud.filesSelected') }}
-        </div>
-        <div style="flex: 1"></div>
-        <button class="btn" @click="uiStore.hideCloudPickerModal">{{ t('confirm.cancel') }}</button>
-        <button class="btn secondary" @click="handleAddOnline" :disabled="selectedFiles.size === 0 || loading" :title="t('cloud.addOnlineTooltip')">
-          {{ t('cloud.addOnline') }}
-        </button>
-        <button class="btn primary" @click="handleDownload" :disabled="selectedFiles.size === 0 || loading">
-          {{ t('cloud.downloadSelected') }}
-        </button>
+    <template #actions>
+      <div class="selected-count modal-actions__leading" v-if="selectedFiles.size > 0">
+        {{ selectedFiles.size }} {{ t('cloud.filesSelected') }}
       </div>
-    </div>
-  </div>
+      <button class="btn" @click="uiStore.hideCloudPickerModal">{{ t('confirm.cancel') }}</button>
+      <button class="btn secondary" @click="handleAddOnline" :disabled="selectedFiles.size === 0 || loading" :title="t('cloud.addOnlineTooltip')">
+        {{ t('cloud.addOnline') }}
+      </button>
+      <button class="btn primary" @click="handleDownload" :disabled="selectedFiles.size === 0 || loading">
+        {{ t('cloud.downloadSelected') }}
+      </button>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
-.modal.large {
-  width: 800px;
-  max-width: 90vw;
-  height: 80vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-body {
-  margin-top: 16px;
+.cloud-picker-content {
+  min-height: 0;
+  height: 100%;
   flex: 1;
   overflow: hidden;
   display: flex;

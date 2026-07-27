@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import type { Tab } from '@/types'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const { t } = useI18n()
 const tabsStore = useTabsStore()
@@ -92,16 +93,13 @@ async function handleSave() {
 </script>
 
 <template>
-  <div
-    v-if="uiStore.editModalVisible"
-    id="modal-overlay"
-    class="modal-overlay"
-    @click.self="uiStore.hideEditModal"
+  <BaseModal
+    :open="uiStore.editModalVisible"
+    :title="isEditMode ? t('tab.editMetadata') : t('tab.addNewTab')"
+    size="medium"
+    @close="uiStore.hideEditModal"
   >
-    <div class="modal">
-      <h2>{{ isEditMode ? t('tab.editMetadata') : t('tab.addNewTab') }}</h2>
-
-      <form id="edit-form" @submit.prevent="handleSave">
+    <form id="edit-form" @submit.prevent="handleSave">
         <input type="hidden" v-model="formData.filePath" />
         <input type="hidden" v-model="shouldCopy" />
 
@@ -177,15 +175,15 @@ async function handleSave() {
           </select>
         </div>
 
-        <div class="modal-actions">
-          <button type="button" class="btn" @click="uiStore.hideEditModal">
-            {{ t('confirm.cancel') }}
-          </button>
-          <button type="submit" class="btn primary">
-            {{ t('confirm.save') }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    </form>
+
+    <template #actions>
+      <button type="button" class="btn" @click="uiStore.hideEditModal">
+        {{ t('confirm.cancel') }}
+      </button>
+      <button type="submit" form="edit-form" class="btn primary">
+        {{ t('confirm.save') }}
+      </button>
+    </template>
+  </BaseModal>
 </template>
