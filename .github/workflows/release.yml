@@ -82,7 +82,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.25.4'
           cache: true
 
       - name: Add Go bin to PATH
@@ -99,15 +99,15 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
 
       - name: Install Wails3
-        # Keep the CLI aligned with go.mod. Newer Wails versions may require
-        # a different Linux GTK/WebKit toolchain before the build starts.
         shell: bash
-        run: |
-          WAILS_VERSION="$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)"
-          go install "github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}"
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.118
+
+      - name: Verify pinned Wails CLI
+        shell: bash
+        run: wails3 version
 
       - name: Install frontend dependencies
         run: npm install
@@ -156,75 +156,6 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_name }}.${{ matrix.artifact_ext }}
           if-no-files-found: error
-
-  # TODO: Re-enable when Wails v3 has stable iOS and Android support
-  # Wails v3.0.0-alpha.74 has critical bugs in both iOS and Android:
-  # - iOS: events.IOS undefined (typo in Wails source: events.iOS vs events.IOS)
-  # - Android: events.Android undefined, wails3 android command doesn't exist
-  # Waiting for stable release before re-enabling mobile builds.
-  # build-ios:
-  #   runs-on: macos-latest
-  #
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v6
-  #
-  #     - name: Setup Go
-  #       uses: actions/setup-go@v6
-  #       with:
-  #         go-version: '1.25'
-  #         cache: true
-  #
-  #     - name: Add Go bin to PATH
-  #       run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-  #
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v6
-  #       with:
-  #         node-version: '24'
-  #         cache: 'npm'
-  #         cache-dependency-path: frontend/package-lock.json
-  #
-  #     - name: Verify Xcode (iOS)
-  #       run: |
-  #         xcodebuild -version
-  #         xcrun --sdk iphonesimulator --show-sdk-path
-  #       shell: bash
-  #
-  #     - name: Install Wails3
-  #       shell: bash
-  #       run: |
-  #         WAILS_VERSION="$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)"
-  #         go install "github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}"
-  #
-  #     - name: Install frontend dependencies
-  #       run: npm install
-  #       working-directory: frontend
-  #
-  #     - name: Build iOS simulator app
-  #       run: |
-  #         set -euo pipefail
-  #
-  #         # The Taskfile handles xcode:gen then overlay generation inline (in the correct order).
-  #         # wails3 ios overlay:gen is intentionally bypassed: it has a repoRoot() bug that only
-  #         # works inside the Wails source repository. The Taskfile generates the overlay directly.
-  #         wails3 task ios:compile:ios ARCH=arm64 PRODUCTION=true
-  #         cp -f bin/haya-tab bin/HAYA-TAB
-  #         wails3 task ios:create:app:bundle
-  #         cd bin
-  #         zip -r ../HAYA-TAB-ios-arm64-simulator.zip HAYA-TAB.app
-  #       shell: bash
-  #
-  #     - name: Upload iOS artifact
-  #       uses: actions/upload-artifact@v6
-  #       with:
-  #         name: HAYA-TAB-ios-arm64-simulator
-  #         path: HAYA-TAB-ios-arm64-simulator.zip
-  #         if-no-files-found: error
-  #
-  # build-android:
-  #   runs-on: ubuntu-24.04
-  #   ...
 
   release:
     needs: [build]

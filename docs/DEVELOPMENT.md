@@ -6,10 +6,10 @@ This guide contains information for developers and advanced users who want to bu
 
 1. Install the supported development toolchain:
    - [Go](https://go.dev/) 1.25 or newer
-   - [Node.js](https://nodejs.org/) 24 LTS with npm
+   - [Node.js](https://nodejs.org/) 24 or 26 with npm
    - Wails v3 CLI matching the project dependency:
      ```bash
-     go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.74
+     go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.118
      ```
 2. Clone this repository
 3. Install frontend dependencies:
@@ -23,11 +23,14 @@ This guide contains information for developers and advanced users who want to bu
    wails3 task dev
    ```
 
+   The repository supports Node.js 24 or 26. Node.js 22 is not required.
+
    If PowerShell reports that `wails3` is not recognized, Go may have installed
    it under a custom `GOPATH` that is not on `PATH`. Repair the current terminal
    session and verify the resolved executable:
 
    ```powershell
+   go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.118
    $goBin = Join-Path (go env GOPATH) "bin"
    $env:Path = "$goBin;$env:Path"
    Get-Command wails3
