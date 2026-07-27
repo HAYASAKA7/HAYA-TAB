@@ -1086,8 +1086,8 @@ Run:
 
 ```powershell
 go test ./cmd/haya-tab -run TestConfigureContentTransport -v
-go list -tags ios -f "{{.GoFiles}}" ./cmd/haya-tab
-go list -tags android -f "{{.GoFiles}}" ./cmd/haya-tab
+$env:GOOS='ios'; $env:GOARCH='arm64'; go list -f "{{.GoFiles}}" ./cmd/haya-tab
+$env:GOOS='android'; $env:GOARCH='arm64'; go list -f "{{.GoFiles}}" ./cmd/haya-tab
 ```
 
 Expected:
@@ -1095,6 +1095,10 @@ Expected:
 - the desktop test passes;
 - the iOS file list contains `content_transport_mobile.go`, not `content_transport_default.go`;
 - the Android file list contains `content_transport_mobile.go`, not `content_transport_default.go`.
+
+Use `GOOS` for this selection check. Passing `ios` or `android` through
+`-tags` selects reserved standard-library build tags and can produce invalid
+host package combinations.
 
 - [ ] **Step 5: Commit**
 
