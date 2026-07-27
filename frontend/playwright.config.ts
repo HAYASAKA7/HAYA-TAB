@@ -42,7 +42,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'cd .. && npx @go-task/cli dev', // Falling back to native DEV mode to bypass Wails server tags Windows bug
+    command: process.env.PLAYWRIGHT_WEB_SERVER_COMMAND
+      ?? 'cd .. && npx @go-task/cli dev', // Native DEV mode supplies the Wails bridge by default.
     url: 'http://127.0.0.1:9245', // Wails Vite dev port
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000, // May take a while to build the go binary initially

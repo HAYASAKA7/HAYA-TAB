@@ -7,6 +7,7 @@ declare module '*.vue' {
 }
 
 interface Window {
+  __HAYA_TEST_CAPABILITIES__?: import('./types/platform').RuntimeCapabilities
   go: {
     app: {
       App: {

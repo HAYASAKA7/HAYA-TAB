@@ -64,6 +64,7 @@ function toggleSidebar() {
     <div
       v-if="uiStore.hasPlugins"
       id="nav-plugins"
+      data-testid="plugins-navigation"
       class="sidebar-item"
       :class="{ active: uiStore.currentView === 'plugins' }"
       @click="uiStore.switchView('plugins')"

@@ -2,10 +2,10 @@
 import { Events } from "@wailsio/runtime"
 import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useTabsStore, useSettingsStore, useUIStore, useViewersStore } from '@/stores'
+import { useTabsStore, useSettingsStore, useUIStore, useViewersStore, usePlatformStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { UpdateService } from '@/services'
-import '@/services/MidiService'
+import { midiService } from '@/services/MidiService'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import HomeView from '@/views/HomeView.vue'
 import LibraryView from '@/views/LibraryView.vue'
@@ -33,18 +33,24 @@ const tabsStore = useTabsStore()
 const settingsStore = useSettingsStore()
 const uiStore = useUIStore()
 const viewersStore = useViewersStore()
+const platformStore = usePlatformStore()
 const { showToast, showErrorToast } = useToast()
 const { t } = useI18n()
 
 onMounted(async () => {
+  await platformStore.load()
   await tabsStore.refreshData()
   await settingsStore.loadSettings()
 
   // Check if plugins exist
-  try {
-    uiStore.hasPlugins = await PluginService.hasPlugins()
-  } catch (e) {
-    console.error('Failed to check plugins:', e)
+  if (platformStore.capabilities.plugins) {
+    try {
+      uiStore.hasPlugins = await PluginService.hasPlugins()
+    } catch (e) {
+      console.error('Failed to check plugins:', e)
+    }
+  } else {
+    uiStore.hasPlugins = false
   }
 
   // Start WebDAV status monitoring if enabled
@@ -53,9 +59,15 @@ onMounted(async () => {
   }
 
   // Check for updates
-  const updateInfo = await UpdateService.checkForUpdates()
-  if (updateInfo) {
-    uiStore.updateInfo = updateInfo
+  if (platformStore.capabilities.selfUpdate) {
+    const updateInfo = await UpdateService.checkForUpdates()
+    if (updateInfo) {
+      uiStore.updateInfo = updateInfo
+    }
+  }
+
+  if (platformStore.capabilities.webMIDI) {
+    await midiService.initialize()
   }
 
   // Event listeners
@@ -184,7 +196,9 @@ function isViewActive(viewType: string): boolean {
 
       <!-- Plugins View -->
       <div
+        v-if="platformStore.capabilities.plugins"
         id="view-plugins"
+        data-testid="plugins-view-container"
         class="view"
         :class="{ hidden: !isViewActive('plugins') }"
       >
@@ -231,7 +245,7 @@ function isViewActive(viewType: string): boolean {
     <CloudPickerModal />
     <CloudUploadModal />
     <WebDAVModal />
-    <PluginSettingsModal />
+    <PluginSettingsModal v-if="platformStore.capabilities.plugins" />
 
     <!-- Toast & Context Menu -->
     <Toast />

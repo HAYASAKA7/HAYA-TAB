@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { desktopCapabilities, installRuntime } from './runtime'
 
 type DialogName =
   | 'edit'
@@ -97,6 +98,7 @@ async function openDialog(page: Page, dialogName: DialogName) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await installRuntime(page, desktopCapabilities)
   await page.goto('/')
   await expect(page.locator('#app')).toBeVisible()
 })
