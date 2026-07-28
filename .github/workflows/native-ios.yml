@@ -27,9 +27,17 @@ permissions:
 
 jobs:
   test:
-    name: Swift 6 iPhone simulator
+    name: Swift 6 ${{ matrix.device.label }} simulator
     runs-on: macos-26
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        device:
+          - label: iPhone
+            prefix: iPhone
+          - label: iPad
+            prefix: iPad
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -65,10 +73,12 @@ jobs:
 
       - name: Select simulator
         shell: bash
+        env:
+          DEVICE_PREFIX: ${{ matrix.device.prefix }}
         run: |
           set -euo pipefail
           device_id="$(xcrun simctl list devices available -j | \
-            python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for values in d["devices"].values() for x in values if x["name"].startswith("iPhone") and x["isAvailable"]))')"
+            python3 -c 'import json,os,sys; d=json.load(sys.stdin); p=os.environ["DEVICE_PREFIX"]; print(next(x["udid"] for values in d["devices"].values() for x in values if x["name"].startswith(p) and x["isAvailable"]))')"
           echo "IOS_SIMULATOR_ID=${device_id}" >> "${GITHUB_ENV}"
 
       - name: Test native application
@@ -86,7 +96,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: native-ios-test-diagnostics
+          name: native-ios-${{ matrix.device.label }}-test-diagnostics
           path: |
             mobile/ios/HayaTabTests.xcresult
             mobile/ios/xcodebuild.log
