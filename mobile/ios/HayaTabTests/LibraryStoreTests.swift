@@ -29,6 +29,14 @@ final class LibraryStoreTests: XCTestCase {
 
         XCTAssertEqual(try await store.all(), [.fixture()])
     }
+
+    func testStableIdentifierMatchesCrossPlatformSHA256Contract() {
+        XCTAssertEqual(
+            LibraryItem.stableID(
+                volumeID: "volume-fixture",
+                relativePath: "scores/etude.gp5"),
+            "80e98ff31b161a58f7712ef844bff919978698397709ffdfb5c9b5aa4be4eec9")
+    }
 }
 
 private extension LibraryItem {
