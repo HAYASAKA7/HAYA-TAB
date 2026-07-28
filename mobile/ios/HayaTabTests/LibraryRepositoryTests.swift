@@ -49,6 +49,19 @@ final class LibraryRepositoryTests: XCTestCase {
         XCTAssertEqual(items.map(\.relativePath), ["scores/primer.pdf"])
     }
 
+    func testRefreshLimitsConcurrentBucketRequestsToFour() async throws {
+        let store = try await makeStore()
+        let webDAV = WebDAVStub(
+            responses: try manifestResponses(),
+            requestDelay: .milliseconds(20))
+        let repository = LibraryRepository(store: store, webDAV: webDAV)
+
+        _ = try await repository.refresh()
+        let maximumConcurrentRequests = await webDAV.maximumConcurrentRequestCount()
+
+        XCTAssertEqual(maximumConcurrentRequests, 4)
+    }
+
     func testMalformedBucketLeavesCachedDatabaseUntouched() async throws {
         let cached = HayaTab.LibraryItem.cachedFixture()
         let store = try await makeStore(seed: [cached])
@@ -59,7 +72,7 @@ final class LibraryRepositoryTests: XCTestCase {
             etag: "malformed")
         let repository = LibraryRepository(store: store, webDAV: WebDAVStub(responses: responses))
 
-        await XCTAssertThrowsErrorAsync {
+        await XCTAssertThrowsAppError(.malformedManifest) {
             _ = try await repository.refresh()
         }
         let restored = try await store.all()
@@ -125,7 +138,7 @@ final class LibraryRepositoryTests: XCTestCase {
             store: store,
             webDAV: WebDAVStub(responses: [Self.bucketPath(0): bucketZero]))
 
-        await XCTAssertThrowsErrorAsync {
+        await XCTAssertThrowsAppError(.unsafeRemotePath("scores/../escape.pdf")) {
             _ = try await repository.refresh()
         }
         let restored = try await store.all()
@@ -142,7 +155,7 @@ final class LibraryRepositoryTests: XCTestCase {
             store: store,
             webDAV: WebDAVStub(responses: [Self.bucketPath(0): bucketZero]))
 
-        await XCTAssertThrowsErrorAsync {
+        await XCTAssertThrowsAppError(.unsupportedDocument("scores/readme.txt")) {
             _ = try await repository.refresh()
         }
         let restored = try await store.all()
@@ -226,25 +239,35 @@ private actor WebDAVStub: WebDAVServing {
     private let responses: [String: WebDAVResponse]
     private let failures: [String: WebDAVError]
     private let blockedPaths: Set<String>
+    private let requestDelay: Duration
     private var requestedPaths: [String] = []
     private var requestWaiters: [String: [CheckedContinuation<Void, Never>]] = [:]
+    private var activeRequestCount = 0
+    private var maximumActiveRequestCount = 0
 
     init(
         responses: [String: WebDAVResponse] = [:],
         failures: [String: WebDAVError] = [:],
-        blockedPaths: Set<String> = []
+        blockedPaths: Set<String> = [],
+        requestDelay: Duration = .zero
     ) {
         self.responses = responses
         self.failures = failures
         self.blockedPaths = blockedPaths
+        self.requestDelay = requestDelay
     }
 
     func get(path: String) async throws -> WebDAVResponse {
         requestedPaths.append(path)
         requestWaiters.removeValue(forKey: path)?.forEach { $0.resume() }
+        activeRequestCount += 1
+        maximumActiveRequestCount = max(maximumActiveRequestCount, activeRequestCount)
+        defer { activeRequestCount -= 1 }
 
         if blockedPaths.contains(path) {
             try await Task.sleep(for: .seconds(30))
+        } else if requestDelay != .zero {
+            try await Task.sleep(for: requestDelay)
         }
         if let failure = failures[path] {
             throw failure
@@ -259,6 +282,10 @@ private actor WebDAVStub: WebDAVServing {
 
     func requestedPathsSnapshot() -> [String] {
         requestedPaths
+    }
+
+    func maximumConcurrentRequestCount() -> Int {
+        maximumActiveRequestCount
     }
 
     func waitUntilRequested(_ path: String) async {
@@ -289,15 +316,21 @@ private extension HayaTab.LibraryItem {
     }
 }
 
-private func XCTAssertThrowsErrorAsync(
+private func XCTAssertThrowsAppError(
+    _ expected: AppError,
     _ expression: () async throws -> Void,
     file: StaticString = #filePath,
     line: UInt = #line
 ) async {
     do {
         try await expression()
-        XCTFail("Expected error", file: file, line: line)
+        XCTFail("Expected \(expected)", file: file, line: line)
+    } catch let error as AppError {
+        XCTAssertEqual(error, expected, file: file, line: line)
     } catch {
-        // Expected.
+        XCTFail(
+            "Expected AppError, got \(type(of: error))",
+            file: file,
+            line: line)
     }
 }

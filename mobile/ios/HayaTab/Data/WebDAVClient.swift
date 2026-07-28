@@ -1,5 +1,16 @@
 import Foundation
 
+struct WebDAVResponse: Sendable {
+    let statusCode: Int
+    let data: Data
+    let etag: String?
+}
+
+protocol WebDAVServing: Sendable {
+    func get(path: String) async throws -> WebDAVResponse
+    func testConnection() async throws
+}
+
 enum WebDAVError: Error, Equatable, Sendable {
     case authenticationRequired
     case remoteNotFound

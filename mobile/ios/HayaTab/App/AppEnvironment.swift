@@ -1,9 +1,5 @@
 import Foundation
 
-protocol LibraryRepositoryProtocol: Sendable {
-    func cachedLibrary() async throws -> [LibraryItem]
-}
-
 struct AppEnvironment: Sendable {
     let libraryRepository: any LibraryRepositoryProtocol
 
@@ -18,6 +14,10 @@ struct AppEnvironment: Sendable {
 
 private struct EmptyLibraryRepository: LibraryRepositoryProtocol {
     func cachedLibrary() async throws -> [LibraryItem] {
+        []
+    }
+
+    func refresh() async throws -> [LibraryItem] {
         []
     }
 }
@@ -52,5 +52,9 @@ private struct FixtureLibraryRepository: LibraryRepositoryProtocol {
                 localFilename: nil,
                 remoteRevision: nil),
         ]
+    }
+
+    func refresh() async throws -> [LibraryItem] {
+        try await cachedLibrary()
     }
 }
