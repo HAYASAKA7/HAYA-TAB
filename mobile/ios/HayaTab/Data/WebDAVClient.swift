@@ -101,8 +101,8 @@ struct WebDAVClient: WebDAVServing, Sendable {
 
     private func performResponse(_ request: URLRequest) async throws -> WebDAVResponse {
         do {
-            let (data, response) = try await session.data(for: request)
-            let response = try validate(response)
+            let (data, urlResponse) = try await session.data(for: request)
+            let response = try validate(urlResponse)
             return WebDAVResponse(
                 statusCode: response.statusCode,
                 data: data,
