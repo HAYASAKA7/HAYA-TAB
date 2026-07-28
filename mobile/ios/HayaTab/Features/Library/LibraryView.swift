@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LibraryView: View {
     let viewModel: LibraryViewModel
+    let downloadViewModel: DownloadViewModel
 
     var body: some View {
         Group {
@@ -45,7 +46,7 @@ struct LibraryView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(viewModel.items) { item in
-                    LibraryRow(item: item)
+                    DownloadableLibraryRow(item: item, viewModel: downloadViewModel)
                 }
             }
         }
@@ -74,12 +75,63 @@ struct LibraryView: View {
 
             Section("Documents") {
                 ForEach(viewModel.items) { item in
-                    LibraryRow(item: item)
+                    DownloadableLibraryRow(item: item, viewModel: downloadViewModel)
                 }
             }
         }
         .refreshable {
             await viewModel.refresh()
+        }
+    }
+}
+
+private struct DownloadableLibraryRow: View {
+    let item: LibraryItem
+    let viewModel: DownloadViewModel
+
+    var body: some View {
+        HStack(spacing: 12) {
+            LibraryRow(item: item)
+            Spacer(minLength: 8)
+            control
+        }
+    }
+
+    @ViewBuilder
+    private var control: some View {
+        switch viewModel.state(for: item) {
+        case .queued, .downloading:
+            HStack(spacing: 10) {
+                ProgressView()
+                    .accessibilityLabel("Downloading \(item.title)")
+                Button {
+                    viewModel.cancel(item)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .accessibilityLabel("Cancel download of \(item.title)")
+                .buttonStyle(.borderless)
+            }
+        case .availableOffline:
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .accessibilityLabel("\(item.title) is available offline")
+        case .failed:
+            Button {
+                viewModel.start(item)
+            } label: {
+                Image(systemName: "arrow.clockwise.circle")
+            }
+            .accessibilityLabel("Retry download of \(item.title)")
+            .buttonStyle(.borderless)
+        case nil:
+            Button {
+                viewModel.start(item)
+            } label: {
+                Image(systemName: "arrow.down.circle")
+            }
+            .accessibilityLabel("Download \(item.title)")
+            .buttonStyle(.borderless)
         }
     }
 }

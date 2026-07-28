@@ -94,4 +94,21 @@ actor LibraryStore {
             try context.save()
         }
     }
+
+    func setLocalFilename(_ filename: String?, forID id: String) throws {
+        let context = ModelContext(container)
+        let records = try context.fetch(FetchDescriptor<LibraryRecord>())
+        guard let record = records.first(where: { $0.id == id }) else {
+            throw AppError.localStorage("The downloaded library record no longer exists.")
+        }
+        record.localFilename = filename
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch {
+                throw AppError.localStorage(
+                    "The offline document state could not be saved.")
+            }
+        }
+    }
 }

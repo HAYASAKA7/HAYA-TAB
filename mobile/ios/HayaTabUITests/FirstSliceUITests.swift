@@ -60,6 +60,24 @@ final class FirstSliceUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Keyboard shortcuts"].exists)
     }
 
+    func testDownloadFailureStaysInlineAndAppearsInDownloads() {
+        let app = launchApp()
+        let downloadButton = app.buttons["Download Etude"]
+        XCTAssertTrue(downloadButton.waitForExistence(timeout: 5))
+
+        downloadButton.tap()
+
+        XCTAssertTrue(
+            app.buttons["Retry download of Etude"].waitForExistence(timeout: 5))
+        if isIPadSimulator {
+            app.staticTexts["Downloads"].tap()
+        } else {
+            app.tabBars.buttons["Downloads"].tap()
+        }
+        XCTAssertTrue(app.staticTexts["Etude"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+    }
+
     private var isIPadSimulator: Bool {
         ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"]?.hasPrefix("iPad") == true
     }

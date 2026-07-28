@@ -52,6 +52,52 @@ final class WebDAVClientTests: XCTestCase {
         try await makeClient().testConnection()
     }
 
+    func testDownloadUsesPreflightETagAsConditionalValidator() async throws {
+        let requests = RequestRecorder()
+        URLProtocolStub.handler = { request in
+            requests.append(request)
+            switch request.httpMethod {
+            case "HEAD":
+                XCTAssertNil(request.value(forHTTPHeaderField: "If-Match"))
+                return Self.response(
+                    for: request,
+                    status: 200,
+                    headers: [
+                        "Content-Length": "8",
+                        "ETag": "\"revision-1\"",
+                    ])
+            case "GET":
+                XCTAssertEqual(
+                    request.value(forHTTPHeaderField: "If-Match"),
+                    "\"revision-1\"")
+                return Self.response(
+                    for: request,
+                    status: 200,
+                    data: Data("document".utf8),
+                    headers: [
+                        "Content-Length": "8",
+                        "ETag": "\"revision-1\"",
+                    ])
+            default:
+                XCTFail("Unexpected method \(request.httpMethod ?? "nil")")
+                return Self.response(for: request, status: 500)
+            }
+        }
+        let partialURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("haya-webdav-\(UUID().uuidString).partial")
+        defer { try? FileManager.default.removeItem(at: partialURL) }
+
+        let transfer = try await makeClient().download(
+            path: "scores/primer.pdf",
+            to: partialURL)
+
+        XCTAssertEqual(requests.methods(), ["HEAD", "GET"])
+        XCTAssertEqual(try Data(contentsOf: partialURL), Data("document".utf8))
+        XCTAssertEqual(transfer.expectedByteCount, 8)
+        XCTAssertEqual(transfer.validatorETag, "\"revision-1\"")
+        XCTAssertEqual(transfer.responseETag, "\"revision-1\"")
+    }
+
     func testPropfindUsesDepthZero() async throws {
         URLProtocolStub.handler = { request in
             XCTAssertEqual(request.httpMethod, "PROPFIND")
@@ -163,6 +209,23 @@ final class WebDAVClientTests: XCTestCase {
             httpVersion: "HTTP/1.1",
             headerFields: headers)!
         return (response, data)
+    }
+}
+
+private final class RequestRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var requests: [URLRequest] = []
+
+    func append(_ request: URLRequest) {
+        lock.lock()
+        defer { lock.unlock() }
+        requests.append(request)
+    }
+
+    func methods() -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return requests.compactMap(\.httpMethod)
     }
 }
 

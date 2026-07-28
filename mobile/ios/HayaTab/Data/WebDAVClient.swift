@@ -6,6 +6,19 @@ struct WebDAVResponse: Sendable {
     let etag: String?
 }
 
+struct DownloadTransfer: Sendable {
+    let expectedByteCount: Int64?
+    let validatorETag: String?
+    let responseETag: String?
+}
+
+protocol DocumentDownloading: Sendable {
+    func download(
+        path: String,
+        to partialURL: URL
+    ) async throws -> DownloadTransfer
+}
+
 protocol WebDAVServing: Sendable {
     func get(path: String) async throws -> WebDAVResponse
     func testConnection() async throws
@@ -31,7 +44,7 @@ struct WebDAVClientFactory: WebDAVClientBuilding, Sendable {
     }
 }
 
-struct WebDAVClient: WebDAVServing, Sendable {
+struct WebDAVClient: WebDAVServing, DocumentDownloading, Sendable {
     private let baseURL: URL
     private let origin: WebOrigin
     private let authorization: String
@@ -78,12 +91,50 @@ struct WebDAVClient: WebDAVServing, Sendable {
         _ = try await performResponse(request)
     }
 
-    func download(relativePath: String) async throws -> URL {
-        let request = try makeRequest(method: "GET", relativePath: relativePath)
+    func download(
+        path: String,
+        to partialURL: URL
+    ) async throws -> DownloadTransfer {
+        let headResponse = try await performMetadata(
+            makeRequest(method: "HEAD", relativePath: path))
+        let validatorETag = headResponse.value(forHTTPHeaderField: "ETag")
+
+        var request = try makeRequest(method: "GET", relativePath: path)
+        if let validatorETag, !validatorETag.isEmpty {
+            request.setValue(validatorETag, forHTTPHeaderField: "If-Match")
+        }
+
         do {
             let (temporaryURL, response) = try await session.download(for: request)
-            _ = try validate(response)
-            return temporaryURL
+            let response = try validate(response)
+            try Task.checkCancellation()
+            try FileManager.default.moveItem(at: temporaryURL, to: partialURL)
+            let responseLength = response.expectedContentLength
+            let headLength = headResponse.expectedContentLength
+            return DownloadTransfer(
+                expectedByteCount: responseLength >= 0
+                    ? responseLength
+                    : (headLength >= 0 ? headLength : nil),
+                validatorETag: validatorETag,
+                responseETag: response.value(forHTTPHeaderField: "ETag"))
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        } catch let error as WebDAVError {
+            throw error
+        } catch let error as CocoaError {
+            throw AppError.localStorage(
+                "The downloaded document could not be staged: \(error.code.rawValue).")
+        } catch {
+            throw WebDAVError.transport
+        }
+    }
+
+    private func performMetadata(_ request: URLRequest) async throws -> HTTPURLResponse {
+        do {
+            let (_, response) = try await session.data(for: request)
+            return try validate(response)
         } catch is CancellationError {
             throw CancellationError()
         } catch let error as URLError where error.code == .cancelled {

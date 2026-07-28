@@ -7,6 +7,8 @@ enum AppError: Error, Equatable, Sendable {
     case unsafeRemotePath(String)
     case unsupportedDocument(String)
     case localStorage(String)
+    case downloadIntegrity
+    case remoteChanged
 
     var code: String {
         switch self {
@@ -16,6 +18,8 @@ enum AppError: Error, Equatable, Sendable {
         case .unsafeRemotePath: "unsafe_remote_path"
         case .unsupportedDocument: "unsupported_document"
         case .localStorage: "local_storage"
+        case .downloadIntegrity: "download_integrity"
+        case .remoteChanged: "remote_changed"
         }
     }
 
@@ -33,6 +37,10 @@ enum AppError: Error, Equatable, Sendable {
             "Unsupported document"
         case .localStorage:
             "Couldn’t save on this device"
+        case .downloadIntegrity:
+            "Download couldn’t be verified"
+        case .remoteChanged:
+            "Cloud document changed"
         }
     }
 
@@ -50,12 +58,16 @@ enum AppError: Error, Equatable, Sendable {
             "Open a PDF or supported Guitar Pro document."
         case .localStorage:
             "Free some device storage and try again."
+        case .downloadIntegrity:
+            "Try the download again. The previous offline copy was not changed."
+        case .remoteChanged:
+            "Refresh the library, then download the latest version."
         }
     }
 
     var isRetryable: Bool {
         switch self {
-        case .authentication, .transport, .localStorage:
+        case .authentication, .transport, .localStorage, .downloadIntegrity, .remoteChanged:
             true
         case .malformedManifest, .unsafeRemotePath, .unsupportedDocument:
             false

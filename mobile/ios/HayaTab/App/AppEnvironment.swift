@@ -5,6 +5,7 @@ struct AppEnvironment: Sendable {
     let libraryRepository: any LibraryRepositoryProtocol
     let credentialStore: any CredentialStoring
     let clientFactory: any WebDAVClientBuilding
+    let downloadStore: any DownloadStoring
 
     static func live() -> AppEnvironment {
         let credentialStore = CredentialStore()
@@ -16,13 +17,27 @@ struct AppEnvironment: Sendable {
             let webDAV = CredentialBackedWebDAV(
                 credentialStore: credentialStore,
                 clientFactory: clientFactory)
+            let downloader = CredentialBackedDocumentDownloader(
+                credentialStore: credentialStore)
+            let supportURL = FileManager.default.urls(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask).first
+            guard let supportURL else {
+                throw AppError.localStorage(
+                    "The application support directory is unavailable.")
+            }
             return AppEnvironment(
                 libraryRepository: LibraryRepository(store: store, webDAV: webDAV),
                 credentialStore: credentialStore,
-                clientFactory: clientFactory)
+                clientFactory: clientFactory,
+                downloadStore: DownloadStore(
+                    rootURL: supportURL.appendingPathComponent(
+                        "Documents",
+                        isDirectory: true),
+                    downloader: downloader,
+                    libraryStore: store))
         } catch {
-            return AppEnvironment(
-                libraryRepository: UnavailableLibraryRepository(),
+            return unavailable(
                 credentialStore: credentialStore,
                 clientFactory: clientFactory)
         }
@@ -32,7 +47,9 @@ struct AppEnvironment: Sendable {
         AppEnvironment(
             libraryRepository: FixtureLibraryRepository(),
             credentialStore: FixtureCredentialStore(),
-            clientFactory: FixtureWebDAVClientFactory())
+            clientFactory: FixtureWebDAVClientFactory(),
+            downloadStore: UnavailableDownloadStore(
+                error: .transport("Fixture documents are not downloadable.")))
     }
 }
 
@@ -134,5 +151,51 @@ private actor CredentialBackedWebDAV: WebDAVServing {
             throw AppError.authentication
         }
         return try clientFactory.makeClient(credential: credential)
+    }
+}
+
+private actor CredentialBackedDocumentDownloader: DocumentDownloading {
+    private let credentialStore: any CredentialStoring
+
+    init(credentialStore: any CredentialStoring) {
+        self.credentialStore = credentialStore
+    }
+
+    func download(path: String, to partialURL: URL) async throws -> DownloadTransfer {
+        guard let credential = try credentialStore.load() else {
+            throw AppError.authentication
+        }
+        let client = try WebDAVClient(credential: credential)
+        return try await client.download(path: path, to: partialURL)
+    }
+}
+
+private struct UnavailableDownloadStore: DownloadStoring {
+    let error: AppError
+
+    func download(_ item: LibraryItem) async throws -> URL {
+        throw error
+    }
+
+    func offlineItems() async throws -> [LibraryItem] {
+        []
+    }
+
+    func delete(_ item: LibraryItem) async throws {
+        throw error
+    }
+}
+
+private extension AppEnvironment {
+    static func unavailable(
+        credentialStore: any CredentialStoring,
+        clientFactory: any WebDAVClientBuilding
+    ) -> AppEnvironment {
+        let error = AppError.localStorage("The local library could not be opened.")
+        return AppEnvironment(
+            libraryRepository: UnavailableLibraryRepository(),
+            credentialStore: credentialStore,
+            clientFactory: clientFactory,
+            downloadStore: UnavailableDownloadStore(error: error))
     }
 }

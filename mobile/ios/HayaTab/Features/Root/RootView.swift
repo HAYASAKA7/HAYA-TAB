@@ -24,6 +24,7 @@ struct RootView: View {
     @State private var splitSelection: RootDestination? = .library
     @State private var libraryViewModel: LibraryViewModel
     @State private var accountViewModel: AccountViewModel
+    @State private var downloadViewModel: DownloadViewModel
 
     init(environment: AppEnvironment) {
         _libraryViewModel = State(
@@ -33,6 +34,8 @@ struct RootView: View {
                 repository: environment.libraryRepository,
                 credentialStore: environment.credentialStore,
                 clientFactory: environment.clientFactory))
+        _downloadViewModel = State(
+            initialValue: DownloadViewModel(store: environment.downloadStore))
     }
 
     var body: some View {
@@ -75,11 +78,13 @@ struct RootView: View {
     private func destinationView(_ destination: RootDestination) -> some View {
         switch destination {
         case .library:
-            LibraryView(viewModel: libraryViewModel)
+            LibraryView(
+                viewModel: libraryViewModel,
+                downloadViewModel: downloadViewModel)
         case .search:
             SearchView()
         case .downloads:
-            DownloadsView()
+            DownloadsView(viewModel: downloadViewModel)
         case .settings:
             SettingsView(viewModel: accountViewModel)
         }
