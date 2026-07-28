@@ -27,7 +27,8 @@ final class LibraryStoreTests: XCTestCase {
 
         try await store.replace(with: [.fixture()])
 
-        XCTAssertEqual(try await store.all(), [.fixture()])
+        let restored = try await store.all()
+        XCTAssertEqual(restored, [.fixture()])
     }
 
     func testStableIdentifierMatchesCrossPlatformSHA256Contract() {

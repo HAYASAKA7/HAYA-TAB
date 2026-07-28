@@ -1,7 +1,7 @@
 GEMINI.md
 build/bin
 build/ios/xcode/
-data/
+/data/
 storage/
 covers/
 logs/
