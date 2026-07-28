@@ -184,6 +184,10 @@ private struct UnavailableDownloadStore: DownloadStoring {
     func delete(_ item: LibraryItem) async throws {
         throw error
     }
+
+    func localURL(for item: LibraryItem) async throws -> URL? {
+        nil
+    }
 }
 
 private extension AppEnvironment {

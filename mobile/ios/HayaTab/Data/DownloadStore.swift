@@ -4,6 +4,7 @@ protocol DownloadStoring: Sendable {
     func download(_ item: LibraryItem) async throws -> URL
     func offlineItems() async throws -> [LibraryItem]
     func delete(_ item: LibraryItem) async throws
+    func localURL(for item: LibraryItem) async throws -> URL?
 }
 
 actor DownloadStore: DownloadStoring {
@@ -122,6 +123,19 @@ actor DownloadStore: DownloadStoring {
         } catch {
             throw AppError.localStorage("The offline document could not be deleted.")
         }
+    }
+
+    func localURL(for item: LibraryItem) async throws -> URL? {
+        guard let filename = item.localFilename,
+              filename == (try? stableFilename(for: item)) else {
+            return nil
+        }
+        let url = try childURL(filename)
+        guard isValidRegularFile(at: url) else {
+            try await libraryStore.setLocalFilename(nil, forID: item.id)
+            return nil
+        }
+        return url
     }
 
     private func prepareRoot() throws {

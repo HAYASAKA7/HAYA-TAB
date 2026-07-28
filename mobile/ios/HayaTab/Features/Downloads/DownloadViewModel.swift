@@ -8,12 +8,20 @@ enum DocumentDownloadState: Equatable {
     case failed(AppError)
 }
 
+struct ReaderSelection: Identifiable, Hashable {
+    let item: LibraryItem
+    let documentURL: URL
+
+    var id: String { item.id }
+}
+
 @MainActor
 @Observable
 final class DownloadViewModel {
     private let store: any DownloadStoring
     private(set) var states: [String: DocumentDownloadState] = [:]
     private(set) var itemsByID: [String: LibraryItem] = [:]
+    var readerSelection: ReaderSelection?
     @ObservationIgnored private var tasks: [String: Task<Void, Never>] = [:]
 
     init(store: any DownloadStoring) {
@@ -90,6 +98,24 @@ final class DownloadViewModel {
         } catch {
             states[item.id] = .failed(
                 .localStorage("The offline document could not be deleted."))
+        }
+    }
+
+    func open(_ item: LibraryItem) async {
+        do {
+            guard let documentURL = try await store.localURL(for: item) else {
+                states[item.id] = .failed(
+                    .localStorage("The offline document is unavailable."))
+                return
+            }
+            readerSelection = ReaderSelection(
+                item: item,
+                documentURL: documentURL)
+        } catch let error as AppError {
+            states[item.id] = .failed(error)
+        } catch {
+            states[item.id] = .failed(
+                .localStorage("The offline document could not be opened."))
         }
     }
 

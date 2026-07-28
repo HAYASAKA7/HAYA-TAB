@@ -1,0 +1,11 @@
+{
+  "index.html": {
+    "file": "assets/viewer-DTfJq0PW.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "css": [
+      "assets/index-0vQClETZ.css"
+    ]
+  }
+}

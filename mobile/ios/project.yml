@@ -16,7 +16,12 @@ targets:
     type: application
     platform: iOS
     sources:
-      - HayaTab
+      - path: HayaTab
+        excludes:
+          - Resources
+      - path: HayaTab/Resources/Viewer
+        type: folder
+        buildPhase: resources
     configFiles:
       Debug: Config/App.xcconfig
       Release: Config/App.xcconfig

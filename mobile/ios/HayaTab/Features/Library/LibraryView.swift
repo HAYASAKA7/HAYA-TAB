@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LibraryView: View {
     let viewModel: LibraryViewModel
-    let downloadViewModel: DownloadViewModel
+    @Bindable var downloadViewModel: DownloadViewModel
 
     var body: some View {
         Group {
@@ -33,6 +33,11 @@ struct LibraryView: View {
             if viewModel.state == .idle {
                 await viewModel.load()
             }
+        }
+        .navigationDestination(item: $downloadViewModel.readerSelection) { selection in
+            DocumentReaderView(
+                item: selection.item,
+                documentURL: selection.documentURL)
         }
     }
 
@@ -113,9 +118,14 @@ private struct DownloadableLibraryRow: View {
                 .buttonStyle(.borderless)
             }
         case .availableOffline:
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-                .accessibilityLabel("\(item.title) is available offline")
+            Button {
+                Task { await viewModel.open(item) }
+            } label: {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Open \(item.title)")
         case .failed:
             Button {
                 viewModel.start(item)

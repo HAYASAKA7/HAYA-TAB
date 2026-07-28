@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DownloadsView: View {
-    let viewModel: DownloadViewModel
+    @Bindable var viewModel: DownloadViewModel
     @State private var deletionCandidate: LibraryItem?
 
     var body: some View {
@@ -24,6 +24,12 @@ struct DownloadsView: View {
                         Spacer()
                         statusView(for: item)
                     }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if viewModel.state(for: item) == .availableOffline {
+                            Task { await viewModel.open(item) }
+                        }
+                    }
                     .swipeActions {
                         if viewModel.state(for: item) == .availableOffline {
                             Button("Remove", systemImage: "trash", role: .destructive) {
@@ -37,6 +43,11 @@ struct DownloadsView: View {
         .navigationTitle("Downloads")
         .task {
             await viewModel.restore()
+        }
+        .navigationDestination(item: $viewModel.readerSelection) { selection in
+            DocumentReaderView(
+                item: selection.item,
+                documentURL: selection.documentURL)
         }
         .confirmationDialog(
             "Remove Offline Copy?",
