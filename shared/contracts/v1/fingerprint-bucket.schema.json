@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://haya-tab.dev/contracts/v1/fingerprint-bucket.schema.json",
+  "title": "HAYA-TAB fingerprint bucket",
+  "oneOf": [
+    { "$ref": "#/$defs/bucketZero" },
+    { "$ref": "#/$defs/dataBucket" }
+  ],
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path", "title", "artist", "album", "type",
+        "categories", "uploaded_at", "uploaded_by"
+      ],
+      "properties": {
+        "relative_path": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "artist": { "type": "string" },
+        "album": { "type": "string" },
+        "type": { "type": "string", "enum": ["pdf", "gp", "gp3", "gp4", "gp5", "gpx", "xml", "musicxml", "mxl"] },
+        "categories": { "type": "array", "items": { "type": "string" } },
+        "uploaded_at": { "type": "string", "format": "date-time" },
+        "uploaded_by": { "type": "string" }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "volume_id", "volume_name", "created_at", "app_version",
+        "device_name", "last_updated", "bucket_count"
+      ],
+      "properties": {
+        "volume_id": { "type": "string", "minLength": 1 },
+        "volume_name": { "type": "string", "minLength": 1 },
+        "created_at": { "type": "string", "format": "date-time" },
+        "app_version": { "type": "string" },
+        "device_name": { "type": "string" },
+        "last_updated": { "type": "string", "format": "date-time" },
+        "bucket_count": { "const": 16 }
+      }
+    },
+    "bucketZero": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadata", "files"],
+      "properties": {
+        "metadata": { "$ref": "#/$defs/metadata" },
+        "files": { "type": "array", "items": { "$ref": "#/$defs/file" } }
+      }
+    },
+    "dataBucket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bucket_number", "files"],
+      "properties": {
+        "bucket_number": { "type": "integer", "minimum": 1, "maximum": 15 },
+        "files": { "type": "array", "items": { "$ref": "#/$defs/file" } }
+      }
+    }
+  }
+}

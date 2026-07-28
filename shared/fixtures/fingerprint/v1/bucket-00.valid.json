@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "volume_id": "volume-fixture",
+    "volume_name": "Fixture Volume",
+    "created_at": "2026-07-28T00:00:00Z",
+    "app_version": "3.1.7",
+    "device_name": "fixture",
+    "last_updated": "2026-07-28T00:00:00Z",
+    "bucket_count": 16
+  },
+  "files": [
+    {
+      "relative_path": "scores/primer.pdf",
+      "title": "Primer",
+      "artist": "HAYA",
+      "album": "",
+      "type": "pdf",
+      "categories": ["Practice"],
+      "uploaded_at": "2026-07-28T00:00:00Z",
+      "uploaded_by": "fixture"
+    }
+  ]
+}

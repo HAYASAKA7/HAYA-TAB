@@ -1,0 +1,15 @@
+{
+  "bucket_number": 3,
+  "files": [
+    {
+      "relative_path": "scores/etude.gp5",
+      "title": "Etude",
+      "artist": "HAYA",
+      "album": "",
+      "type": "gp",
+      "categories": ["Practice"],
+      "uploaded_at": "2026-07-28T00:00:00Z",
+      "uploaded_by": "fixture"
+    }
+  ]
+}
