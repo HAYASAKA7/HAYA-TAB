@@ -54,7 +54,7 @@ final class ReaderSession {
         } catch let appError as AppError {
             error = appError
         } catch {
-            error = .localStorage("The offline document could not be read.")
+            self.error = .localStorage("The offline document could not be read.")
         }
     }
 
@@ -85,7 +85,7 @@ final class ReaderSession {
         } catch let appError as AppError {
             error = appError
         } catch {
-            error = .downloadIntegrity
+            self.error = .downloadIntegrity
         }
     }
 }
