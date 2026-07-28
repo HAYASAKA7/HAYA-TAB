@@ -34,7 +34,8 @@ final class DownloadStoreTests: XCTestCase {
         XCTAssertTrue(try partialFiles(in: harness.rootURL).isEmpty)
         XCTAssertFalse(FileManager.default.fileExists(
             atPath: harness.rootURL.appendingPathComponent("\(harness.item.id).pdf").path))
-        XCTAssertNil(try await harness.libraryStore.all().first?.localFilename)
+        let restored = try await harness.libraryStore.all()
+        XCTAssertNil(restored.first?.localFilename)
     }
 
     func testExpectedByteCountMismatchRejectsPromotion() async throws {
@@ -72,14 +73,14 @@ final class DownloadStoreTests: XCTestCase {
     }
 
     func testFailedReplacementPreservesExistingValidFileAndRecord() async throws {
-        let filename: String
         let harness = try await makeHarness(
             behavior: .failure(
                 afterWriting: Data("new-partial".utf8),
                 error: .transport("Cloud unavailable")),
             seedLocalFile: Data("old-valid".utf8))
-        filename = try XCTUnwrap(
-            try await harness.libraryStore.all().first?.localFilename)
+        let initialRecords = try await harness.libraryStore.all()
+        let filename = try XCTUnwrap(
+            initialRecords.first?.localFilename)
         let existingURL = harness.rootURL.appendingPathComponent(filename)
 
         await XCTAssertThrowsAppError(.transport("Cloud unavailable")) {
@@ -87,8 +88,9 @@ final class DownloadStoreTests: XCTestCase {
         }
 
         XCTAssertEqual(try Data(contentsOf: existingURL), Data("old-valid".utf8))
+        let restoredRecords = try await harness.libraryStore.all()
         XCTAssertEqual(
-            try await harness.libraryStore.all().first?.localFilename,
+            restoredRecords.first?.localFilename,
             filename)
         XCTAssertTrue(try partialFiles(in: harness.rootURL).isEmpty)
     }
@@ -101,8 +103,9 @@ final class DownloadStoreTests: XCTestCase {
                 validatorETag: "\"v1\"",
                 responseETag: "\"v2\""),
             seedLocalFile: Data("old-valid".utf8))
+        let initialRecords = try await harness.libraryStore.all()
         let filename = try XCTUnwrap(
-            try await harness.libraryStore.all().first?.localFilename)
+            initialRecords.first?.localFilename)
         let existingURL = harness.rootURL.appendingPathComponent(filename)
 
         await XCTAssertThrowsAppError(.remoteChanged) {
