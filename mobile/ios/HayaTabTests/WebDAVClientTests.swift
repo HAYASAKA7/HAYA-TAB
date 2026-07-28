@@ -22,6 +22,36 @@ final class WebDAVClientTests: XCTestCase {
         XCTAssertEqual(data, Data("document".utf8))
     }
 
+    func testServingGetReturnsStatusDataAndETag() async throws {
+        URLProtocolStub.handler = { request in
+            XCTAssertEqual(
+                request.url?.absoluteString,
+                "https://cloud.example.test/music/haya-metadata/bucket-00.json")
+            return Self.response(
+                for: request,
+                status: 200,
+                data: Data("manifest".utf8),
+                headers: ["ETag": "revision-1"])
+        }
+
+        let response = try await makeClient().get(path: "haya-metadata/bucket-00.json")
+
+        XCTAssertEqual(response.statusCode, 200)
+        XCTAssertEqual(response.data, Data("manifest".utf8))
+        XCTAssertEqual(response.etag, "revision-1")
+    }
+
+    func testConnectionUsesDepthZeroAtConfiguredRoot() async throws {
+        URLProtocolStub.handler = { request in
+            XCTAssertEqual(request.url?.absoluteString, "https://cloud.example.test/music/")
+            XCTAssertEqual(request.httpMethod, "PROPFIND")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Depth"), "0")
+            return Self.response(for: request, status: 207)
+        }
+
+        try await makeClient().testConnection()
+    }
+
     func testPropfindUsesDepthZero() async throws {
         URLProtocolStub.handler = { request in
             XCTAssertEqual(request.httpMethod, "PROPFIND")
@@ -124,13 +154,14 @@ final class WebDAVClientTests: XCTestCase {
     private static func response(
         for request: URLRequest,
         status: Int,
-        data: Data = Data()
+        data: Data = Data(),
+        headers: [String: String]? = nil
     ) -> (HTTPURLResponse, Data) {
         let response = HTTPURLResponse(
             url: request.url!,
             statusCode: status,
             httpVersion: "HTTP/1.1",
-            headerFields: nil)!
+            headerFields: headers)!
         return (response, data)
     }
 }

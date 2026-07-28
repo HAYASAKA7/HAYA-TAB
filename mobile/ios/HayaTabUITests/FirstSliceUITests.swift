@@ -32,6 +32,34 @@ final class FirstSliceUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Keyboard shortcuts"].exists)
     }
 
+    func testFixtureLibraryLaunchesFromCacheWithoutNetwork() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Etude"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Primer"].exists)
+    }
+
+    func testCloudAccountSheetUsesNativeMobileFields() {
+        let app = launchApp()
+
+        if isIPadSimulator {
+            app.staticTexts["Settings"].tap()
+        } else {
+            app.tabBars.buttons["Settings"].tap()
+        }
+
+        let configureButton = app.buttons["Configure WebDAV"]
+        XCTAssertTrue(configureButton.waitForExistence(timeout: 5))
+        configureButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Cloud Account"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["Server URL"].exists)
+        XCTAssertTrue(app.textFields["Username"].exists)
+        XCTAssertTrue(app.secureTextFields["Password"].exists)
+        XCTAssertTrue(app.buttons["Test and Save"].exists)
+        XCTAssertFalse(app.staticTexts["Keyboard shortcuts"].exists)
+    }
+
     private var isIPadSimulator: Bool {
         ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"]?.hasPrefix("iPad") == true
     }
