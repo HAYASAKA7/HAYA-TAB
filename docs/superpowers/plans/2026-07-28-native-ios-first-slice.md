@@ -276,6 +276,9 @@ targets:
       - target: HayaTab
     configFiles:
       Debug: Config/Test.xcconfig
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
   HayaTabUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -283,6 +286,9 @@ targets:
       - HayaTabUITests
     dependencies:
       - target: HayaTab
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   HayaTab:
     build:

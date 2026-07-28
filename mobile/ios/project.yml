@@ -40,6 +40,9 @@ targets:
     configFiles:
       Debug: Config/Test.xcconfig
       Release: Config/Test.xcconfig
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
   HayaTabUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -50,6 +53,9 @@ targets:
     configFiles:
       Debug: Config/Test.xcconfig
       Release: Config/Test.xcconfig
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   HayaTab:
     build:
