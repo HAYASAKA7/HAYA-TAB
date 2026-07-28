@@ -43,7 +43,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: process.env.PLAYWRIGHT_WEB_SERVER_COMMAND
-      ?? 'cd .. && npx @go-task/cli dev', // Native DEV mode supplies the Wails bridge by default.
+      ?? 'node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 9245 --strictPort',
     url: 'http://127.0.0.1:9245', // Wails Vite dev port
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000, // May take a while to build the go binary initially
