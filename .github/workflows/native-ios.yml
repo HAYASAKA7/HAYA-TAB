@@ -1,0 +1,65 @@
+name: Native iOS
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/native-ios.yml'
+      - 'mobile/ios/**'
+      - 'shared/contracts/**'
+      - 'shared/fixtures/**'
+      - 'scripts/generate-native-ios-project.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Swift 6 iPhone simulator
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Record Xcode and SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          sdk_version="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          echo "iOS Simulator SDK: ${sdk_version}"
+          [[ "${sdk_version}" == 26.* ]]
+
+      - name: Generate native project
+        shell: bash
+        run: bash scripts/generate-native-ios-project.sh
+
+      - name: Select simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          device_id="$(xcrun simctl list devices available -j | \
+            python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for values in d["devices"].values() for x in values if x["name"].startswith("iPhone") and x["isAvailable"]))')"
+          echo "IOS_SIMULATOR_ID=${device_id}" >> "${GITHUB_ENV}"
+
+      - name: Test native application
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project mobile/ios/HayaTab.xcodeproj \
+            -scheme HayaTab \
+            -destination "platform=iOS Simulator,id=${IOS_SIMULATOR_ID}" \
+            -resultBundlePath mobile/ios/HayaTabTests.xcresult \
+            CODE_SIGNING_ALLOWED=NO | tee mobile/ios/xcodebuild.log
+
+      - name: Upload native test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: native-ios-test-diagnostics
+          path: |
+            mobile/ios/HayaTabTests.xcresult
+            mobile/ios/xcodebuild.log
+          if-no-files-found: warn
