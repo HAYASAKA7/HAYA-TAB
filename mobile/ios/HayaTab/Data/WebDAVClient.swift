@@ -105,8 +105,8 @@ struct WebDAVClient: WebDAVServing, DocumentDownloading, Sendable {
         }
 
         do {
-            let (temporaryURL, response) = try await session.download(for: request)
-            let response = try validate(response)
+            let (temporaryURL, urlResponse) = try await session.download(for: request)
+            let response = try validate(urlResponse)
             try Task.checkCancellation()
             try FileManager.default.moveItem(at: temporaryURL, to: partialURL)
             let responseLength = response.expectedContentLength
