@@ -2,6 +2,14 @@ name: Native iOS
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main, feat/ios-native]
+    paths:
+      - '.github/workflows/native-ios.yml'
+      - 'mobile/ios/**'
+      - 'shared/contracts/**'
+      - 'shared/fixtures/**'
+      - 'scripts/generate-native-ios-project.sh'
   pull_request:
     paths:
       - '.github/workflows/native-ios.yml'
