@@ -1,14 +1,13 @@
 package app
 
 import (
+	"haya-tab/internal/platform"
 	apperrors "haya-tab/pkg/errors"
 	"haya-tab/pkg/metadata"
 	"haya-tab/pkg/store"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -568,22 +567,13 @@ func (a *App) OpenTab(id string) error {
 	targetTab.LastOpened = time.Now().Unix()
 	a.store.UpdateTab(*targetTab)
 
-	var cmd *exec.Cmd
 	path := a.ResolveTabPath(targetTab.FilePath, targetTab.IsManaged)
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return apperrors.FileNotFoundError(path, err)
 	}
 
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", path)
-	case "darwin":
-		cmd = exec.Command("open", path)
-	default: // linux
-		cmd = exec.Command("xdg-open", path)
-	}
-	return cmd.Start()
+	return platform.OpenFile(path)
 }
 
 // MarkAsOpened updates the LastOpened timestamp for a tab without opening it
