@@ -15,3 +15,6 @@ phases/
 *.exe
 .task/
 .worktrees/
+mobile/ios/HayaTab.xcodeproj/
+mobile/ios/DerivedData/
+mobile/ios/*.xcresult
