@@ -264,7 +264,7 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: HAYA-TAB
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGN_STYLE: Automatic
   HayaTabTests:
     type: bundle.unit-test
     platform: iOS
@@ -974,8 +974,9 @@ Keep the existing desktop/Android behavior unchanged. The native iOS job must:
 4. run the Go contract tests;
 5. build and package the mobile viewer;
 6. generate the Xcode project with XcodeGen 2.45.4;
-7. run `xcodebuild test` with `CODE_SIGNING_ALLOWED=NO`;
-8. upload `.xcresult`, logs, and the unsigned simulator `.app`.
+7. run `xcodebuild test` with normal ad-hoc Simulator signing so Security.framework
+   receives the application identifier required for the default Keychain access group;
+8. upload `.xcresult`, logs, and the ad-hoc-signed simulator `.app`.
 
 Remove Wails installation, Go iOS archive compilation, and the obsolete Wails
 iOS 27 lifecycle gate from this iOS job. Do not remove desktop Wails or Android
@@ -993,7 +994,7 @@ ios-native:generate:
 ios-native:test:
   deps: [ios-native:generate]
   cmds:
-    - xcodebuild test -project mobile/ios/HayaTab.xcodeproj -scheme HayaTab -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
+    - xcodebuild test -project mobile/ios/HayaTab.xcodeproj -scheme HayaTab -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
 - [ ] **Step 4: Document Windows and Mac workflows**

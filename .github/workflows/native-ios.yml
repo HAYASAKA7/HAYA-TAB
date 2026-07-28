@@ -89,8 +89,7 @@ jobs:
             -project mobile/ios/HayaTab.xcodeproj \
             -scheme HayaTab \
             -destination "platform=iOS Simulator,id=${IOS_SIMULATOR_ID}" \
-            -resultBundlePath mobile/ios/HayaTabTests.xcresult \
-            CODE_SIGNING_ALLOWED=NO | tee mobile/ios/xcodebuild.log
+            -resultBundlePath mobile/ios/HayaTabTests.xcresult | tee mobile/ios/xcodebuild.log
 
       - name: Upload native test diagnostics
         if: always()
