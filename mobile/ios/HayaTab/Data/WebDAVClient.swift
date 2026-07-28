@@ -11,6 +11,10 @@ protocol WebDAVServing: Sendable {
     func testConnection() async throws
 }
 
+protocol WebDAVClientBuilding: Sendable {
+    func makeClient(credential: WebDAVCredential) throws -> any WebDAVServing
+}
+
 enum WebDAVError: Error, Equatable, Sendable {
     case authenticationRequired
     case remoteNotFound
@@ -21,7 +25,13 @@ enum WebDAVError: Error, Equatable, Sendable {
     case transport
 }
 
-struct WebDAVClient: Sendable {
+struct WebDAVClientFactory: WebDAVClientBuilding, Sendable {
+    func makeClient(credential: WebDAVCredential) throws -> any WebDAVServing {
+        try WebDAVClient(credential: credential)
+    }
+}
+
+struct WebDAVClient: WebDAVServing, Sendable {
     private let baseURL: URL
     private let origin: WebOrigin
     private let authorization: String
@@ -58,11 +68,21 @@ struct WebDAVClient: Sendable {
         try await perform(makeRequest(method: "GET", relativePath: relativePath))
     }
 
+    func get(path: String) async throws -> WebDAVResponse {
+        try await performResponse(makeRequest(method: "GET", relativePath: path))
+    }
+
+    func testConnection() async throws {
+        var request = try makeRequest(method: "PROPFIND", relativePath: "")
+        request.setValue("0", forHTTPHeaderField: "Depth")
+        _ = try await performResponse(request)
+    }
+
     func download(relativePath: String) async throws -> URL {
         let request = try makeRequest(method: "GET", relativePath: relativePath)
         do {
             let (temporaryURL, response) = try await session.download(for: request)
-            try validate(response)
+            _ = try validate(response)
             return temporaryURL
         } catch is CancellationError {
             throw CancellationError()
@@ -76,10 +96,17 @@ struct WebDAVClient: Sendable {
     }
 
     private func perform(_ request: URLRequest) async throws -> Data {
+        try await performResponse(request).data
+    }
+
+    private func performResponse(_ request: URLRequest) async throws -> WebDAVResponse {
         do {
             let (data, response) = try await session.data(for: request)
-            try validate(response)
-            return data
+            let response = try validate(response)
+            return WebDAVResponse(
+                statusCode: response.statusCode,
+                data: data,
+                etag: response.value(forHTTPHeaderField: "ETag"))
         } catch is CancellationError {
             throw CancellationError()
         } catch let error as URLError where error.code == .cancelled {
@@ -146,7 +173,7 @@ struct WebDAVClient: Sendable {
         return url
     }
 
-    private func validate(_ response: URLResponse) throws {
+    private func validate(_ response: URLResponse) throws -> HTTPURLResponse {
         guard let response = response as? HTTPURLResponse,
               let responseURL = response.url,
               WebOrigin(url: responseURL) == origin else {
@@ -155,7 +182,7 @@ struct WebDAVClient: Sendable {
 
         switch response.statusCode {
         case 200 ..< 300:
-            return
+            return response
         case 401:
             throw WebDAVError.authenticationRequired
         case 404:

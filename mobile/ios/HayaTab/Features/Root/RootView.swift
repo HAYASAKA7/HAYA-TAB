@@ -23,10 +23,16 @@ struct RootView: View {
     @State private var compactSelection: RootDestination = .library
     @State private var splitSelection: RootDestination? = .library
     @State private var libraryViewModel: LibraryViewModel
+    @State private var accountViewModel: AccountViewModel
 
     init(environment: AppEnvironment) {
         _libraryViewModel = State(
             initialValue: LibraryViewModel(repository: environment.libraryRepository))
+        _accountViewModel = State(
+            initialValue: AccountViewModel(
+                repository: environment.libraryRepository,
+                credentialStore: environment.credentialStore,
+                clientFactory: environment.clientFactory))
     }
 
     var body: some View {
@@ -75,7 +81,7 @@ struct RootView: View {
         case .downloads:
             DownloadsView()
         case .settings:
-            SettingsView()
+            SettingsView(viewModel: accountViewModel)
         }
     }
 }

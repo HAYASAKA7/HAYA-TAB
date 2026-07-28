@@ -9,15 +9,10 @@ struct LibraryView: View {
             case .idle, .loading:
                 ProgressView("Loading library…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .loaded where viewModel.items.isEmpty:
-                ContentUnavailableView(
-                    "No documents yet",
-                    systemImage: "books.vertical",
-                    description: Text("Connect your cloud library in Settings."))
             case .loaded:
-                List(viewModel.items) { item in
-                    LibraryRow(item: item)
-                }
+                libraryList
+            case let .offline(error):
+                offlineLibrary(error)
             case let .failed(error):
                 ContentUnavailableView {
                     Label(error.title, systemImage: "exclamationmark.triangle")
@@ -26,7 +21,7 @@ struct LibraryView: View {
                 } actions: {
                     if error.isRetryable {
                         Button("Try Again") {
-                            Task { await viewModel.load() }
+                            Task { await viewModel.refresh() }
                         }
                     }
                 }
@@ -37,6 +32,54 @@ struct LibraryView: View {
             if viewModel.state == .idle {
                 await viewModel.load()
             }
+        }
+    }
+
+    private var libraryList: some View {
+        List {
+            if viewModel.items.isEmpty {
+                ContentUnavailableView(
+                    "No documents yet",
+                    systemImage: "books.vertical",
+                    description: Text("Connect your cloud library in Settings."))
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(viewModel.items) { item in
+                    LibraryRow(item: item)
+                }
+            }
+        }
+        .refreshable {
+            await viewModel.refresh()
+        }
+    }
+
+    private func offlineLibrary(_ error: AppError) -> some View {
+        List {
+            Section {
+                Label {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Showing offline library")
+                            .font(.headline)
+                        Text(error.recoverySuggestion)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: "icloud.slash")
+                        .foregroundStyle(.orange)
+                }
+                .accessibilityElement(children: .combine)
+            }
+
+            Section("Documents") {
+                ForEach(viewModel.items) { item in
+                    LibraryRow(item: item)
+                }
+            }
+        }
+        .refreshable {
+            await viewModel.refresh()
         }
     }
 }

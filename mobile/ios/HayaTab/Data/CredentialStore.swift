@@ -7,7 +7,13 @@ struct WebDAVCredential: Codable, Sendable {
     let password: String
 }
 
-struct CredentialStore: Sendable {
+protocol CredentialStoring: Sendable {
+    func load() throws -> WebDAVCredential?
+    func save(_ credential: WebDAVCredential) throws
+    func delete() throws
+}
+
+struct CredentialStore: CredentialStoring, Sendable {
     private let service: String
 
     init(service: String = "com.hayasaka7.hayatab.webdav") {

@@ -1,10 +1,16 @@
 import SwiftUI
 
 struct SettingsView: View {
+    let viewModel: AccountViewModel
+    @State private var isShowingAccount = false
+
     var body: some View {
         Form {
             Section("Cloud Library") {
                 Label("WebDAV account", systemImage: "externaldrive.connected.to.line.below")
+                Button("Configure WebDAV") {
+                    isShowingAccount = true
+                }
                 Label("Sync over Wi-Fi and cellular", systemImage: "arrow.triangle.2.circlepath")
             }
 
@@ -14,5 +20,8 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .sheet(isPresented: $isShowingAccount) {
+            AccountSheet(viewModel: viewModel)
+        }
     }
 }
