@@ -1,0 +1,219 @@
+name: Mobile Smoke
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/mobile-smoke.yml'
+      - 'build/android/**'
+      - 'build/config.yml'
+      - 'build/ios/**'
+      - 'cmd/haya-tab/**'
+      - 'frontend/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'scripts/check-wails-ios-lifecycle.*'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Taskfile.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mobile-smoke.yml'
+      - 'build/android/**'
+      - 'build/config.yml'
+      - 'build/ios/**'
+      - 'cmd/haya-tab/**'
+      - 'frontend/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'scripts/check-wails-ios-lifecycle.*'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Taskfile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: '1.25.4'
+  NODE_VERSION: '24'
+  WAILS_VERSION: 'v3.0.0-alpha2.118'
+
+jobs:
+  android:
+    name: Android unsigned packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Linux and Android build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
+          set +o pipefail
+          yes | sdkmanager --licenses >/dev/null
+          license_status=${PIPESTATUS[1]}
+          set -o pipefail
+          if [[ "${license_status}" -ne 0 ]]; then
+            exit "${license_status}"
+          fi
+          sdkmanager \
+            'platform-tools' \
+            'platforms;android-35' \
+            'build-tools;35.0.0' \
+            'ndk;26.3.11579264'
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/26.3.11579264" >> "$GITHUB_ENV"
+
+      - name: Install exact Wails CLI
+        shell: bash
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Run shared tests and frontend build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p mobile-smoke-logs
+          go test ./... 2>&1 | tee mobile-smoke-logs/android-go-test.log
+          npm --prefix frontend run build 2>&1 | tee mobile-smoke-logs/android-frontend-build.log
+
+      - name: Compile Android and assemble unsigned packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x build/android/gradlew
+          wails3 task android:build ARCH=arm64 PRODUCTION=true 2>&1 | tee mobile-smoke-logs/android-build.log
+          wails3 task android:assemble:apk 2>&1 | tee -a mobile-smoke-logs/android-build.log
+          wails3 task android:assemble:aab:release 2>&1 | tee -a mobile-smoke-logs/android-build.log
+
+      - name: Upload Android smoke artifacts and logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-unsigned-smoke
+          path: |
+            bin/HAYA-TAB.apk
+            bin/HAYA-TAB-release.aab
+            mobile-smoke-logs/*.log
+          if-no-files-found: warn
+
+  ios:
+    name: iOS 26 simulator compile
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install exact Wails CLI and lifecycle scanner
+        shell: bash
+        run: |
+          set -euo pipefail
+          go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          if ! command -v rg >/dev/null 2>&1; then
+            brew install ripgrep
+          fi
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Verify iOS 26 SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p mobile-smoke-logs
+          xcodebuild -version | tee mobile-smoke-logs/ios-xcode.log
+          sdk_version="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          echo "iOS Simulator SDK: ${sdk_version}" | tee -a mobile-smoke-logs/ios-xcode.log
+          if [[ "$sdk_version" != 26.* ]]; then
+            echo >&2 "Unsupported GitHub runner SDK ${sdk_version}; iOS 26 validation requires a 26.x simulator SDK."
+            exit 26
+          fi
+
+      - name: Run shared tests and frontend build
+        shell: bash
+        run: |
+          set -euo pipefail
+          go test ./... 2>&1 | tee mobile-smoke-logs/ios-go-test.log
+          npm --prefix frontend run build 2>&1 | tee mobile-smoke-logs/ios-frontend-build.log
+
+      - name: Compile unsigned iOS simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          wails3 task ios:generate:ios:overlay 2>&1 | tee mobile-smoke-logs/ios-build.log
+          xcodebuild \
+            -project build/ios/xcode/main.xcodeproj \
+            -scheme HAYA-TAB \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee -a mobile-smoke-logs/ios-build.log
+
+      - name: Confirm the pinned iOS 27 gate remains closed
+        shell: bash
+        run: |
+          set +e
+          bash scripts/check-wails-ios-lifecycle.sh 2>&1 | tee mobile-smoke-logs/ios27-lifecycle.log
+          gate_status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$gate_status" -eq 0 ]]; then
+            echo >&2 "Pinned Wails now passes the iOS 27 lifecycle gate; review and update the support policy."
+            exit 1
+          fi
+          if [[ "$gate_status" -ne 27 ]]; then
+            exit "$gate_status"
+          fi
+
+      - name: Upload iOS smoke artifacts and logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-26-unsigned-smoke
+          path: |
+            build/ios/DerivedData/Build/Products/Debug-iphonesimulator/HAYA-TAB.app
+            mobile-smoke-logs/*.log
+          if-no-files-found: warn

@@ -70,3 +70,8 @@ tasks:
     dir: frontend
     cmds:
       - npm run test:e2e-ui
+
+  verify:ios27:lifecycle:
+    desc: Verify pinned Wails supports Apple's required scene lifecycle
+    cmds:
+      - task: ios:verify:ios27:lifecycle

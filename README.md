@@ -62,6 +62,7 @@ To fix this:
 Information about building from source, testing, project architecture, and the tech stack has been moved to our developer documentation:
 
 - [Development Guide](docs/DEVELOPMENT.md)
+- [Mobile Development Guide](docs/MOBILE_DEVELOPMENT.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
 - [Contributing Guidelines](docs/CONTRIBUTING.md)
 - [WebDAV Guide](docs/WEBDAV.md)
