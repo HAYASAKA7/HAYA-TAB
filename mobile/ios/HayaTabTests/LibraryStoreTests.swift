@@ -9,7 +9,7 @@ final class LibraryStoreTests: XCTestCase {
             for: LibraryRecord.self,
             configurations: configuration)
         let store = LibraryStore(container: container)
-        let expected = LibraryItem.fixture()
+        let expected = HayaTab.LibraryItem.fixture()
 
         try await store.replace(with: [expected])
 
@@ -33,16 +33,16 @@ final class LibraryStoreTests: XCTestCase {
 
     func testStableIdentifierMatchesCrossPlatformSHA256Contract() {
         XCTAssertEqual(
-            LibraryItem.stableID(
+            HayaTab.LibraryItem.stableID(
                 volumeID: "volume-fixture",
                 relativePath: "scores/etude.gp5"),
             "80e98ff31b161a58f7712ef844bff919978698397709ffdfb5c9b5aa4be4eec9")
     }
 }
 
-private extension LibraryItem {
-    static func fixture() -> LibraryItem {
-        LibraryItem(
+private extension HayaTab.LibraryItem {
+    static func fixture() -> HayaTab.LibraryItem {
+        HayaTab.LibraryItem(
             id: "volume-fixture:etude",
             volumeID: "volume-fixture",
             relativePath: "scores/etude.gp5",
@@ -55,8 +55,8 @@ private extension LibraryItem {
             remoteRevision: nil)
     }
 
-    static func secondFixture() -> LibraryItem {
-        LibraryItem(
+    static func secondFixture() -> HayaTab.LibraryItem {
+        HayaTab.LibraryItem(
             id: "volume-fixture:primer",
             volumeID: "volume-fixture",
             relativePath: "scores/primer.pdf",

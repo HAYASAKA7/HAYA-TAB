@@ -45,8 +45,9 @@ jobs:
           xcode_build="$(xcodebuild -version | awk '/Build version/ { print $3 }')"
           echo "XCODE_BUILD=${xcode_build}" >> "${GITHUB_ENV}"
 
-      - name: Cache pinned XcodeGen build
-        uses: actions/cache@v5
+      - name: Restore pinned XcodeGen build
+        id: xcodegen-cache
+        uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/haya-tab-build-tools/xcodegen-2.45.4
           key: xcodegen-2.45.4-${{ runner.os }}-${{ runner.arch }}-xcode-${{ env.XCODE_BUILD }}
@@ -54,6 +55,13 @@ jobs:
       - name: Generate native project
         shell: bash
         run: bash scripts/generate-native-ios-project.sh
+
+      - name: Save pinned XcodeGen build
+        if: steps.xcodegen-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/haya-tab-build-tools/xcodegen-2.45.4
+          key: xcodegen-2.45.4-${{ runner.os }}-${{ runner.arch }}-xcode-${{ env.XCODE_BUILD }}
 
       - name: Select simulator
         shell: bash
