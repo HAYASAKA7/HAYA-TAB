@@ -43,10 +43,12 @@ struct RootView: View {
     }
 
     var body: some View {
-        if horizontalSizeClass == .compact {
-            compactNavigation
-        } else {
-            regularNavigation
+        Group {
+            if horizontalSizeClass == .compact {
+                compactNavigation
+            } else {
+                regularNavigation
+            }
         }
         .task {
             await downloadViewModel.restore()
