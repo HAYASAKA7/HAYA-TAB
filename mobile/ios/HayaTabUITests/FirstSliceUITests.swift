@@ -12,10 +12,16 @@ final class FirstSliceUITests: XCTestCase {
 
         let app = launchApp()
 
-        XCTAssertTrue(app.tabBars.buttons["Library"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tabBars.buttons["Search"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Downloads"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
+        for identifier in [
+            "root.library",
+            "root.search",
+            "root.downloads",
+            "root.settings",
+        ] {
+            XCTAssertTrue(
+                app.buttons[identifier].waitForExistence(timeout: 5),
+                "Missing accessible root destination \(identifier)")
+        }
         XCTAssertFalse(app.staticTexts["Keyboard shortcuts"].exists)
     }
 
@@ -24,10 +30,18 @@ final class FirstSliceUITests: XCTestCase {
             throw XCTSkip("Regular navigation is verified on an iPad simulator")
         }
 
+        XCUIDevice.shared.orientation = .portrait
         let app = launchApp()
 
-        for label in ["Library", "Search", "Downloads", "Settings"] {
-            XCTAssertTrue(app.staticTexts[label].waitForExistence(timeout: 5))
+        for identifier in [
+            "root.library",
+            "root.search",
+            "root.downloads",
+            "root.settings",
+        ] {
+            XCTAssertTrue(
+                app.buttons[identifier].waitForExistence(timeout: 5),
+                "Missing accessible iPad destination \(identifier)")
         }
         XCTAssertFalse(app.staticTexts["Keyboard shortcuts"].exists)
     }
@@ -56,8 +70,52 @@ final class FirstSliceUITests: XCTestCase {
         XCTAssertTrue(app.textFields["Server URL"].exists)
         XCTAssertTrue(app.textFields["Username"].exists)
         XCTAssertTrue(app.secureTextFields["Password"].exists)
-        XCTAssertTrue(app.buttons["Test and Save"].exists)
+        XCTAssertTrue(app.buttons["account.connect"].exists)
         XCTAssertFalse(app.staticTexts["Keyboard shortcuts"].exists)
+    }
+
+    func testRejectedAccountStaysInlineWithoutBlockingAlert() {
+        let app = launchApp()
+        openSettings(in: app)
+
+        app.buttons["settings.configureAccount"].tap()
+        XCTAssertTrue(
+            app.buttons["account.connect"].waitForExistence(timeout: 5))
+        app.buttons["account.connect"].tap()
+
+        XCTAssertTrue(
+            app.staticTexts["Couldn’t sign in"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+    }
+
+    func testAccessibilityXXXLKeepsPrimaryLibraryActionReachable() {
+        let app = launchApp(additionalArguments: [
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge",
+        ])
+
+        XCTAssertTrue(
+            app.collectionViews["library.list"].waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(
+            app.buttons.matching(
+                NSPredicate(
+                    format: "identifier BEGINSWITH %@",
+                    "library.download.")).count,
+            0)
+    }
+
+    func testReaderRestoresAfterApplicationRelaunch() {
+        let app = launchApp()
+        let openPrimer = app.buttons["Open Primer"]
+        XCTAssertTrue(openPrimer.waitForExistence(timeout: 5))
+        openPrimer.tap()
+        XCTAssertTrue(app.navigationBars["Primer"].waitForExistence(timeout: 5))
+
+        app.terminate()
+        app.launch()
+
+        XCTAssertTrue(
+            app.navigationBars["Primer"].waitForExistence(timeout: 5))
     }
 
     func testDownloadFailureStaysInlineAndAppearsInDownloads() {
@@ -82,10 +140,27 @@ final class FirstSliceUITests: XCTestCase {
         ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"]?.hasPrefix("iPad") == true
     }
 
-    private func launchApp() -> XCUIApplication {
+    private func launchApp(
+        additionalArguments: [String] = []
+    ) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-use-fixture-library"]
+        app.launchArguments = ["-use-fixture-library"] + additionalArguments
         app.launch()
         return app
+    }
+
+    private func openSettings(in app: XCUIApplication) {
+        if isIPadSimulator {
+            let settings = app.buttons["root.settings"]
+            XCTAssertTrue(settings.waitForExistence(timeout: 5))
+            settings.tap()
+        } else {
+            let settings = app.buttons["root.settings"]
+            XCTAssertTrue(settings.waitForExistence(timeout: 5))
+            settings.tap()
+        }
+
+        XCTAssertTrue(
+            app.buttons["settings.configureAccount"].waitForExistence(timeout: 5))
     }
 }

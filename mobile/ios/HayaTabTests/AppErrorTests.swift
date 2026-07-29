@@ -19,4 +19,29 @@ final class AppErrorTests: XCTestCase {
         XCTAssertFalse(error.isRetryable)
         XCTAssertTrue(error.recoverySuggestion.contains("library"))
     }
+
+    func testAssociatedDetailsNeverAppearInUserFacingPresentation() {
+        let marker = "Basic test-only-secret"
+        let errors: [AppError] = [
+            .transport(marker),
+            .unsafeRemotePath(marker),
+            .unsupportedDocument(marker),
+            .localStorage(marker),
+        ]
+
+        for error in errors {
+            XCTAssertFalse(error.title.contains(marker))
+            XCTAssertFalse(error.recoverySuggestion.contains(marker))
+        }
+    }
+
+    func testEveryErrorCodeIsStableAndUnique() {
+        let errors = AppError.presentationFixtures
+        let codes = errors.map(\.code)
+
+        XCTAssertEqual(codes.count, Set(codes).count)
+        XCTAssertTrue(codes.allSatisfy { !$0.isEmpty })
+        XCTAssertTrue(errors.allSatisfy { !$0.title.isEmpty })
+        XCTAssertTrue(errors.allSatisfy { !$0.recoverySuggestion.isEmpty })
+    }
 }
