@@ -160,15 +160,21 @@ struct AccountSheet: View {
                             }
                         }
                     } label: {
+                        Text("Test and Save")
+                            .frame(maxWidth: .infinity)
+                            .opacity(viewModel.state == .testing ? 0 : 1)
+                    }
+                    .overlay {
                         if viewModel.state == .testing {
                             ProgressView()
-                                .frame(maxWidth: .infinity)
-                        } else {
-                            Text("Test and Save")
-                                .frame(maxWidth: .infinity)
                         }
                     }
                     .disabled(viewModel.state == .testing)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(
+                        viewModel.state == .testing
+                            ? "Testing cloud account"
+                            : "Test and Save")
                     .accessibilityIdentifier("account.connect")
                 }
             }

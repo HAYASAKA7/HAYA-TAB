@@ -112,6 +112,9 @@ final class FirstSliceUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Primer"].waitForExistence(timeout: 5))
 
         app.terminate()
+        app.launchArguments.removeAll {
+            $0 == "-reset-restoration-state"
+        }
         app.launch()
 
         XCTAssertTrue(
@@ -144,7 +147,10 @@ final class FirstSliceUITests: XCTestCase {
         additionalArguments: [String] = []
     ) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-use-fixture-library"] + additionalArguments
+        app.launchArguments = [
+            "-use-fixture-library",
+            "-reset-restoration-state",
+        ] + additionalArguments
         app.launch()
         return app
     }

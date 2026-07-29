@@ -25,7 +25,8 @@ enum RootDestination: String, CaseIterable, Hashable, Identifiable {
 struct RootView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @SceneStorage("root.destination") private var storedDestination = RootDestination.library.rawValue
-    @SceneStorage("reader.lastLibraryID") private var lastOpenedLibraryID: String?
+    @SceneStorage("reader.lastLibraryID.scene") private var lastOpenedLibraryID: String?
+    @AppStorage("reader.lastLibraryID.persisted") private var persistedLastOpenedLibraryID: String?
     @State private var libraryViewModel: LibraryViewModel
     @State private var accountViewModel: AccountViewModel
     @State private var downloadViewModel: DownloadViewModel
@@ -52,17 +53,22 @@ struct RootView: View {
         }
         .task {
             await downloadViewModel.restore()
-            guard let itemID = lastOpenedLibraryID else {
+            guard let itemID = lastOpenedLibraryID ?? persistedLastOpenedLibraryID else {
                 return
             }
             await downloadViewModel.restoreReader(itemID: itemID)
             if downloadViewModel.readerSelection == nil {
                 lastOpenedLibraryID = nil
+                persistedLastOpenedLibraryID = nil
             }
         }
         .onChange(of: downloadViewModel.readerSelection) { _, selection in
             if let selection {
                 lastOpenedLibraryID = selection.item.id
+                persistedLastOpenedLibraryID = selection.item.id
+            } else {
+                lastOpenedLibraryID = nil
+                persistedLastOpenedLibraryID = nil
             }
         }
     }
@@ -75,8 +81,8 @@ struct RootView: View {
                 }
                 .tabItem {
                     Label(destination.rawValue, systemImage: destination.systemImage)
+                        .accessibilityIdentifier(destination.accessibilityIdentifier)
                 }
-                .accessibilityIdentifier(destination.accessibilityIdentifier)
                 .tag(destination)
             }
         }
