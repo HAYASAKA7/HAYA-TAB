@@ -11,6 +11,7 @@ struct SettingsView: View {
                 Button("Configure WebDAV") {
                     isShowingAccount = true
                 }
+                .accessibilityIdentifier("settings.configureAccount")
                 Label("Sync over Wi-Fi and cellular", systemImage: "arrow.triangle.2.circlepath")
             }
 

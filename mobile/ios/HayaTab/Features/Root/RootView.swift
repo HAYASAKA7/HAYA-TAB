@@ -6,6 +6,10 @@ enum RootDestination: String, CaseIterable, Hashable, Identifiable {
     case downloads = "Downloads"
     case settings = "Settings"
 
+    static func restored(from storedValue: String?) -> RootDestination {
+        RootDestination(rawValue: storedValue ?? "") ?? .library
+    }
+
     var id: Self { self }
 
     var systemImage: String {
@@ -20,8 +24,8 @@ enum RootDestination: String, CaseIterable, Hashable, Identifiable {
 
 struct RootView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var compactSelection: RootDestination = .library
-    @State private var splitSelection: RootDestination? = .library
+    @SceneStorage("root.destination") private var storedDestination = RootDestination.library.rawValue
+    @SceneStorage("reader.lastLibraryID") private var lastOpenedLibraryID: String?
     @State private var libraryViewModel: LibraryViewModel
     @State private var accountViewModel: AccountViewModel
     @State private var downloadViewModel: DownloadViewModel
@@ -44,10 +48,25 @@ struct RootView: View {
         } else {
             regularNavigation
         }
+        .task {
+            await downloadViewModel.restore()
+            guard let itemID = lastOpenedLibraryID else {
+                return
+            }
+            await downloadViewModel.restoreReader(itemID: itemID)
+            if downloadViewModel.readerSelection == nil {
+                lastOpenedLibraryID = nil
+            }
+        }
+        .onChange(of: downloadViewModel.readerSelection) { _, selection in
+            if let selection {
+                lastOpenedLibraryID = selection.item.id
+            }
+        }
     }
 
     private var compactNavigation: some View {
-        TabView(selection: $compactSelection) {
+        TabView(selection: selectedDestination) {
             ForEach(RootDestination.allCases) { destination in
                 NavigationStack {
                     destinationView(destination)
@@ -55,6 +74,7 @@ struct RootView: View {
                 .tabItem {
                     Label(destination.rawValue, systemImage: destination.systemImage)
                 }
+                .accessibilityIdentifier(destination.accessibilityIdentifier)
                 .tag(destination)
             }
         }
@@ -62,16 +82,37 @@ struct RootView: View {
 
     private var regularNavigation: some View {
         NavigationSplitView {
-            List(RootDestination.allCases, selection: $splitSelection) { destination in
-                Label(destination.rawValue, systemImage: destination.systemImage)
-                    .tag(destination)
+            List {
+                ForEach(RootDestination.allCases) { destination in
+                    Button {
+                        storedDestination = destination.rawValue
+                    } label: {
+                        Label(destination.rawValue, systemImage: destination.systemImage)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier(destination.accessibilityIdentifier)
+                    .accessibilityAddTraits(
+                        currentDestination == destination ? .isSelected : [])
+                }
             }
             .navigationTitle("HAYA-TAB")
         } detail: {
             NavigationStack {
-                destinationView(splitSelection ?? .library)
+                destinationView(currentDestination)
             }
         }
+    }
+
+    private var currentDestination: RootDestination {
+        RootDestination.restored(from: storedDestination)
+    }
+
+    private var selectedDestination: Binding<RootDestination> {
+        Binding(
+            get: { currentDestination },
+            set: { storedDestination = $0.rawValue })
     }
 
     @ViewBuilder
@@ -88,5 +129,11 @@ struct RootView: View {
         case .settings:
             SettingsView(viewModel: accountViewModel)
         }
+    }
+}
+
+private extension RootDestination {
+    var accessibilityIdentifier: String {
+        "root.\(rawValue.lowercased())"
     }
 }

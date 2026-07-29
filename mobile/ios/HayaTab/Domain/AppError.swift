@@ -10,6 +10,19 @@ enum AppError: Error, Equatable, Sendable {
     case downloadIntegrity
     case remoteChanged
 
+    static var presentationFixtures: [AppError] {
+        [
+            .authentication,
+            .transport("private transport detail"),
+            .malformedManifest,
+            .unsafeRemotePath("private remote path"),
+            .unsupportedDocument("private document name"),
+            .localStorage("private storage detail"),
+            .downloadIntegrity,
+            .remoteChanged,
+        ]
+    }
+
     var code: String {
         switch self {
         case .authentication: "authentication"

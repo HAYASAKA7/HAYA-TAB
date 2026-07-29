@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DownloadsView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable var viewModel: DownloadViewModel
     @State private var deletionCandidate: LibraryItem?
 
@@ -13,31 +14,15 @@ struct DownloadsView: View {
                     description: Text("Downloaded documents will appear here."))
             } else {
                 List(viewModel.displayItems) { item in
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(item.title)
-                                .font(.headline)
-                            Text(item.artist.isEmpty ? item.relativePath : item.artist)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        statusView(for: item)
-                    }
+                    downloadRow(for: item)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         if viewModel.state(for: item) == .availableOffline {
                             Task { await viewModel.open(item) }
                         }
                     }
-                    .swipeActions {
-                        if viewModel.state(for: item) == .availableOffline {
-                            Button("Remove", systemImage: "trash", role: .destructive) {
-                                deletionCandidate = item
-                            }
-                        }
-                    }
                 }
+                .accessibilityIdentifier("downloads.list")
             }
         }
         .navigationTitle("Downloads")
@@ -70,6 +55,43 @@ struct DownloadsView: View {
         }
     }
 
+    private func downloadRow(for item: LibraryItem) -> some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 12) {
+                    downloadDescription(for: item)
+                    statusView(for: item)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            } else {
+                HStack(spacing: 12) {
+                    downloadDescription(for: item)
+                    Spacer()
+                    statusView(for: item)
+                }
+            }
+        }
+        .swipeActions {
+            if viewModel.state(for: item) == .availableOffline {
+                Button("Remove", systemImage: "trash", role: .destructive) {
+                    deletionCandidate = item
+                }
+                .accessibilityIdentifier("downloads.remove.\(item.id)")
+            }
+        }
+    }
+
+    private func downloadDescription(for item: LibraryItem) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(item.title)
+                .font(.headline)
+            Text(item.artist.isEmpty ? item.relativePath : item.artist)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     @ViewBuilder
     private func statusView(for item: LibraryItem) -> some View {
         switch viewModel.state(for: item) {
@@ -82,16 +104,19 @@ struct DownloadsView: View {
                 Button("Cancel") {
                     viewModel.cancel(item)
                 }
+                .accessibilityIdentifier("downloads.cancel.\(item.id)")
             }
         case .availableOffline:
             Label("Offline", systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
+                .accessibilityIdentifier("downloads.open.\(item.id)")
         case let .failed(error):
             Button {
                 viewModel.start(item)
             } label: {
                 Label(error.title, systemImage: "arrow.clockwise")
             }
+            .accessibilityIdentifier("downloads.retry.\(item.id)")
         case nil:
             EmptyView()
         }

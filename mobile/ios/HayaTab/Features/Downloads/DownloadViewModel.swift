@@ -23,6 +23,7 @@ final class DownloadViewModel {
     private(set) var itemsByID: [String: LibraryItem] = [:]
     var readerSelection: ReaderSelection?
     @ObservationIgnored private var tasks: [String: Task<Void, Never>] = [:]
+    @ObservationIgnored private var invalidOfflineIDs: Set<String> = []
 
     init(store: any DownloadStoring) {
         self.store = store
@@ -37,7 +38,13 @@ final class DownloadViewModel {
     }
 
     func state(for item: LibraryItem) -> DocumentDownloadState? {
-        states[item.id] ?? (item.localFilename == nil ? nil : .availableOffline)
+        if let state = states[item.id] {
+            return state
+        }
+        guard !invalidOfflineIDs.contains(item.id) else {
+            return nil
+        }
+        return item.localFilename == nil ? nil : .availableOffline
     }
 
     func restore() async {
@@ -45,10 +52,38 @@ final class DownloadViewModel {
             let items = try await store.offlineItems()
             for item in items {
                 itemsByID[item.id] = item
+                invalidOfflineIDs.remove(item.id)
                 states[item.id] = .availableOffline
             }
         } catch {
             // A failed restore is represented by the library's typed storage state.
+        }
+    }
+
+    func restoreReader(itemID: String) async {
+        readerSelection = nil
+        do {
+            let offlineItems = try await store.offlineItems()
+            guard let item = offlineItems.first(where: { $0.id == itemID }) else {
+                return
+            }
+            guard let documentURL = try await store.localURL(for: item) else {
+                states[item.id] = nil
+                itemsByID[item.id] = nil
+                invalidOfflineIDs.insert(item.id)
+                return
+            }
+
+            invalidOfflineIDs.remove(item.id)
+            itemsByID[item.id] = item
+            states[item.id] = .availableOffline
+            readerSelection = ReaderSelection(
+                item: item,
+                documentURL: documentURL)
+        } catch {
+            states[itemID] = nil
+            itemsByID[itemID] = nil
+            invalidOfflineIDs.insert(itemID)
         }
     }
 
@@ -70,6 +105,7 @@ final class DownloadViewModel {
                 _ = try await self.store.download(item)
                 try Task.checkCancellation()
                 self.states[item.id] = .availableOffline
+                self.invalidOfflineIDs.remove(item.id)
                 await self.restore()
             } catch is CancellationError {
                 self.finishCancellation(for: item)
@@ -93,6 +129,7 @@ final class DownloadViewModel {
             try await store.delete(item)
             states[item.id] = nil
             itemsByID[item.id] = nil
+            invalidOfflineIDs.insert(item.id)
         } catch let error as AppError {
             states[item.id] = .failed(error)
         } catch {
@@ -108,6 +145,7 @@ final class DownloadViewModel {
                     .localStorage("The offline document is unavailable."))
                 return
             }
+            invalidOfflineIDs.remove(item.id)
             readerSelection = ReaderSelection(
                 item: item,
                 documentURL: documentURL)
@@ -120,7 +158,7 @@ final class DownloadViewModel {
     }
 
     private func finishCancellation(for item: LibraryItem) {
-        if item.localFilename == nil {
+        if item.localFilename == nil || invalidOfflineIDs.contains(item.id) {
             states[item.id] = nil
             itemsByID[item.id] = nil
         } else {

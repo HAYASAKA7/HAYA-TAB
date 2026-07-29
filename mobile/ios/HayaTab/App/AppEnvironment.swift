@@ -44,12 +44,54 @@ struct AppEnvironment: Sendable {
     }
 
     static func fixture() -> AppEnvironment {
-        AppEnvironment(
-            libraryRepository: FixtureLibraryRepository(),
+        let etudePath = "scores/etude.gp5"
+        let etude = LibraryItem(
+            id: LibraryItem.stableID(
+                volumeID: "volume-fixture",
+                relativePath: etudePath),
+            volumeID: "volume-fixture",
+            relativePath: etudePath,
+            title: "Etude",
+            artist: "HAYA",
+            album: "Practice",
+            kind: .guitarPro,
+            categories: ["Practice"],
+            localFilename: nil,
+            remoteRevision: nil)
+
+        let primerPath = "scores/primer.pdf"
+        let primerID = LibraryItem.stableID(
+            volumeID: "volume-fixture",
+            relativePath: primerPath)
+        let primer = LibraryItem(
+            id: primerID,
+            volumeID: "volume-fixture",
+            relativePath: primerPath,
+            title: "Primer",
+            artist: "HAYA",
+            album: "Reference",
+            kind: .pdf,
+            categories: ["Practice"],
+            localFilename: "\(primerID).pdf",
+            remoteRevision: nil)
+
+        let fixtureRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("haya-tab-ui-fixture", isDirectory: true)
+        let primerURL = fixtureRoot
+            .appendingPathComponent("\(primerID).pdf", isDirectory: false)
+        try? FileManager.default.createDirectory(
+            at: fixtureRoot,
+            withIntermediateDirectories: true)
+        try? Data("%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n".utf8)
+            .write(to: primerURL, options: .atomic)
+
+        return AppEnvironment(
+            libraryRepository: FixtureLibraryRepository(items: [etude, primer]),
             credentialStore: FixtureCredentialStore(),
             clientFactory: FixtureWebDAVClientFactory(),
-            downloadStore: UnavailableDownloadStore(
-                error: .transport("Fixture documents are not downloadable.")))
+            downloadStore: FixtureDownloadStore(
+                offlineItem: primer,
+                documentURL: primerURL))
     }
 }
 
@@ -64,39 +106,14 @@ private struct UnavailableLibraryRepository: LibraryRepositoryProtocol {
 }
 
 private struct FixtureLibraryRepository: LibraryRepositoryProtocol {
+    let items: [LibraryItem]
+
     func cachedLibrary() async throws -> [LibraryItem] {
-        [
-            LibraryItem(
-                id: LibraryItem.stableID(
-                    volumeID: "volume-fixture",
-                    relativePath: "scores/etude.gp5"),
-                volumeID: "volume-fixture",
-                relativePath: "scores/etude.gp5",
-                title: "Etude",
-                artist: "HAYA",
-                album: "Practice",
-                kind: .guitarPro,
-                categories: ["Practice"],
-                localFilename: nil,
-                remoteRevision: nil),
-            LibraryItem(
-                id: LibraryItem.stableID(
-                    volumeID: "volume-fixture",
-                    relativePath: "scores/primer.pdf"),
-                volumeID: "volume-fixture",
-                relativePath: "scores/primer.pdf",
-                title: "Primer",
-                artist: "HAYA",
-                album: "Reference",
-                kind: .pdf,
-                categories: ["Practice"],
-                localFilename: nil,
-                remoteRevision: nil),
-        ]
+        items
     }
 
     func refresh() async throws -> [LibraryItem] {
-        try await cachedLibrary()
+        items
     }
 }
 
@@ -167,6 +184,44 @@ private actor CredentialBackedDocumentDownloader: DocumentDownloading {
         }
         let client = try WebDAVClient(credential: credential)
         return try await client.download(path: path, to: partialURL)
+    }
+}
+
+private actor FixtureDownloadStore: DownloadStoring {
+    let offlineItem: LibraryItem
+    let documentURL: URL
+
+    func download(_ item: LibraryItem) async throws -> URL {
+        throw AppError.transport("Fixture documents are not downloadable.")
+    }
+
+    func offlineItems() async throws -> [LibraryItem] {
+        isValidDocument ? [offlineItem] : []
+    }
+
+    func delete(_ item: LibraryItem) async throws {
+        throw AppError.localStorage("Fixture documents cannot be deleted.")
+    }
+
+    func localURL(for item: LibraryItem) async throws -> URL? {
+        guard item.id == offlineItem.id, isValidDocument else {
+            return nil
+        }
+        return documentURL
+    }
+
+    private var isValidDocument: Bool {
+        guard let values = try? documentURL.resourceValues(
+            forKeys: [
+                .isRegularFileKey,
+                .isSymbolicLinkKey,
+                .fileSizeKey,
+            ]) else {
+            return false
+        }
+        return values.isRegularFile == true
+            && values.isSymbolicLink != true
+            && (values.fileSize ?? 0) > 0
     }
 }
 

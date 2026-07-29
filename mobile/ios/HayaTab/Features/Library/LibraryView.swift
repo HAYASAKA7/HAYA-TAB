@@ -58,6 +58,7 @@ struct LibraryView: View {
         .refreshable {
             await viewModel.refresh()
         }
+        .accessibilityIdentifier("library.list")
     }
 
     private func offlineLibrary(_ error: AppError) -> some View {
@@ -94,11 +95,23 @@ private struct DownloadableLibraryRow: View {
     let item: LibraryItem
     let viewModel: DownloadViewModel
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        HStack(spacing: 12) {
-            LibraryRow(item: item)
-            Spacer(minLength: 8)
-            control
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 12) {
+                    LibraryRow(item: item)
+                    control
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            } else {
+                HStack(spacing: 12) {
+                    LibraryRow(item: item)
+                    Spacer(minLength: 8)
+                    control
+                }
+            }
         }
     }
 
@@ -115,6 +128,7 @@ private struct DownloadableLibraryRow: View {
                     Image(systemName: "xmark.circle.fill")
                 }
                 .accessibilityLabel("Cancel download of \(item.title)")
+                .accessibilityIdentifier("library.cancel.\(item.id)")
                 .buttonStyle(.borderless)
             }
         case .availableOffline:
@@ -126,6 +140,7 @@ private struct DownloadableLibraryRow: View {
             }
             .buttonStyle(.borderless)
             .accessibilityLabel("Open \(item.title)")
+            .accessibilityIdentifier("library.open.\(item.id)")
         case .failed:
             Button {
                 viewModel.start(item)
@@ -133,6 +148,7 @@ private struct DownloadableLibraryRow: View {
                 Image(systemName: "arrow.clockwise.circle")
             }
             .accessibilityLabel("Retry download of \(item.title)")
+            .accessibilityIdentifier("library.retry.\(item.id)")
             .buttonStyle(.borderless)
         case nil:
             Button {
@@ -141,6 +157,7 @@ private struct DownloadableLibraryRow: View {
                 Image(systemName: "arrow.down.circle")
             }
             .accessibilityLabel("Download \(item.title)")
+            .accessibilityIdentifier("library.download.\(item.id)")
             .buttonStyle(.borderless)
         }
     }

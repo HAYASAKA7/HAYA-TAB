@@ -121,12 +121,15 @@ struct AccountSheet: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .accessibilityIdentifier("account.serverURL")
                     TextField("Username", text: $viewModel.username)
                         .textContentType(.username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .accessibilityIdentifier("account.username")
                     SecureField("Password", text: $viewModel.password)
                         .textContentType(.password)
+                        .accessibilityIdentifier("account.password")
                 }
 
                 if case let .failed(error) = viewModel.state {
@@ -144,6 +147,7 @@ struct AccountSheet: View {
                                 .foregroundStyle(.orange)
                         }
                         .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("account.error")
                     }
                 }
 
@@ -165,6 +169,7 @@ struct AccountSheet: View {
                         }
                     }
                     .disabled(viewModel.state == .testing)
+                    .accessibilityIdentifier("account.connect")
                 }
             }
             .navigationTitle("Cloud Account")

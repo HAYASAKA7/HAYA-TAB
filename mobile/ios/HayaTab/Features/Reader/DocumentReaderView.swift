@@ -3,6 +3,7 @@ import SwiftUI
 struct DocumentReaderView: View {
     let item: LibraryItem
     let documentURL: URL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var session = ReaderSession()
 
     var body: some View {
@@ -29,11 +30,15 @@ struct DocumentReaderView: View {
                             session.send(.playPause)
                         }
                         .disabled(!session.isLoaded)
+                        .accessibilityIdentifier("reader.playPause")
+                        .accessibilityHint("Starts or pauses score playback")
 
                         Button("Stop", systemImage: "stop.fill") {
                             session.send(.stop)
                         }
                         .disabled(!session.isLoaded)
+                        .accessibilityIdentifier("reader.stop")
+                        .accessibilityHint("Stops score playback")
 
                         Menu("Tempo", systemImage: "metronome") {
                             ForEach([60, 80, 100, 120, 140, 160], id: \.self) { tempo in
@@ -43,7 +48,14 @@ struct DocumentReaderView: View {
                             }
                         }
                         .disabled(!session.isLoaded)
+                        .accessibilityIdentifier("reader.tempo")
+                        .accessibilityHint("Changes playback tempo")
                     }
+                }
+            }
+            .transaction { transaction in
+                if reduceMotion {
+                    transaction.animation = nil
                 }
             }
     }
