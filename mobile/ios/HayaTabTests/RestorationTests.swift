@@ -17,7 +17,7 @@ final class RestorationTests: XCTestCase {
     }
 
     func testReaderRestoresOnlyWhenValidatedOfflineFileExists() async {
-        let item = LibraryItem.restorationFixture()
+        let item = HayaTab.LibraryItem.restorationFixture()
         let documentURL = URL(fileURLWithPath: "/validated/offline/primer.pdf")
         let store = RestorationDownloadStore(
             items: [item],
@@ -32,7 +32,7 @@ final class RestorationTests: XCTestCase {
     }
 
     func testReaderDoesNotRestoreWhenOfflineFileIsMissing() async {
-        let item = LibraryItem.restorationFixture()
+        let item = HayaTab.LibraryItem.restorationFixture()
         let store = RestorationDownloadStore(
             items: [item],
             localURLs: [:])
@@ -45,7 +45,7 @@ final class RestorationTests: XCTestCase {
     }
 
     func testReaderDoesNotRestoreUnknownLibraryItem() async {
-        let item = LibraryItem.restorationFixture()
+        let item = HayaTab.LibraryItem.restorationFixture()
         let store = RestorationDownloadStore(
             items: [item],
             localURLs: [item.id: URL(fileURLWithPath: "/validated/offline/primer.pdf")])
@@ -58,36 +58,36 @@ final class RestorationTests: XCTestCase {
 }
 
 private actor RestorationDownloadStore: DownloadStoring {
-    let items: [LibraryItem]
+    let items: [HayaTab.LibraryItem]
     let localURLs: [String: URL]
 
-    init(items: [LibraryItem], localURLs: [String: URL]) {
+    init(items: [HayaTab.LibraryItem], localURLs: [String: URL]) {
         self.items = items
         self.localURLs = localURLs
     }
 
-    func download(_ item: LibraryItem) async throws -> URL {
+    func download(_ item: HayaTab.LibraryItem) async throws -> URL {
         throw AppError.transport("Not used by restoration tests.")
     }
 
-    func offlineItems() async throws -> [LibraryItem] {
+    func offlineItems() async throws -> [HayaTab.LibraryItem] {
         items
     }
 
-    func delete(_ item: LibraryItem) async throws {}
+    func delete(_ item: HayaTab.LibraryItem) async throws {}
 
-    func localURL(for item: LibraryItem) async throws -> URL? {
+    func localURL(for item: HayaTab.LibraryItem) async throws -> URL? {
         localURLs[item.id]
     }
 }
 
-private extension LibraryItem {
-    static func restorationFixture() -> LibraryItem {
+private extension HayaTab.LibraryItem {
+    static func restorationFixture() -> HayaTab.LibraryItem {
         let path = "scores/primer.pdf"
         let id = stableID(
             volumeID: "fixture-volume",
             relativePath: path)
-        return LibraryItem(
+        return HayaTab.LibraryItem(
             id: id,
             volumeID: "fixture-volume",
             relativePath: path,
