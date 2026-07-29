@@ -191,6 +191,11 @@ private actor FixtureDownloadStore: DownloadStoring {
     let offlineItem: LibraryItem
     let documentURL: URL
 
+    init(offlineItem: LibraryItem, documentURL: URL) {
+        self.offlineItem = offlineItem
+        self.documentURL = documentURL
+    }
+
     func download(_ item: LibraryItem) async throws -> URL {
         throw AppError.transport("Fixture documents are not downloadable.")
     }
