@@ -3,19 +3,19 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>haya-tab</string>
+    <string>haya-tab.exe</string>
     <key>CFBundleIdentifier</key>
-    <string>com.hayasaka7.hayatab</string>
+    <string>com.example.hayatab</string>
     <key>CFBundleName</key>
-    <string>HAYA-TAB</string>
+    <string>My Product</string>
     <key>CFBundleDisplayName</key>
-    <string>HAYA-TAB</string>
+    <string>My Product</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>3.1.7</string>
+    <string>0.1.0</string>
     <key>CFBundleVersion</key>
-    <string>30107</string>
+    <string>0.1.0</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>MinimumOSVersion</key>
@@ -24,6 +24,7 @@
     <string>LaunchScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
     <array>
+        <string>armv7</string>
         <string>arm64</string>
     </array>
     <key>UISupportedInterfaceOrientations</key>
@@ -48,11 +49,11 @@
     </dict>
     
     <key>NSHumanReadableCopyright</key>
-    <string>© 2026 HAYASAKA7. All rights reserved.</string>
+    <string>© 2026, My Company</string>
     
     
     <key>CFBundleGetInfoString</key>
-    <string>Cloud-first music tab library and reader</string>
+    <string>This is a comment</string>
     
 </dict>
 </plist>

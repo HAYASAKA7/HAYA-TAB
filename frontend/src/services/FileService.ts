@@ -66,19 +66,5 @@ export const FileService = {
    */
   async resolveCoverPath(path: string): Promise<string> {
     return await callBackend<string>('ResolveCoverPath', path);
-  },
-
-  /**
-   * Get the platform-correct URL for streaming a tab by ID.
-   */
-  async getTabContentURL(tabId: string): Promise<string> {
-    return await callBackend<string>('GetTabContentURL', tabId);
-  },
-
-  /**
-   * Get the platform-correct URL for loading a tab cover by ID.
-   */
-  async getCoverContentURL(tabId: string): Promise<string> {
-    return await callBackend<string>('GetCoverContentURL', tabId);
   }
 };

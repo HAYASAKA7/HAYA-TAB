@@ -13,11 +13,12 @@ func main() {
 	// Create an instance of the app structure
 	myApp := app.NewApp()
 
-	if err := configureContentTransport(myApp); err != nil {
-		log.Fatal("Error configuring content transport:", err)
+	// Start local file server
+	port, err := myApp.StartFileServer()
+	if err != nil {
+		log.Fatal("Error starting file server:", err)
 	}
-	frontendAssets := application.AssetFileServerFS(appassets.FS)
-	assetHandler := app.NewAssetHandler(app.NewFileHandler(myApp), frontendAssets)
+	myApp.SetFileServerPort(port)
 
 	// Create application with options
 	opts := application.Options{
@@ -27,7 +28,7 @@ func main() {
 			application.NewService(myApp),
 		},
 		Assets: application.AssetOptions{
-			Handler: assetHandler,
+			Handler: application.AssetFileServerFS(appassets.FS),
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
@@ -66,7 +67,7 @@ func main() {
 		appInstance.Quit()
 	})
 
-	err := appInstance.Run()
+	err = appInstance.Run()
 	if err != nil {
 		log.Fatal(err)
 	}

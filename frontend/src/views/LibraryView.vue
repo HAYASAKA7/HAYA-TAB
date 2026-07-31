@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTabsStore, useUIStore, useSettingsStore } from '@/stores'
 import { useContextMenu } from '@/composables/useContextMenu'
@@ -25,12 +25,6 @@ const { width } = useElementSize(viewContentRef)
 const columns = computed(() => Math.max(1, Math.floor((width.value - 64) / 310))) // 310px item + gap, 64px padding buffer
 
 const scrollerRef = ref<any>(null)
-const searchBarRef = ref<{ focus: () => void } | null>(null)
-const displayTabs = computed(() => (
-  uiStore.libraryMode === 'offline'
-    ? tabsStore.tabs.filter(tab => !tab.isCloud)
-    : tabsStore.tabs
-))
 
 const shouldShowFilters = computed(() => {
   if (viewMode.value === 'singles') return true
@@ -70,18 +64,6 @@ watch(() => tabsStore.currentCategoryId, async (newId) => {
   }
 })
 
-watch(() => uiStore.topLevelRequestKey, () => {
-  const destination = uiStore.topLevelDestination
-  if (destination === 'settings') return
-  viewMode.value = 'singles'
-  if (tabsStore.currentCategoryId) tabsStore.goHome()
-})
-
-watch(() => uiStore.searchRequestKey, async () => {
-  await nextTick()
-  searchBarRef.value?.focus()
-})
-
 // Kana row order for Japanese UI Quick Jump Bar
 const KANA_ROWS = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ']
 const AZ_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
@@ -104,7 +86,7 @@ const groupedTabs = computed(() => {
   const groups: Record<string, typeof tabsStore.tabs> = {}
 
   // Sort tabs alphabetically first
-  const sorted = [...displayTabs.value].sort((a, b) => a.title.localeCompare(b.title))
+  const sorted = [...tabsStore.tabs].sort((a, b) => a.title.localeCompare(b.title))
 
   for (const tab of sorted) {
     const key = getInitialKey(tab)
@@ -330,18 +312,17 @@ async function addTab(isUpload: boolean) {
     </header>
 
     <div class="search-container">
-      <SearchBar ref="searchBarRef" :show-filters="shouldShowFilters" />
+      <SearchBar :show-filters="shouldShowFilters" />
     </div>
 
     <div ref="viewContentRef" class="view-content" @contextmenu="handleBlankContextMenu">
       <!-- Singles View -->
       <div v-if="viewMode === 'singles'" class="singles-container">
         <div v-if="tabsStore.loading" class="loading-state">{{ t('library.loading') }}</div>
-        <div v-else-if="displayTabs.length === 0" class="empty-state">{{ t('library.noTabs') }}</div>
+        <div v-else-if="tabsStore.tabs.length === 0" class="empty-state">{{ t('library.noTabs') }}</div>
 
         <template v-else>
           <DynamicScroller
-            :key="uiStore.libraryMode"
             ref="scrollerRef"
             :items="virtualItems"
             :min-item-size="50"
@@ -391,7 +372,7 @@ async function addTab(isUpload: boolean) {
         <div v-if="tabsStore.currentCategoryId" class="playlist-view">
              <div class="tab-grid">
                <BackCard />
-               <TabCard v-for="tab in displayTabs" :key="tab.id" :tab="tab" />
+               <TabCard v-for="tab in tabsStore.tabs" :key="tab.id" :tab="tab" />
              </div>
              <!-- Infinite scroll trigger could go here -->
         </div>
@@ -557,60 +538,5 @@ async function addTab(isUpload: boolean) {
   text-align: center;
   padding: 4rem;
   color: var(--text-muted);
-}
-
-:global(html[data-form-factor='phone'] .library-view .view-header) {
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-}
-
-:global(html[data-form-factor='phone'] .library-view .view-header h1) {
-  flex-basis: 100%;
-  min-width: 0;
-  font-size: 1.35rem;
-}
-
-:global(html[data-form-factor='phone'] .library-view .toggle-group) {
-  position: static;
-  order: 3;
-  width: 100%;
-  transform: none;
-}
-
-:global(html[data-form-factor='phone'] .library-view .toggle-btn) {
-  flex: 1;
-}
-
-:global(html[data-form-factor='phone'] .library-view .actions) {
-  flex: 0 0 100%;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-}
-
-:global(html[data-form-factor='phone'] .library-view .search-container) {
-  padding: 0.75rem 1rem 0;
-}
-
-:global(html[data-form-factor='phone'] .library-view .view-content) {
-  padding: 0.75rem 1rem;
-}
-
-:global(html[data-form-factor='phone'] .library-view .tab-grid-row) {
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding-bottom: 1rem;
-}
-
-:global(html[data-form-factor='phone'] .library-view .tab-grid) {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 1rem;
-}
-
-:global(html[data-form-factor='phone'] .library-view .alphabet-bar) {
-  right: 4px;
 }
 </style>

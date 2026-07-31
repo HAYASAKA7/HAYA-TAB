@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { Events } from "@wailsio/runtime"
-import { computed, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useTabsStore, useSettingsStore, useUIStore, useViewersStore, usePlatformStore } from '@/stores'
+import { useTabsStore, useSettingsStore, useUIStore, useViewersStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { UpdateService } from '@/services'
-import { midiService } from '@/services/MidiService'
+import '@/services/MidiService'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
-import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
-import { useNativeTabs } from '@/composables/useNativeTabs'
 import HomeView from '@/views/HomeView.vue'
 import LibraryView from '@/views/LibraryView.vue'
 import SettingsView from '@/components/SettingsView.vue'
@@ -35,33 +33,18 @@ const tabsStore = useTabsStore()
 const settingsStore = useSettingsStore()
 const uiStore = useUIStore()
 const viewersStore = useViewersStore()
-const platformStore = usePlatformStore()
 const { showToast, showErrorToast } = useToast()
 const { t } = useI18n()
-useNativeTabs()
-
-const showSidebar = computed(() => (
-  platformStore.capabilities.target === 'desktop'
-  || platformStore.capabilities.formFactor === 'tablet'
-))
 
 onMounted(async () => {
-  await platformStore.load()
-  if (platformStore.capabilities.nativeTopLevelTabs || platformStore.capabilities.webTopLevelTabs) {
-    uiStore.selectTopLevelDestination('library')
-  }
   await tabsStore.refreshData()
   await settingsStore.loadSettings()
 
   // Check if plugins exist
-  if (platformStore.capabilities.plugins) {
-    try {
-      uiStore.hasPlugins = await PluginService.hasPlugins()
-    } catch (e) {
-      console.error('Failed to check plugins:', e)
-    }
-  } else {
-    uiStore.hasPlugins = false
+  try {
+    uiStore.hasPlugins = await PluginService.hasPlugins()
+  } catch (e) {
+    console.error('Failed to check plugins:', e)
   }
 
   // Start WebDAV status monitoring if enabled
@@ -70,15 +53,9 @@ onMounted(async () => {
   }
 
   // Check for updates
-  if (platformStore.capabilities.selfUpdate) {
-    const updateInfo = await UpdateService.checkForUpdates()
-    if (updateInfo) {
-      uiStore.updateInfo = updateInfo
-    }
-  }
-
-  if (platformStore.capabilities.webMIDI) {
-    await midiService.initialize()
+  const updateInfo = await UpdateService.checkForUpdates()
+  if (updateInfo) {
+    uiStore.updateInfo = updateInfo
   }
 
   // Event listeners
@@ -174,11 +151,8 @@ function isViewActive(viewType: string): boolean {
 </script>
 
 <template>
-  <div
-    id="app-layout"
-    :class="{ 'sidebar-collapsed': uiStore.sidebarCollapsed }"
-  >
-    <AppSidebar v-if="showSidebar" />
+  <div id="app-layout" :class="{ 'sidebar-collapsed': uiStore.sidebarCollapsed }">
+    <AppSidebar />
 
     <main id="main-content">
       <!-- Home View -->
@@ -210,9 +184,7 @@ function isViewActive(viewType: string): boolean {
 
       <!-- Plugins View -->
       <div
-        v-if="platformStore.capabilities.plugins"
         id="view-plugins"
-        data-testid="plugins-view-container"
         class="view"
         :class="{ hidden: !isViewActive('plugins') }"
       >
@@ -246,8 +218,6 @@ function isViewActive(viewType: string): boolean {
       </div>
     </main>
 
-    <MobileBottomNav />
-
     <!-- Batch Action Bar -->
     <BatchActionBar />
 
@@ -261,7 +231,7 @@ function isViewActive(viewType: string): boolean {
     <CloudPickerModal />
     <CloudUploadModal />
     <WebDAVModal />
-    <PluginSettingsModal v-if="platformStore.capabilities.plugins" />
+    <PluginSettingsModal />
 
     <!-- Toast & Context Menu -->
     <Toast />

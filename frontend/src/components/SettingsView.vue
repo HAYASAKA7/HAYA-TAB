@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSettingsStore, useUIStore, usePlatformStore } from '@/stores'
+import { useSettingsStore, useUIStore } from '@/stores'
 import { useToast } from '@/composables/useToast'
 import { FileService, SettingsService, UpdateService } from '@/services'
 import { midiService } from '@/services/MidiService'
@@ -11,7 +11,6 @@ import { SUPPORTED_LOCALES } from '@/i18n'
 const { t } = useI18n()
 const settingsStore = useSettingsStore()
 const uiStore = useUIStore()
-const platformStore = usePlatformStore()
 const { showToast, showErrorToast } = useToast()
 const audioDevices = ref<MediaDeviceInfo[]>([])
 const isAudioOutputSupported = ref(false)
@@ -300,11 +299,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
 <template>
   <header><h1>{{ t('settings.title') }}</h1></header>
   <div class="settings-container">
-    <section
-      v-if="platformStore.capabilities.customStoragePaths"
-      class="settings-section"
-      data-testid="custom-storage-settings"
-    >
+    <section class="settings-section">
       <h3><span class="icon-folder"></span> {{ t('settings.dataStorage', 'Data Storage') }}</h3>
       <div class="form-group">
         <label>{{ t('settings.storagePath', 'Managed Tabs Path') }}</label>
@@ -446,7 +441,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
       </div>
     </section>
 
-    <section v-if="platformStore.capabilities.webMIDI" class="settings-section">
+    <section class="settings-section">
       <h3><span class="icon-piano"></span> MIDI</h3>
       <div class="form-group">
         <label>
@@ -518,7 +513,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
       </div>
     </section>
 
-    <section v-if="platformStore.capabilities.folderWatcher" class="settings-section">
+    <section class="settings-section">
       <h3><span class="icon-sync"></span> {{ t('settings.autoSync') }}</h3>
       <div class="form-group">
         <label>
@@ -571,11 +566,7 @@ async function handleChangePath(target: 'storage' | 'covers') {
       </div>
     </section>
 
-    <section
-      v-if="platformStore.capabilities.selfUpdate"
-      class="settings-section"
-      data-testid="self-update-settings"
-    >
+    <section class="settings-section">
       <h3><span class="icon-refresh"></span> {{ t('settings.update', 'Update') }}</h3>
       <div class="form-group">
         <label>

@@ -2,8 +2,6 @@
   "nav": {
     "home": "ホーム",
     "library": "ライブラリ",
-    "offline": "オフライン",
-    "search": "検索",
     "settings": "設定",
     "plugins": "プラグイン",
     "back": ".. (戻る)"

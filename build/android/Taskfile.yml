@@ -4,9 +4,9 @@ includes:
   common: ../Taskfile.yml
 
 vars:
-  APP_ID: '{{.APP_ID | default "com.hayasaka7.hayatab"}}'
+  APP_ID: '{{.APP_ID | default "com.wails.app"}}'
   MIN_SDK: '21'
-  TARGET_SDK: '35'
+  TARGET_SDK: '34'
   NDK_VERSION: 'r26d'
 
 tasks:
@@ -137,15 +137,6 @@ tasks:
         cp app/build/outputs/apk/release/app-release-unsigned.apk "../../{{.BIN_DIR}}/{{.APP_NAME}}-release.apk"
         echo "Release APK created: {{.BIN_DIR}}/{{.APP_NAME}}-release.apk"
 
-  assemble:aab:release:
-    summary: Assembles an unsigned release Android App Bundle
-    cmds:
-      - |
-        cd build/android
-        ./gradlew bundleRelease
-        cp app/build/outputs/bundle/release/app-release.aab "../../{{.BIN_DIR}}/{{.APP_NAME}}-release.aab"
-        echo "Unsigned AAB created: {{.BIN_DIR}}/{{.APP_NAME}}-release.aab"
-
   ensure-emulator:
     internal: true
     summary: Ensure Android Emulator is running
@@ -196,7 +187,7 @@ tasks:
     cmds:
       - adb uninstall {{.APP_ID}} 2>/dev/null || true
       - adb install "{{.BIN_DIR}}/{{.APP_NAME}}.apk"
-      - adb shell am start -n {{.APP_ID}}/com.wails.app.MainActivity
+      - adb shell am start -n {{.APP_ID}}/.MainActivity
 
   run:
     summary: Run the application in Android Emulator
@@ -209,7 +200,7 @@ tasks:
       - task: assemble:apk
       - adb uninstall {{.APP_ID}} 2>/dev/null || true
       - adb install "{{.BIN_DIR}}/{{.APP_NAME}}.apk"
-      - adb shell am start -n {{.APP_ID}}/com.wails.app.MainActivity
+      - adb shell am start -n {{.APP_ID}}/.MainActivity
 
   logs:
     summary: Stream Android logcat filtered to this app

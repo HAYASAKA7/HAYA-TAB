@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useTabsStore, useSettingsStore } from '@/stores'
-import { FileService, TabService } from '@/services'
+import { SettingsService, TabService } from '@/services'
 
 const props = defineProps<{ tabId: string; visible: boolean }>()
 
@@ -758,7 +758,8 @@ function handleMidiExpressionScroll(e: CustomEvent<number>) {
 async function loadPdf() {
   if (!tab.value) return
   try {
-    const url = await FileService.getTabContentURL(props.tabId)
+    const port = await SettingsService.getFileServerPort()
+    const url = `http://127.0.0.1:${port}/api/file/${props.tabId}`
     const pdfTheme = document.body.getAttribute('data-theme') === 'light' ? 1 : 2
     const appLang = settingsStore.settings.language || 'en'
     const localeMap: Record<string, string> = { en: 'en-US', 'zh-CN': 'zh-CN', 'zh-TW': 'zh-TW', ja: 'ja' }

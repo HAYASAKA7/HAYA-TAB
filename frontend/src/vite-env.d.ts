@@ -7,9 +7,6 @@ declare module '*.vue' {
 }
 
 interface Window {
-  __HAYA_TEST_CAPABILITIES__?: import('./types/platform').RuntimeCapabilities
-  __HAYA_TEST_BACKEND__?: Record<string, (...args: unknown[]) => unknown>
-  __HAYA_BACKEND_CALLS__?: Array<{ method: string; args: unknown[] }>
   go: {
     app: {
       App: {
@@ -44,9 +41,6 @@ interface Window {
         TriggerSync(): Promise<string>
         GetCover(path: string): Promise<string>
         GetFileServerPort(): Promise<number>
-        GetTabContentURL(tabId: string): Promise<string>
-        GetCoverContentURL(tabId: string): Promise<string>
-        GetRuntimeCapabilities(viewportWidth: number): Promise<import('./types/platform').RuntimeCapabilities>
         // WebDAV
         WebDAVTestConnection(url: string, user: string, pass: string): Promise<void>
         WebDAVScanRemoteFiles(url: string, user: string, pass: string, dir: string): Promise<any[]>

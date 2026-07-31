@@ -6,7 +6,7 @@ import { useTabsStore, useUIStore, useViewersStore, useSettingsStore } from '@/s
 import { useContextMenu } from '@/composables/useContextMenu'
 import { useToast } from '@/composables/useToast'
 import { Events } from "@wailsio/runtime"
-import { TabService, FileService } from '@/services'
+import { SettingsService, TabService, FileService } from '@/services'
 
 import { safeHtml } from '@/utils/html'
 
@@ -22,17 +22,13 @@ const settingsStore = useSettingsStore()
 const contextMenu = useContextMenu()
 const { showToast } = useToast()
 
-const coverContentUrl = ref('')
+const fileServerPort = ref(0)
 const coverError = ref(false)
 const coverTimestamp = ref(Date.now()) // Used for cache busting when cover changes
 const coverUrl = computed(() => {
-  if (!props.tab.coverPath || coverError.value || !coverContentUrl.value) return ''
-
-  const url = new URL(coverContentUrl.value, window.location.href)
-  url.searchParams.set('t', String(coverTimestamp.value))
-  return coverContentUrl.value.startsWith('/')
-    ? `${url.pathname}${url.search}${url.hash}`
-    : url.toString()
+  if (!props.tab.coverPath || coverError.value || !fileServerPort.value) return ''
+  // Use the file server endpoint for cover images
+  return `http://127.0.0.1:${fileServerPort.value}/api/cover/${props.tab.id}?t=${coverTimestamp.value}`
 })
 const isSelected = computed(() => tabsStore.isTabSelected(props.tab.id))
 
@@ -51,25 +47,20 @@ const isCloudOffline = computed(() =>
 )
 
 // Reset error state and update timestamp when cover path changes
-watch(() => [props.tab.id, props.tab.coverPath] as const, async ([tabId, coverPath]) => {
+watch(() => props.tab.coverPath, () => {
   coverError.value = false
   coverTimestamp.value = Date.now()
-  coverContentUrl.value = ''
-  if (!coverPath) return
-
-  try {
-    const resolvedUrl = await FileService.getCoverContentURL(tabId)
-    if (tabId === props.tab.id && coverPath === props.tab.coverPath) {
-      coverContentUrl.value = resolvedUrl
-    }
-  } catch (error) {
-    console.error('Failed to get cover content URL:', error)
-  }
-}, { immediate: true })
+})
 
 let unregisterDownload: (() => void) | null = null
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    fileServerPort.value = await SettingsService.getFileServerPort()
+  } catch (e) {
+    console.error('Failed to get file server port:', e)
+  }
+
   // Listen for cloud download completion events (only update data, toast is handled globally in App.vue)
   unregisterDownload = Events.On('cloud-download-single', (ev: any) => {
     const data = ev.data ? (Array.isArray(ev.data) ? ev.data[0] : ev.data) : ev

@@ -4,18 +4,18 @@ plugins {
 
 android {
     namespace 'com.wails.app'
-    compileSdk 35
+    compileSdk 34
 
     buildFeatures {
         buildConfig = true
     }
 
     defaultConfig {
-        applicationId "com.hayasaka7.hayatab"
+        applicationId "com.wails.app"
         minSdk 21
-        targetSdk 35
-        versionCode 30107
-        versionName "3.1.7"
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
 
         // Configure supported ABIs
         ndk {

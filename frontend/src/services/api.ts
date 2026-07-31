@@ -71,8 +71,7 @@ function normalizeBackendError(error: unknown): AppApiError {
  * @returns Promise with the result
  */
 export async function callBackend<T = any>(method: string, ...args: any[]): Promise<T> {
-  const testBackend = import.meta.env.DEV ? window.__HAYA_TEST_BACKEND__ : undefined;
-  const app = (testBackend?.[method] ? testBackend : BackendApp) as any;
+  const app = BackendApp as any;
 
   if (!app) {
     console.error(`Wails backend App bindings not found. Cannot call ${method}`);
@@ -92,3 +91,4 @@ export async function callBackend<T = any>(method: string, ...args: any[]): Prom
     throw normalizeBackendError(error);
   }
 }
+

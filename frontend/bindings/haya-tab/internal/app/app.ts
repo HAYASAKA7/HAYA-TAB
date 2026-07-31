@@ -15,9 +15,6 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as application$0 from "../../../github.com/wailsapp/wails/v3/pkg/application/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as platform$0 from "../platform/models.js";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
 import * as store$0 from "../../pkg/store/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -127,10 +124,6 @@ export function GetCover(path: string): $CancellablePromise<string> {
     return $Call.ByID(3366959344, path);
 }
 
-export function GetCoverContentURL(id: string): $CancellablePromise<string> {
-    return $Call.ByID(1707724014, id);
-}
-
 /**
  * GetCoversDir returns the directory for cover images.
  */
@@ -172,18 +165,12 @@ export function GetRecentTabs(limit: number): $CancellablePromise<store$0.Tab[]>
     });
 }
 
-export function GetRuntimeCapabilities(viewportWidth: number): $CancellablePromise<platform$0.Capabilities> {
-    return $Call.ByID(776383673, viewportWidth).then(($result: any) => {
-        return $$createType7($result);
-    });
-}
-
 /**
  * GetSettings returns the current settings
  */
 export function GetSettings(): $CancellablePromise<store$0.Settings> {
     return $Call.ByID(1498150232).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType7($result);
     });
 }
 
@@ -202,10 +189,6 @@ export function GetTabAnnotations(tabID: string, pageNumber: number): $Cancellab
     return $Call.ByID(4116741406, tabID, pageNumber);
 }
 
-export function GetTabContentURL(id: string): $CancellablePromise<string> {
-    return $Call.ByID(2639814362, id);
-}
-
 /**
  * GetTabs returns the list of tabs (backward compatibility)
  */
@@ -220,7 +203,7 @@ export function GetTabs(): $CancellablePromise<store$0.Tab[]> {
  */
 export function GetTabsPaginated(categoryId: string, page: number, pageSize: number, searchQuery: string, filterBy: string[], isGlobal: boolean, sortBy: string, sortDesc: boolean): $CancellablePromise<$models.TabsResponse> {
     return $Call.ByID(3108702856, categoryId, page, pageSize, searchQuery, filterBy, isGlobal, sortBy, sortDesc).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType8($result);
     });
 }
 
@@ -317,7 +300,7 @@ export function SaveSettings(s: store$0.Settings): $CancellablePromise<void> {
  */
 export function SaveTab(tab: store$0.Tab, shouldCopy: boolean): $CancellablePromise<store$0.Tab | null> {
     return $Call.ByID(3164259813, tab, shouldCopy).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType9($result);
     });
 }
 
@@ -333,7 +316,7 @@ export function SaveTabAnnotations(tabID: string, pageNumber: number, jsonData: 
  */
 export function SelectFiles(): $CancellablePromise<string[]> {
     return $Call.ByID(1977005426).then(($result: any) => {
-        return $$createType11($result);
+        return $$createType10($result);
     });
 }
 
@@ -446,7 +429,7 @@ export function WebDAVCheckStatus(): $CancellablePromise<boolean> {
  */
 export function WebDAVCheckVolumeHealth(): $CancellablePromise<{ [_ in string]?: boolean }> {
     return $Call.ByID(2656731494).then(($result: any) => {
-        return $$createType12($result);
+        return $$createType11($result);
     });
 }
 
@@ -462,7 +445,7 @@ export function WebDAVCleanupOrphanedTabs(): $CancellablePromise<number> {
  */
 export function WebDAVCreateVolume(volumeName: string, remotePath: string): $CancellablePromise<store$0.CloudVolume | null> {
     return $Call.ByID(2126856860, volumeName, remotePath).then(($result: any) => {
-        return $$createType14($result);
+        return $$createType13($result);
     });
 }
 
@@ -472,7 +455,7 @@ export function WebDAVCreateVolume(volumeName: string, remotePath: string): $Can
  */
 export function WebDAVDiscoverVolumes(): $CancellablePromise<store$0.CloudVolume[]> {
     return $Call.ByID(3232619432).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType14($result);
     });
 }
 
@@ -510,7 +493,7 @@ export function WebDAVIsReady(): $CancellablePromise<boolean> {
  */
 export function WebDAVListDir(url: string, user: string, password: string, dir: string): $CancellablePromise<store$0.RemoteFile[]> {
     return $Call.ByID(1130914849, url, user, password, dir).then(($result: any) => {
-        return $$createType17($result);
+        return $$createType16($result);
     });
 }
 
@@ -519,7 +502,7 @@ export function WebDAVListDir(url: string, user: string, password: string, dir: 
  */
 export function WebDAVListRemoteDirectories(url: string, user: string, password: string, dir: string): $CancellablePromise<string[]> {
     return $Call.ByID(3488981299, url, user, password, dir).then(($result: any) => {
-        return $$createType11($result);
+        return $$createType10($result);
     });
 }
 
@@ -543,7 +526,7 @@ export function WebDAVReconnect(): $CancellablePromise<void> {
  */
 export function WebDAVScanRemoteFiles(url: string, user: string, password: string, dir: string): $CancellablePromise<store$0.RemoteFile[]> {
     return $Call.ByID(2926196124, url, user, password, dir).then(($result: any) => {
-        return $$createType17($result);
+        return $$createType16($result);
     });
 }
 
@@ -569,14 +552,13 @@ const $$createType3 = $models.PluginInfo.createFrom;
 const $$createType4 = $Create.Array($$createType3);
 const $$createType5 = store$0.Tab.createFrom;
 const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = platform$0.Capabilities.createFrom;
-const $$createType8 = store$0.Settings.createFrom;
-const $$createType9 = $models.TabsResponse.createFrom;
-const $$createType10 = $Create.Nullable($$createType5);
-const $$createType11 = $Create.Array($Create.Any);
-const $$createType12 = $Create.Map($Create.Any, $Create.Any);
-const $$createType13 = store$0.CloudVolume.createFrom;
-const $$createType14 = $Create.Nullable($$createType13);
-const $$createType15 = $Create.Array($$createType13);
-const $$createType16 = store$0.RemoteFile.createFrom;
-const $$createType17 = $Create.Array($$createType16);
+const $$createType7 = store$0.Settings.createFrom;
+const $$createType8 = $models.TabsResponse.createFrom;
+const $$createType9 = $Create.Nullable($$createType5);
+const $$createType10 = $Create.Array($Create.Any);
+const $$createType11 = $Create.Map($Create.Any, $Create.Any);
+const $$createType12 = store$0.CloudVolume.createFrom;
+const $$createType13 = $Create.Nullable($$createType12);
+const $$createType14 = $Create.Array($$createType12);
+const $$createType15 = store$0.RemoteFile.createFrom;
+const $$createType16 = $Create.Array($$createType15);

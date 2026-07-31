@@ -6,11 +6,12 @@ type MidiCallback = (message: WebMidi.MIDIMessageEvent) => void
 export class MidiService {
   private static instance: MidiService
   private access: WebMidi.MIDIAccess | null = null
-  private initialized = false
   private learnCallback: ((mapping: MidiMapping) => void) | null = null
   private eventListeners: Set<MidiCallback> = new Set()
 
-  private constructor() {}
+  private constructor() {
+    this.init()
+  }
 
   public static getInstance(): MidiService {
     if (!MidiService.instance) {
@@ -19,10 +20,7 @@ export class MidiService {
     return MidiService.instance
   }
 
-  public async initialize() {
-    if (this.initialized) return
-    this.initialized = true
-
+  private async init() {
     if (!navigator.requestMIDIAccess) {
       console.warn('Web MIDI API not supported in this browser.')
       return
@@ -33,7 +31,6 @@ export class MidiService {
       this.access.onstatechange = () => this.updateInputs()
       this.updateInputs()
     } catch (err) {
-      this.initialized = false
       console.error('Failed to access MIDI devices:', err)
     }
   }

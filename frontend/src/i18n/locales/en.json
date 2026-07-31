@@ -2,8 +2,6 @@
   "nav": {
     "home": "Home",
     "library": "Library",
-    "offline": "Offline",
-    "search": "Search",
     "settings": "Settings",
     "plugins": "Plugins",
     "back": ".. (Back)"
