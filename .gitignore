@@ -15,3 +15,13 @@ phases/
 *.exe
 .task/
 .worktrees/
+
+# Generated test artifacts
+frontend/playwright-report/
+frontend/test-results/
+
+# Local development tool state
+.diagnostics/
+.gax/
+.gemini/
+.superpowers/
