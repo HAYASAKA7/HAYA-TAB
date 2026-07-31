@@ -1,88 +1,151 @@
 # HAYA-TAB
 
-A lightweight music tab manager for guitarists and musicians, built with Go and Wails.
+Organize, read, play, and sync your music tabs from one lightweight desktop app.
 
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20iOS-blue)
-![Version](https://img.shields.io/badge/version-3.1.7-green)
-![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
+[![Latest release](https://img.shields.io/github/v/release/HAYASAKA7/HAYA-TAB?label=release)](https://github.com/HAYASAKA7/HAYA-TAB/releases/latest)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-## ✨ Features
+**[Download the latest release →](https://github.com/HAYASAKA7/HAYA-TAB/releases/latest)**
 
-- **Tab Management** - Organize your PDF, Guitar Pro (.gp, .gp5, .gpx), and MusicXML (.xml, .musicxml, .mxl) tabs in one place
-- **Upload or Link** - Upload tabs to internal storage or link existing files from your filesystem
-- **Advanced Search** - **Instant Full-Text Search (FTS5)** across titles, artists, and albums with fuzzy matching
-- **Real-time Sync** - Automatically watches synced folders for changes; **Non-destructive** import (renames duplicates)
-- **Cloud Sync** - **WebDAV** integration with multi-device support via volume fingerprints; on-demand cloud file access and uploads with automatic metadata tracking
-- **PDF Annotation Layer** - Non-destructive transparent canvas annotations (pen/highlighter/eraser) stored as lightweight JSON, without modifying original PDF files; includes a compact toolbar menu with current-tool icon indicator
-- **Smart Metadata** - Auto-parse info from filenames; **Bi-directional sync** with Guitar Pro internal metadata
-- **Tag Support** - Add version/part tags (e.g., "Lead Guitar", "Bass", "First Version")
-- **Plugin System** - Extend functionality with JavaScript plugins (e.g., AI Metadata Enhancer)
-- **Customizable Environment** - Change storage locations for managed tabs and covers to customize your setup
-- **Album Artwork** - Automatic cover art fetching from iTunes; **High-performance** concurrent downloads
-- **Categories** - Organize tabs into virtual folders
-- **Batch Operations** - Select and move/delete multiple tabs at once
-- **Rich Internal Viewer**:
-  - **PDF:** Built-in viewer with **Auto-Scroll** and non-destructive **Annotation Layer** (pen/highlighter/eraser)
-  - **Guitar Pro:** alphaTab engine with **Looping**, **Section Playback**, **Speed Control**, and **Floating Toolbar**
-- **MIDI Pedal Support** - Control page turning, playback (Play/Pause), and **Smooth Scrolling** (via Expression Pedal) with any standard MIDI foot controller; includes **MIDI Learn** for easy mapping.
-- **Internationalization** - Full support for **English, Chinese (Simplified/Traditional), and Japanese**; **Auto-detects system language** on first launch
-- **Modern UI** - Dark/Light theme, **Auto-saving settings**, and responsive Grid/List views
+<!--
+README SCREENSHOT: Library overview
+Add docs/assets/readme/library.webp (recommended 1600x900, 16:9).
+Capture a populated desktop library with album artwork, categories, search, and
+the sidebar visible. Do not include personal file paths or private library data.
+Then uncomment this block:
+<p align="center">
+  <img src="docs/assets/readme/library.webp" alt="HAYA-TAB desktop library showing tabs, categories, search, and album artwork" width="900">
+</p>
+-->
 
-## 📦 Installation
+HAYA-TAB helps musicians:
 
-### Pre-built Binary
+- Keep PDF, Guitar Pro, and MusicXML files in one searchable library.
+- Practice without leaving the app using built-in PDF and AlphaTab viewers.
+- Carry the same organized library between computers through WebDAV.
 
-Download the latest release from the [Releases](https://github.com/HAYASAKA7/HAYA-TAB/releases) page.
+## See HAYA-TAB in action
 
-#### 🍎 macOS Users (Unverified Developer)
+### Read, annotate, and perform
 
-Since the application is not signed with an Apple Developer account, macOS may show a warning like "cannot be opened because the developer cannot be verified" or "app is damaged".
+Open PDFs inside HAYA-TAB, use hands-free auto-scroll, and add pen or highlighter
+notes on a non-destructive layer that leaves the original score untouched.
 
-To fix this:
+Open Guitar Pro and MusicXML files with AlphaTab to view notation, play parts,
+loop sections, and adjust playback speed while you practice.
 
-1. Go to **System Settings** -> **Privacy & Security**.
-2. Scroll down to the Security section and click **"Open Anyway"** for HAYA-TAB.
-3. Alternatively, run the following command in your terminal to remove the quarantine attribute (assuming you moved the app to `/Applications`):
+<!--
+README SCREENSHOTS: Practice viewers
+Add:
+- docs/assets/readme/pdf-annotations.webp (recommended 1200x750)
+- docs/assets/readme/alphatab-player.webp (recommended 1200x750)
+Use the same theme and window treatment. Show a visible annotation in the PDF
+capture and playback plus loop controls in the AlphaTab capture. Do not include
+personal paths, private scores, or identifying library data.
+Then uncomment this block:
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/readme/pdf-annotations.webp" alt="HAYA-TAB PDF viewer with non-destructive annotation controls" width="100%">
+    </td>
+    <td width="50%">
+      <img src="docs/assets/readme/alphatab-player.webp" alt="HAYA-TAB AlphaTab viewer with playback and looping controls" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><strong>PDF reading and annotations</strong></td>
+    <td align="center"><strong>AlphaTab playback and looping</strong></td>
+  </tr>
+</table>
+-->
+
+### Keep your cloud library close
+
+Connect a WebDAV server to discover cloud volumes, browse remote tabs, stream
+files on demand, and download the pieces you want available offline. HAYA-TAB
+preserves metadata and category organization across computers.
+
+<!--
+README SCREENSHOT: Cloud library
+Add docs/assets/readme/cloud-library.webp (recommended 1600x900, 16:9).
+Show the cloud library or remote file workflow with useful volume and file
+context. Hide credentials, server addresses, account names, and private paths.
+Then uncomment this block:
+<p align="center">
+  <img src="docs/assets/readme/cloud-library.webp" alt="HAYA-TAB cloud library browsing tabs stored on WebDAV volumes" width="900">
+</p>
+-->
+
+## Supported formats
+
+| Format | Extensions | Built-in experience |
+| --- | --- | --- |
+| PDF | `.pdf` | Reader, auto-scroll, and non-destructive annotations |
+| Guitar Pro | `.gp`, `.gp5`, `.gpx` | Notation, playback, looping, section playback, and speed control |
+| MusicXML | `.xml`, `.musicxml`, `.mxl` | Notation and playback through AlphaTab |
+
+## What you can do
+
+- **Organize** — Upload files or link them in place, group tabs into categories,
+  add part/version tags, search titles, artists, and albums, and manage multiple
+  tabs in a batch.
+- **Practice** — Read and annotate PDFs, play Guitar Pro and MusicXML scores,
+  loop sections, change speed, use auto-scroll, and map viewer actions to a MIDI
+  foot controller.
+- **Sync** — Watch local folders for new files and use WebDAV volumes for
+  multi-computer access, on-demand cloud files, uploads, and lightweight
+  annotation sync.
+- **Customize** — Choose light or dark themes, configure key bindings and
+  storage locations, use English, Simplified or Traditional Chinese, or
+  Japanese, and extend metadata workflows with JavaScript plugins.
+
+## Quick start
+
+1. **Add music:** Right-click empty library space and choose **Upload TAB** or
+   **Link Local TAB**.
+2. **Organize it:** Create categories, edit metadata, and add part or version
+   tags.
+3. **Bring in folders:** Add sync paths in Settings to import supported files
+   automatically.
+4. **Connect your cloud:** Configure WebDAV in Settings to browse and sync a
+   remote library. See the [WebDAV guide](docs/WEBDAV.md).
+5. **Start practicing:** Open a tab normally or choose **Open with Inner
+   Viewer** for PDF and AlphaTab practice tools.
+
+## Installation
+
+Download the current build for your operating system from
+[GitHub Releases](https://github.com/HAYASAKA7/HAYA-TAB/releases/latest).
+
+<details>
+<summary>macOS reports that HAYA-TAB cannot be verified or is damaged</summary>
+
+HAYA-TAB is not currently signed with an Apple Developer certificate.
+
+1. Open **System Settings → Privacy & Security**.
+2. Find the blocked HAYA-TAB launch and select **Open Anyway**.
+3. If macOS still blocks the app after you move it into `/Applications`, run:
+
    ```bash
    xattr -cr /Applications/HAYA-TAB.app
    ```
 
-## 🚀 Usage
+</details>
 
-1. **Add Tabs**: Right-click on empty space → "Upload TAB" or "Link Local TAB"
-2. **Organize**: Create categories and move tabs into them
-3. **Sync Folders**: Go to Settings → Add sync paths to auto-import tabs from folders
-4. **Cloud Sync**: Configure WebDAV in Settings to access your cloud library. See [WebDAV Guide](docs/WEBDAV.md).
-5. **PDF Annotation**: In the PDF viewer, open the annotation menu from the toolbar, choose tools (selection/pen/highlighter/eraser), and draw on the non-destructive overlay layer.
-6. **View Tabs**: Click a tab to open with system default, or right-click → "Open with Inner Viewer"
-7. **Key Bindings**: Customize viewer controls (Loop, Auto-scroll, etc.) in Settings
+## Documentation
 
-## 🛠️ For Developers & Advanced Users
+- [Development guide](docs/DEVELOPMENT.md)
+- [Mobile development guide](docs/MOBILE_DEVELOPMENT.md) — experimental
+- [Architecture overview](docs/ARCHITECTURE.md)
+- [Contributing guidelines](docs/CONTRIBUTING.md)
+- [WebDAV guide](docs/WEBDAV.md)
 
-Information about building from source, testing, project architecture, and the tech stack has been moved to our developer documentation:
+## License
 
-- [Development Guide](docs/DEVELOPMENT.md)
-- [Mobile Development Guide](docs/MOBILE_DEVELOPMENT.md)
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [Contributing Guidelines](docs/CONTRIBUTING.md)
-- [WebDAV Guide](docs/WEBDAV.md)
+HAYA-TAB is available under the [Apache License 2.0](LICENSE). See
+[NOTICE](NOTICE) for attribution information.
 
-## ⚖️ License & Legal Notice
+## Author
 
-HAYA-TAB is open-sourced software licensed under the **Apache License 2.0**.
-
-### Terms and Conditions
-
-This project is free for personal and commercial use, modification, and distribution, provided that:
-
-1. **License & Copyright**: You include a copy of the Apache 2.0 license and the original copyright notice in any substantial portion of the software.
-2. **State Changes**: You explicitly state significant changes made to the files.
-3. **No Liability**: The software is provided "as is", without warranty of any kind.
-
-See the [LICENSE](LICENSE) file for the full legal text and [NOTICE](NOTICE) for attribution requirements.
-
-## 👤 Author
-
-**HAYASAKA7** - [cyanluxury267@gmail.com](mailto:cyanluxury267@gmail.com)
-
-![Stats from the past 12 weeks](https://repopulse-l41y.onrender.com/api/status?repo=HAYASAKA7/HAYA-TAB&period=weekly&count=12)
+**HAYASAKA7** — [cyanluxury267@gmail.com](mailto:cyanluxury267@gmail.com)
