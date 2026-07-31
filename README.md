@@ -8,16 +8,9 @@ Organize, read, play, and sync your music tabs from one lightweight desktop app.
 
 **[Download the latest release →](https://github.com/HAYASAKA7/HAYA-TAB/releases/latest)**
 
-<!--
-README SCREENSHOT: Library overview
-Add docs/assets/readme/library.webp (recommended 1600x900, 16:9).
-Capture a populated desktop library with album artwork, categories, search, and
-the sidebar visible. Do not include personal file paths or private library data.
-Then uncomment this block:
 <p align="center">
-  <img src="docs/assets/readme/library.webp" alt="HAYA-TAB desktop library showing tabs, categories, search, and album artwork" width="900">
+  <img src="docs/readme/haya-tab-home.png" alt="HAYA-TAB home view showing recent music tabs with album artwork" width="900">
 </p>
--->
 
 HAYA-TAB helps musicians:
 
@@ -35,22 +28,13 @@ notes on a non-destructive layer that leaves the original score untouched.
 Open Guitar Pro and MusicXML files with AlphaTab to view notation, play parts,
 loop sections, and adjust playback speed while you practice.
 
-<!--
-README SCREENSHOTS: Practice viewers
-Add:
-- docs/assets/readme/pdf-annotations.webp (recommended 1200x750)
-- docs/assets/readme/alphatab-player.webp (recommended 1200x750)
-Use the same theme and window treatment. Show a visible annotation in the PDF
-capture and playback plus loop controls in the AlphaTab capture. Do not include
-personal paths, private scores, or identifying library data.
-Then uncomment this block:
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/assets/readme/pdf-annotations.webp" alt="HAYA-TAB PDF viewer with non-destructive annotation controls" width="100%">
+      <img src="docs/readme/haya-tab-pdf-annotations.png" alt="HAYA-TAB PDF viewer with a non-destructive annotation drawn over guitar notation" width="100%">
     </td>
     <td width="50%">
-      <img src="docs/assets/readme/alphatab-player.webp" alt="HAYA-TAB AlphaTab viewer with playback and looping controls" width="100%">
+      <img src="docs/readme/haya-tab-alphatab-player.png" alt="HAYA-TAB AlphaTab viewer with playback, looping, and speed controls" width="100%">
     </td>
   </tr>
   <tr>
@@ -58,7 +42,6 @@ Then uncomment this block:
     <td align="center"><strong>AlphaTab playback and looping</strong></td>
   </tr>
 </table>
--->
 
 ### Keep your cloud library close
 
@@ -66,16 +49,9 @@ Connect a WebDAV server to discover cloud volumes, browse remote tabs, stream
 files on demand, and download the pieces you want available offline. HAYA-TAB
 preserves metadata and category organization across computers.
 
-<!--
-README SCREENSHOT: Cloud library
-Add docs/assets/readme/cloud-library.webp (recommended 1600x900, 16:9).
-Show the cloud library or remote file workflow with useful volume and file
-context. Hide credentials, server addresses, account names, and private paths.
-Then uncomment this block:
 <p align="center">
-  <img src="docs/assets/readme/cloud-library.webp" alt="HAYA-TAB cloud library browsing tabs stored on WebDAV volumes" width="900">
+  <img src="docs/readme/haya-tab-cloud-library.png" alt="HAYA-TAB cloud library browsing tabs stored on a WebDAV volume" width="900">
 </p>
--->
 
 ## Supported formats
 
